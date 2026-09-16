@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:wyrm_desk/core/theme.dart';
+import 'package:wyrm_desk/home/homepage.dart';
 
 void main() {
   runApp(const ProviderScope(child: WyrmDeskApp()));
@@ -13,15 +15,8 @@ class WyrmDeskApp extends StatelessWidget {
     return MaterialApp(
       title: 'Wyrm Desk',
       debugShowCheckedModeBanner: false,
-      theme: ThemeData.dark(useMaterial3: true),
-      home: const Scaffold(
-        body: Center(
-          child: Text(
-            'Wyrm Desk Companion',
-            style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-          ),
-        ),
-      ),
+      theme: AppTheme.darkTheme,
+      home: const HomePage(),
     );
   }
 }
