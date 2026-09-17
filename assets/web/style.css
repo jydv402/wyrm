@@ -1,0 +1,377 @@
+/* ==========================================================================
+   WYRM DESK — SIMPLIFIED NOTION-STYLE REMOTE COMPANION
+   Layout: Single Column Stream with Center-Aligned Page Switcher
+   Palette: Minimalist Dark (#121212 Canvas, #181818 Surface, #ff9500 Amber)
+   ========================================================================== */
+
+/* Design Tokens */
+:root {
+  --bg-canvas: #121212;
+  --bg-surface: #181818;
+  --bg-surface-hover: #202020;
+  --bg-surface-active: #282828;
+  --bg-track: #0e0e0e;
+
+  --border-subtle: 1px solid rgba(255, 255, 255, 0.08);
+  --border-hover: 1px solid rgba(255, 255, 255, 0.16);
+  --border-amber: 1px solid rgba(255, 149, 0, 0.4);
+
+  --accent-amber: #ff9500;
+  --accent-amber-glow: rgba(255, 149, 0, 0.25);
+  --accent-green: #34d399;
+
+  --text-primary: #ededed;
+  --text-secondary: #8c8c8c;
+  --text-muted: #5a5a5a;
+
+  --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Inter", Helvetica, Arial, sans-serif;
+  --font-mono: ui-monospace, "SF Mono", "Menlo", "Cascadia Code", monospace;
+
+  --transition-fast: all 0.16s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Reset & Canvas */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  -webkit-tap-highlight-color: transparent;
+}
+
+body {
+  background-color: var(--bg-canvas);
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  user-select: none;
+  -webkit-font-smoothing: antialiased;
+}
+
+.app-container {
+  width: 100%;
+  max-width: 580px;
+  padding: 24px 16px 48px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* ==========================================================================
+   TOP HEADER: WORDMARK + CENTER PAGE SWITCHER + NETWORK PILL
+   ========================================================================== */
+.app-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  background: var(--bg-surface);
+  border: var(--border-subtle);
+  border-radius: 16px;
+  gap: 8px;
+}
+
+.header-brand {
+  display: flex;
+  align-items: center;
+  color: #ffffff;
+  flex-shrink: 0;
+}
+
+.header-logo {
+  height: 22px;
+  width: auto;
+  fill: currentColor;
+}
+
+/* Center-Aligned Capsule Page Switcher */
+.page-switcher {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  background: var(--bg-track);
+  padding: 3px;
+  border-radius: 12px;
+  border: var(--border-subtle);
+}
+
+.switcher-pill {
+  background: transparent;
+  border: 1px solid transparent;
+  color: var(--text-secondary);
+  font-family: var(--font-sans);
+  font-size: 11px;
+  font-weight: 600;
+  padding: 5px 9px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: var(--transition-fast);
+}
+
+.switcher-pill:hover {
+  color: var(--text-primary);
+}
+
+.switcher-pill.active {
+  background: var(--bg-surface-active);
+  color: #ffffff;
+  border-color: rgba(255, 255, 255, 0.16);
+  font-weight: 700;
+}
+
+/* Right Network Badge */
+.network-badge {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 600;
+  padding: 5px 9px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.04);
+  border: var(--border-subtle);
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+
+.pulse-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--text-muted);
+  transition: var(--transition-fast);
+}
+
+.network-badge.connected {
+  color: var(--accent-green);
+  border-color: rgba(52, 211, 153, 0.25);
+}
+
+.network-badge.connected .pulse-dot {
+  background: var(--accent-green);
+  box-shadow: 0 0 6px var(--accent-green);
+}
+
+/* ==========================================================================
+   CARDS STREAM (SINGLE COLUMN LAYOUT)
+   ========================================================================== */
+.cards-stream {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.layout-card {
+  background: var(--bg-surface);
+  border: var(--border-subtle);
+  border-radius: 18px;
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  transition: var(--transition-fast);
+}
+
+.layout-card:hover {
+  border-color: var(--border-hover);
+  background: rgba(28, 28, 28, 0.95);
+}
+
+.layout-card.filtered-out {
+  display: none !important;
+}
+
+/* Card Header */
+.card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.card-title-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.card-glyph {
+  font-size: 14px;
+}
+
+.card-name {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-primary);
+  letter-spacing: 0.2px;
+}
+
+.status-capsule {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.05);
+  border: var(--border-subtle);
+  color: var(--text-secondary);
+  letter-spacing: 0.5px;
+}
+
+.status-capsule.amber {
+  color: var(--accent-amber);
+  background: rgba(255, 149, 0, 0.12);
+  border-color: rgba(255, 149, 0, 0.25);
+}
+
+/* Segmented Size Bar */
+.segmented-bar {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 4px;
+  background: var(--bg-track);
+  padding: 4px;
+  border-radius: 12px;
+  border: var(--border-subtle);
+}
+
+.segmented-bar.four-segment {
+  grid-template-columns: repeat(4, 1fr);
+}
+
+.segment-btn {
+  background: transparent;
+  border: 1px solid transparent;
+  color: var(--text-secondary);
+  font-family: var(--font-sans);
+  font-size: 12px;
+  font-weight: 600;
+  padding: 8px 2px;
+  border-radius: 8px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: var(--transition-fast);
+}
+
+.segment-btn:hover {
+  color: var(--text-primary);
+}
+
+.segment-btn.active {
+  background: var(--bg-surface-active);
+  color: #ffffff;
+  border-color: rgba(255, 255, 255, 0.18);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
+  font-weight: 700;
+}
+
+.segment-btn.amber.active-amber {
+  background: rgba(255, 149, 0, 0.18);
+  color: var(--accent-amber);
+  border-color: var(--accent-amber);
+  box-shadow: 0 0 10px var(--accent-amber-glow);
+  font-weight: 700;
+}
+
+/* 24-Hour Format Setting Row */
+.setting-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: 6px;
+  border-top: var(--border-subtle);
+}
+
+.setting-desc {
+  display: flex;
+  flex-direction: column;
+}
+
+.setting-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.setting-subtext {
+  font-size: 11px;
+  color: var(--text-secondary);
+  margin-top: 1px;
+}
+
+/* Switch Toggle Pill */
+.switch-pill {
+  width: 40px;
+  height: 22px;
+  border-radius: 11px;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  position: relative;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: var(--transition-fast);
+}
+
+.switch-thumb {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #ffffff;
+  transition: var(--transition-fast);
+}
+
+.switch-pill.active {
+  background: var(--accent-amber);
+  border-color: var(--accent-amber);
+  box-shadow: 0 0 10px var(--accent-amber-glow);
+}
+
+.switch-pill.active .switch-thumb {
+  transform: translateX(18px);
+  background: #000000;
+}
+
+/* Clock Nightstand OLED Mode active styling */
+#card-clock.nightstand-active {
+  background: #000000;
+  border: 1.5px solid rgba(255, 149, 0, 0.4);
+  box-shadow: 0 0 24px var(--accent-amber-glow);
+}
+
+/* Mobile Responsiveness */
+@media (max-width: 480px) {
+  .app-container {
+    padding: 16px 12px 36px;
+  }
+
+  .app-header {
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 10px;
+  }
+
+  .header-brand {
+    order: 1;
+  }
+
+  .network-badge {
+    order: 2;
+  }
+
+  .page-switcher {
+    order: 3;
+    width: 100%;
+    justify-content: space-around;
+  }
+
+  .switcher-pill {
+    padding: 5px 6px;
+    font-size: 10px;
+  }
+}

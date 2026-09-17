@@ -131,9 +131,11 @@ void main() {
     'TopPillBar renders header_text.svg brand wordmark on the left',
     (WidgetTester tester) async {
       await tester.pumpWidget(
-        const MaterialApp(
-          home: Scaffold(
-            body: TopPillBar(),
+        const ProviderScope(
+          child: MaterialApp(
+            home: Scaffold(
+              body: TopPillBar(),
+            ),
           ),
         ),
       );
