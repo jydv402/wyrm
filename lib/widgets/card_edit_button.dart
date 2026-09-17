@@ -13,22 +13,38 @@ class CardEditButton extends StatelessWidget {
   /// Dark mode toggle for the button glyph and container based on card contrast.
   final bool isDarkGlyph;
 
+  /// Enables the 4th Nightstand mode option for dedicated clock cards.
+  final bool showNightstandOption;
+
   const CardEditButton({
     super.key,
     required this.onSelectSize,
     this.currentSize = CardSize.small,
     this.isDarkGlyph = true,
+    this.showNightstandOption = false,
   });
 
   @override
   Widget build(BuildContext context) {
-    final iconColor = isDarkGlyph ? Colors.black87 : Colors.white;
-    final containerColor = isDarkGlyph
-        ? Colors.black.withValues(alpha: 0.12)
-        : Colors.white.withValues(alpha: 0.16);
-    final borderColor = isDarkGlyph
-        ? Colors.black.withValues(alpha: 0.2)
-        : Colors.white.withValues(alpha: 0.25);
+    final isNightstand = currentSize == CardSize.nightstand;
+
+    final Color iconColor;
+    final Color containerColor;
+    final Color borderColor;
+
+    if (isNightstand) {
+      iconColor = const Color(0xFFFF9500).withValues(alpha: 0.6);
+      containerColor = const Color(0xFFFF9500).withValues(alpha: 0.1);
+      borderColor = const Color(0xFFFF9500).withValues(alpha: 0.2);
+    } else if (isDarkGlyph) {
+      iconColor = Colors.black87;
+      containerColor = Colors.black.withValues(alpha: 0.12);
+      borderColor = Colors.black.withValues(alpha: 0.2);
+    } else {
+      iconColor = Colors.white;
+      containerColor = Colors.white.withValues(alpha: 0.16);
+      borderColor = Colors.white.withValues(alpha: 0.25);
+    }
 
     return Positioned(
       top: 12,
@@ -71,6 +87,13 @@ class CardEditButton extends StatelessWidget {
               icon: Icons.fullscreen_rounded,
               isSelected: currentSize == CardSize.fullscreen,
             ),
+            if (showNightstandOption)
+              _buildMenuItem(
+                size: CardSize.nightstand,
+                label: 'Nightstand',
+                icon: Icons.bedtime_rounded,
+                isSelected: currentSize == CardSize.nightstand,
+              ),
           ],
           child: Container(
             width: 32,
@@ -134,4 +157,3 @@ class CardEditButton extends StatelessWidget {
     );
   }
 }
-

@@ -12,7 +12,10 @@ enum CardSize {
   medium,
 
   /// Expands horizontally to occupy the entire viewport width.
-  fullscreen;
+  fullscreen,
+
+  /// Expands to full screen with pitch black canvas and amber nightstand theme.
+  nightstand;
 
   /// Returns the next size in the cycle progression.
   CardSize get next {
@@ -22,6 +25,8 @@ enum CardSize {
       case CardSize.medium:
         return CardSize.fullscreen;
       case CardSize.fullscreen:
+        return CardSize.nightstand;
+      case CardSize.nightstand:
         return CardSize.small;
     }
   }
@@ -35,6 +40,8 @@ enum CardSize {
         return 'Medium';
       case CardSize.fullscreen:
         return 'Fullscreen';
+      case CardSize.nightstand:
+        return 'Nightstand';
     }
   }
 }

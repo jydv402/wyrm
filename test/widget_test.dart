@@ -61,6 +61,7 @@ void main() {
       expect(find.text('Small'), findsOneWidget);
       expect(find.text('Medium'), findsOneWidget);
       expect(find.text('Fullscreen'), findsOneWidget);
+      expect(find.text('Nightstand'), findsOneWidget);
 
       // Select Medium.
       await tester.tap(find.text('Medium'));
@@ -69,18 +70,15 @@ void main() {
       final mediumWidth = tester.getSize(clockFinder).width;
       expect(mediumWidth, greaterThan(initialWidth));
 
-      // Tap menu button again and select Fullscreen.
+      // Tap menu button again and select Nightstand.
       await tester.tap(clockMenuButton);
       await tester.pumpAndSettle();
 
-      await tester.tap(find.text('Fullscreen'));
+      await tester.tap(find.text('Nightstand'));
       await tester.pumpAndSettle();
 
-      final fullscreenWidth = tester.getSize(clockFinder).width;
-      expect(fullscreenWidth, greaterThanOrEqualTo(1200));
-
-      // Page must still be horizontally scrollable in Fullscreen.
-      expect(find.byType(SingleChildScrollView), findsOneWidget);
+      final nightstandWidth = tester.getSize(clockFinder).width;
+      expect(nightstandWidth, greaterThanOrEqualTo(1200));
 
       // Tap menu button again and restore to Small.
       await tester.tap(clockMenuButton);

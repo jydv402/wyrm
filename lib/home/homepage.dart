@@ -112,17 +112,27 @@ class _HomePageState extends ConsumerState<HomePage>
   @override
   Widget build(BuildContext context) {
     final layoutConfig = ref.watch(cardLayoutProvider);
+    final isNightstand = layoutConfig.clock == CardSize.nightstand;
 
     return Scaffold(
       backgroundColor: AppColors.background,
       body: SafeArea(
-        child: Padding(
-          padding: widget.padding,
+        child: AnimatedPadding(
+          duration: const Duration(milliseconds: 380),
+          curve: Curves.easeInOutCubic,
+          padding: isNightstand ? EdgeInsets.zero : widget.padding,
           child: Column(
-            spacing: widget.spacing,
+            spacing: isNightstand ? 0.0 : widget.spacing,
             children: [
-              // Pinned top navigation and status pill bar.
-              widget.topBar ?? const TopPillBar(),
+              // Pinned top navigation and status pill bar, smoothly hidden in nightstand mode.
+              AnimatedContainer(
+                duration: const Duration(milliseconds: 380),
+                curve: Curves.easeInOutCubic,
+                height: isNightstand ? 0.0 : 54.0,
+                clipBehavior: Clip.hardEdge,
+                decoration: const BoxDecoration(),
+                child: widget.topBar ?? const TopPillBar(),
+              ),
 
               // Horizontally scrollable card deck with dynamic animated widths.
               Expanded(
@@ -160,7 +170,8 @@ class _HomePageState extends ConsumerState<HomePage>
 
     // Calculate clock width based on active sizing state.
     final double clockWidth;
-    if (config.clock == CardSize.fullscreen) {
+    if (config.clock == CardSize.fullscreen ||
+        config.clock == CardSize.nightstand) {
       clockWidth = viewportWidth;
     } else if (config.clock == CardSize.medium) {
       clockWidth = mediumWidth;
