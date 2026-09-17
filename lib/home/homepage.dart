@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:wyrm_desk/widgets/calendar_card.dart';
-import 'package:wyrm_desk/widgets/card_layout_state.dart';
-import 'package:wyrm_desk/widgets/card_size_dialog.dart';
-import 'package:wyrm_desk/widgets/clock_card.dart';
-import 'package:wyrm_desk/widgets/habits_card.dart';
-import 'package:wyrm_desk/widgets/tasks_card.dart';
-import 'package:wyrm_desk/widgets/top_pill_bar.dart';
+import 'package:wyrm_desk/calendar/calendar.dart';
+import 'package:wyrm_desk/clock/clock.dart';
+import 'package:wyrm_desk/core/core.dart';
+import 'package:wyrm_desk/habits/habits.dart';
+import 'package:wyrm_desk/tasks/tasks.dart';
+import 'card_layout_state.dart';
+import 'card_size_dialog.dart';
 
 /// Consolidated full-screen ambient desk dashboard and application home page.
 ///

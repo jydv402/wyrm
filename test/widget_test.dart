@@ -1,10 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:wyrm_desk/widgets/widgets.dart';
+import 'package:wyrm_desk/calendar/calendar.dart';
+import 'package:wyrm_desk/clock/clock.dart';
+import 'package:wyrm_desk/core/core.dart';
+import 'package:wyrm_desk/habits/habits.dart';
+import 'package:wyrm_desk/home/home.dart';
+import 'package:wyrm_desk/tasks/tasks.dart';
 
 void main() {
-  testWidgets('DeskLayout renders horizontally scrollable deck with cards',
+  testWidgets('HomePage renders horizontally scrollable deck with cards',
       (WidgetTester tester) async {
     tester.view.physicalSize = const Size(1280, 800);
     tester.view.devicePixelRatio = 1.0;
@@ -13,9 +18,7 @@ void main() {
     await tester.pumpWidget(
       const ProviderScope(
         child: MaterialApp(
-          home: Scaffold(
-            body: DeskLayout(),
-          ),
+          home: HomePage(),
         ),
       ),
     );
@@ -44,9 +47,7 @@ void main() {
     await tester.pumpWidget(
       const ProviderScope(
         child: MaterialApp(
-          home: Scaffold(
-            body: DeskLayout(),
-          ),
+          home: HomePage(),
         ),
       ),
     );
@@ -82,9 +83,7 @@ void main() {
     await tester.pumpWidget(
       const ProviderScope(
         child: MaterialApp(
-          home: Scaffold(
-            body: DeskLayout(),
-          ),
+          home: HomePage(),
         ),
       ),
     );
@@ -133,9 +132,7 @@ void main() {
     await tester.pumpWidget(
       const ProviderScope(
         child: MaterialApp(
-          home: Scaffold(
-            body: DeskLayout(),
-          ),
+          home: HomePage(),
         ),
       ),
     );
@@ -206,4 +203,3 @@ void main() {
     expect(find.byType(TasksCard), findsOneWidget);
   });
 }
-

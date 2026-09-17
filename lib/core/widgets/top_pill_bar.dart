@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:wyrm_desk/core/theme.dart';
-
 import 'bento_box.dart';
 
 /// Top horizontal pill bar container matching the light cream banner in the design.

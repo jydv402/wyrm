@@ -1,10 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:wyrm_desk/core/theme.dart';
-import 'bento_box.dart';
-import 'card_edit_button.dart';
+import 'package:wyrm_desk/core/core.dart';
 
-/// Sage green bento card from the top-center of the reference design.
-class HabitsCard extends StatelessWidget {
+/// Golden yellow main bento card from the bottom-center of the reference design.
+class CalendarCard extends StatelessWidget {
   /// Custom nested content or widget tree.
   final Widget? child;
 
@@ -14,7 +12,7 @@ class HabitsCard extends StatelessWidget {
   /// Whether the card is currently presented in full-screen presentation mode.
   final bool isFullScreen;
 
-  const HabitsCard({
+  const CalendarCard({
     super.key,
     this.child,
     this.onEdit,
@@ -25,7 +23,7 @@ class HabitsCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final content = child ??
         const Text(
-          'Habits',
+          'Calendar',
           style: TextStyle(
             color: AppColors.textOnLight,
             fontWeight: FontWeight.w700,
@@ -34,7 +32,7 @@ class HabitsCard extends StatelessWidget {
         );
 
     return BentoBox(
-      color: AppColors.cardSage,
+      color: AppColors.cardYellow,
       borderRadius: 30.0,
       child: onEdit != null
           ? Stack(

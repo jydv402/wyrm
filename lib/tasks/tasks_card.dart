@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:wyrm_desk/core/theme.dart';
-import 'bento_box.dart';
-import 'card_edit_button.dart';
+import 'package:wyrm_desk/core/core.dart';
 
 /// Safety orange bento card designated for daily task priorities.
 class TasksCard extends StatelessWidget {

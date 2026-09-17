@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:wyrm_desk/core/theme.dart';
+import 'package:wyrm_desk/core/core.dart';
 import 'card_layout_state.dart';
 
 /// Modal dialog allowing the user to select container dimensions for a dashboard card.
