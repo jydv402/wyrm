@@ -1,51 +1,52 @@
 import 'package:flutter/material.dart';
 import 'package:wyrm_desk/core/core.dart';
+import 'package:wyrm_desk/home/card_layout_state.dart';
 
 /// Safety orange bento card designated for daily task priorities.
 class TasksCard extends StatelessWidget {
   /// Custom nested content or widget tree.
   final Widget? child;
 
-  /// Callback to launch the size selection dialog.
-  final VoidCallback? onEdit;
+  /// Callback when a sizing tier is selected from the in-place popup menu.
+  final ValueChanged<CardSize>? onSelectSize;
 
-  /// Whether the card is currently presented in full-screen presentation mode.
-  final bool isFullScreen;
+  /// Active sizing tier for the card.
+  final CardSize currentSize;
 
   const TasksCard({
     super.key,
     this.child,
-    this.onEdit,
-    this.isFullScreen = false,
+    this.onSelectSize,
+    this.currentSize = CardSize.small,
   });
 
   @override
   Widget build(BuildContext context) {
-    final content = child ??
-        const Text(
-          'Tasks',
-          style: TextStyle(
-            color: AppColors.textOnLight,
-            fontWeight: FontWeight.w700,
-            fontSize: 16,
-          ),
-        );
-
     return BentoBox(
       color: AppColors.cardOrange,
       borderRadius: 28.0,
-      child: onEdit != null
-          ? Stack(
-              children: [
-                Center(child: content),
-                CardEditButton(
-                  onTap: onEdit!,
-                  isFullScreen: isFullScreen,
-                  isDarkGlyph: true,
+      child: Stack(
+        children: [
+          Center(
+            child:
+                child ??
+                const Text(
+                  'Tasks',
+                  style: TextStyle(
+                    color: AppColors.textOnLight,
+                    fontWeight: FontWeight.w700,
+                    fontSize: 16,
+                  ),
                 ),
-              ],
-            )
-          : Center(child: content),
+          ),
+          if (onSelectSize != null)
+            CardEditButton(
+              onSelectSize: onSelectSize!,
+              currentSize: currentSize,
+              isDarkGlyph: true,
+            ),
+        ],
+      ),
     );
   }
 }

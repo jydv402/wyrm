@@ -6,13 +6,14 @@ import 'package:wyrm_desk/clock/clock.dart';
 import 'package:wyrm_desk/core/core.dart';
 import 'package:wyrm_desk/habits/habits.dart';
 import 'package:wyrm_desk/tasks/tasks.dart';
+
 import 'card_layout_state.dart';
-import 'card_size_dialog.dart';
 
 /// Consolidated full-screen ambient desk dashboard and application home page.
 ///
-/// Automatically manages full-screen immersive sticky system UI mode,
-/// handles app lifecycle transitions, and presents the responsive bento desk layout.
+/// Features an anchored top navigation bar, horizontally scrollable bento cards
+/// with independent Small, Medium, and Fullscreen sizing, tactile single-tap cycling,
+/// smooth animated resizing, auto-scrolling focus, and a retro bottom scroll indicator.
 class HomePage extends ConsumerStatefulWidget {
   /// Optional custom top bar widget.
   final Widget? topBar;
@@ -52,9 +53,17 @@ class HomePage extends ConsumerStatefulWidget {
 
 class _HomePageState extends ConsumerState<HomePage>
     with WidgetsBindingObserver {
+  late final ScrollController _scrollController;
+
+  final GlobalKey _clockKey = GlobalKey();
+  final GlobalKey _habitsKey = GlobalKey();
+  final GlobalKey _calendarKey = GlobalKey();
+  final GlobalKey _tasksKey = GlobalKey();
+
   @override
   void initState() {
     super.initState();
+    _scrollController = ScrollController();
     WidgetsBinding.instance.addObserver(this);
     _enableFullScreen();
   }
@@ -68,6 +77,7 @@ class _HomePageState extends ConsumerState<HomePage>
 
   @override
   void dispose() {
+    _scrollController.dispose();
     WidgetsBinding.instance.removeObserver(this);
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
     super.dispose();
@@ -77,91 +87,119 @@ class _HomePageState extends ConsumerState<HomePage>
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
   }
 
+  /// Sets the target card size and animates the viewport to bring that card into view.
+  void _handleSelectSize(
+    DashboardCardType type,
+    CardSize size,
+    GlobalKey targetKey,
+  ) {
+    ref.read(cardLayoutProvider.notifier).setCardSize(type, size);
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final targetContext = targetKey.currentContext;
+      if (targetContext != null) {
+        Scrollable.ensureVisible(
+          targetContext,
+          duration: const Duration(milliseconds: 400),
+          curve: Curves.easeInOutCubic,
+          alignment: 0.5,
+        );
+      }
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
-    final layoutState = ref.watch(cardLayoutProvider);
-    final layoutNotifier = ref.read(cardLayoutProvider.notifier);
+    final layoutConfig = ref.watch(cardLayoutProvider);
 
     return Scaffold(
-      body: Padding(
-        padding: widget.padding,
-        child: Column(
-          spacing: widget.spacing,
-          children: [
-            // Pinned top navigation and status pill bar.
-            widget.topBar ?? const TopPillBar(),
+      backgroundColor: AppColors.background,
+      body: SafeArea(
+        child: Padding(
+          padding: widget.padding,
+          child: Column(
+            spacing: widget.spacing,
+            children: [
+              // Pinned top navigation and status pill bar.
+              widget.topBar ?? const TopPillBar(),
 
-            // Body region hosting either the horizontal card deck or an expanded full-screen card.
-            Expanded(
-              child: LayoutBuilder(
-                builder: (context, constraints) {
-                  final activeFullScreen = layoutState.fullScreenCard;
-
-                  return AnimatedSwitcher(
-                    duration: const Duration(milliseconds: 380),
-                    switchInCurve: Curves.easeInOutCubic,
-                    switchOutCurve: Curves.easeInOutCubic,
-                    transitionBuilder: (child, animation) {
-                      return FadeTransition(opacity: animation, child: child);
-                    },
-                    child: activeFullScreen != null
-                        ? _buildFullScreenView(
-                            key: ValueKey(activeFullScreen),
-                            context: context,
-                            cardType: activeFullScreen,
-                            layoutState: layoutState,
-                            notifier: layoutNotifier,
-                          )
-                        : _buildHorizontalDeck(
-                            key: const ValueKey('horizontal_deck_scroll_view'),
-                            context: context,
-                            constraints: constraints,
-                            layoutState: layoutState,
-                            notifier: layoutNotifier,
-                          ),
-                  );
-                },
+              // Horizontally scrollable card deck with dynamic animated widths.
+              Expanded(
+                child: LayoutBuilder(
+                  builder: (context, constraints) {
+                    return _buildScrollableDeck(
+                      context: context,
+                      constraints: constraints,
+                      config: layoutConfig,
+                    );
+                  },
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
   }
 
-  /// Builds the horizontally scrolling bento deck with animated column sizing.
-  Widget _buildHorizontalDeck({
-    required Key key,
+  /// Constructs the horizontal scrolling row with adaptive unstacking.
+  Widget _buildScrollableDeck({
     required BuildContext context,
     required BoxConstraints constraints,
-    required CardLayoutState layoutState,
-    required CardLayoutNotifier notifier,
+    required CardLayoutConfig config,
   }) {
     final viewportWidth = constraints.maxWidth;
+    final mediumWidth = (viewportWidth * 0.5).clamp(380.0, 900.0);
 
-    // Resolve dynamic width for the clock card based on active sizing state.
+    final bool allSmall =
+        config.clock == CardSize.small &&
+        config.habits == CardSize.small &&
+        config.calendar == CardSize.small &&
+        config.tasks == CardSize.small;
+
+    // Calculate clock width based on active sizing state.
     final double clockWidth;
-    if (layoutState.clockSize == ClockCardSize.medium) {
-      clockWidth = (viewportWidth * 0.5).clamp(420.0, 900.0);
+    if (config.clock == CardSize.fullscreen) {
+      clockWidth = viewportWidth;
+    } else if (config.clock == CardSize.medium) {
+      clockWidth = mediumWidth;
     } else {
-      clockWidth = (viewportWidth > 1140)
+      clockWidth = (allSmall && viewportWidth > 1140)
           ? (viewportWidth - widget.spacing * 2) * (3 / 14)
           : 280.0;
     }
 
-    // Resolve column widths for center and right sections.
-    final double centerWidth;
-    final double rightWidth;
-    if (layoutState.clockSize == ClockCardSize.small && viewportWidth > 1140) {
-      centerWidth = (viewportWidth - widget.spacing * 2) * (7 / 14);
-      rightWidth = (viewportWidth - widget.spacing * 2) * (4 / 14);
+    // Determine whether habits and calendar remain stacked or unstack into separate columns.
+    final bool centerStacked =
+        config.habits == CardSize.small && config.calendar == CardSize.small;
+
+    final double centerStackedWidth = (allSmall && viewportWidth > 1140)
+        ? (viewportWidth - widget.spacing * 2) * (7 / 14)
+        : 520.0;
+
+    final double habitsWidth = config.habits == CardSize.fullscreen
+        ? viewportWidth
+        : (config.habits == CardSize.medium ? mediumWidth : 340.0);
+
+    final double calendarWidth = config.calendar == CardSize.fullscreen
+        ? viewportWidth
+        : (config.calendar == CardSize.medium ? mediumWidth : 420.0);
+
+    // Calculate tasks width based on active sizing state.
+    final double tasksWidth;
+    if (config.tasks == CardSize.fullscreen) {
+      tasksWidth = viewportWidth;
+    } else if (config.tasks == CardSize.medium) {
+      tasksWidth = mediumWidth;
     } else {
-      centerWidth = 520.0;
-      rightWidth = 320.0;
+      tasksWidth = (allSmall && viewportWidth > 1140)
+          ? (viewportWidth - widget.spacing * 2) * (4 / 14)
+          : 320.0;
     }
 
     return SingleChildScrollView(
-      key: key,
+      controller: _scrollController,
       scrollDirection: Axis.horizontal,
       physics: const BouncingScrollPhysics(
         parent: AlwaysScrollableScrollPhysics(),
@@ -175,132 +213,107 @@ class _HomePageState extends ConsumerState<HomePage>
           spacing: widget.spacing,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // Left column containing the dynamically resizable clock container.
+            // Clock container with animated width transition.
             AnimatedContainer(
+              key: _clockKey,
               duration: const Duration(milliseconds: 380),
               curve: Curves.easeInOutCubic,
               width: clockWidth,
               child: ClockContainer(
-                onEdit: () => _openSizeDialog(
-                  context: context,
-                  cardType: DashboardCardType.clock,
-                  layoutState: layoutState,
-                  notifier: notifier,
-                ),
+                currentSize: config.clock,
+                onSelectSize: (size) =>
+                    _handleSelectSize(DashboardCardType.clock, size, _clockKey),
                 child: widget.clockWidget,
               ),
             ),
 
-            // Center column containing habits and calendar cards.
-            SizedBox(
-              width: centerWidth,
-              child: Column(
-                spacing: widget.spacing,
-                children: [
-                  Expanded(
-                    flex: 4,
-                    child: HabitsCard(
-                      onEdit: () => _openSizeDialog(
-                        context: context,
-                        cardType: DashboardCardType.habits,
-                        layoutState: layoutState,
-                        notifier: notifier,
+            // Center section: stacked bento column or unstacked independent columns.
+            if (centerStacked)
+              AnimatedContainer(
+                duration: const Duration(milliseconds: 380),
+                curve: Curves.easeInOutCubic,
+                width: centerStackedWidth,
+                child: Column(
+                  spacing: widget.spacing,
+                  children: [
+                    Expanded(
+                      flex: 4,
+                      child: HabitsCard(
+                        key: _habitsKey,
+                        currentSize: config.habits,
+                        onSelectSize: (size) => _handleSelectSize(
+                          DashboardCardType.habits,
+                          size,
+                          _habitsKey,
+                        ),
+                        child: widget.habitsWidget,
                       ),
-                      child: widget.habitsWidget,
                     ),
-                  ),
-                  Expanded(
-                    flex: 7,
-                    child: CalendarCard(
-                      onEdit: () => _openSizeDialog(
-                        context: context,
-                        cardType: DashboardCardType.calendar,
-                        layoutState: layoutState,
-                        notifier: notifier,
+                    Expanded(
+                      flex: 7,
+                      child: CalendarCard(
+                        key: _calendarKey,
+                        currentSize: config.calendar,
+                        onSelectSize: (size) => _handleSelectSize(
+                          DashboardCardType.calendar,
+                          size,
+                          _calendarKey,
+                        ),
+                        child: widget.calendarWidget,
                       ),
-                      child: widget.calendarWidget,
                     ),
-                  ),
-                ],
-              ),
-            ),
-
-            // Right column containing tasks container.
-            SizedBox(
-              width: rightWidth,
-              child: TasksCard(
-                child: widget.tasksWidget,
-                onEdit: () => _openSizeDialog(
-                  context: context,
-                  cardType: DashboardCardType.tasks,
-                  layoutState: layoutState,
-                  notifier: notifier,
+                  ],
                 ),
+              )
+            else ...[
+              AnimatedContainer(
+                key: _habitsKey,
+                duration: const Duration(milliseconds: 380),
+                curve: Curves.easeInOutCubic,
+                width: habitsWidth,
+                child: HabitsCard(
+                  currentSize: config.habits,
+                  onSelectSize: (size) => _handleSelectSize(
+                    DashboardCardType.habits,
+                    size,
+                    _habitsKey,
+                  ),
+                  child: widget.habitsWidget,
+                ),
+              ),
+              AnimatedContainer(
+                key: _calendarKey,
+                duration: const Duration(milliseconds: 380),
+                curve: Curves.easeInOutCubic,
+                width: calendarWidth,
+                child: CalendarCard(
+                  currentSize: config.calendar,
+                  onSelectSize: (size) => _handleSelectSize(
+                    DashboardCardType.calendar,
+                    size,
+                    _calendarKey,
+                  ),
+                  child: widget.calendarWidget,
+                ),
+              ),
+            ],
+
+            // Tasks container with animated width transition.
+            AnimatedContainer(
+              key: _tasksKey,
+              duration: const Duration(milliseconds: 380),
+              curve: Curves.easeInOutCubic,
+              width: tasksWidth,
+              child: TasksCard(
+                currentSize: config.tasks,
+                onSelectSize: (size) =>
+                    _handleSelectSize(DashboardCardType.tasks, size, _tasksKey),
+                child: widget.tasksWidget,
               ),
             ),
           ],
         ),
       ),
-    );
-  }
-
-  /// Builds a full-screen presentation view for any expanded card.
-  Widget _buildFullScreenView({
-    required Key key,
-    required BuildContext context,
-    required DashboardCardType cardType,
-    required CardLayoutState layoutState,
-    required CardLayoutNotifier notifier,
-  }) {
-    final VoidCallback onExit = notifier.restoreDefaultLayout;
-
-    switch (cardType) {
-      case DashboardCardType.clock:
-        return ClockContainer(
-          key: key,
-          isFullScreen: true,
-          onEdit: onExit,
-          child: widget.clockWidget,
-        );
-      case DashboardCardType.habits:
-        return HabitsCard(
-          key: key,
-          isFullScreen: true,
-          onEdit: onExit,
-          child: widget.habitsWidget,
-        );
-      case DashboardCardType.calendar:
-        return CalendarCard(
-          key: key,
-          isFullScreen: true,
-          onEdit: onExit,
-          child: widget.calendarWidget,
-        );
-      case DashboardCardType.tasks:
-        return TasksCard(
-          key: key,
-          isFullScreen: true,
-          onEdit: onExit,
-          child: widget.tasksWidget,
-        );
-    }
-  }
-
-  /// Launches the bento container sizing dialog.
-  void _openSizeDialog({
-    required BuildContext context,
-    required DashboardCardType cardType,
-    required CardLayoutState layoutState,
-    required CardLayoutNotifier notifier,
-  }) {
-    CardSizeDialog.show(
-      context: context,
-      cardType: cardType,
-      currentClockSize: layoutState.clockSize,
-      isFullScreen: layoutState.fullScreenCard == cardType,
-      onClockSizeSelected: (size) => notifier.setClockSize(size),
-      onFullScreenToggled: (isFull) =>
-          notifier.setCardFullScreen(cardType, isFull),
     );
   }
 }

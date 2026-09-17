@@ -1,22 +1,23 @@
 import 'package:flutter/material.dart';
 import 'package:wyrm_desk/core/core.dart';
+import 'package:wyrm_desk/home/card_layout_state.dart';
 
-/// Golden yellow main bento card from the bottom-center of the reference design.
+/// Golden yellow main bento card designated for calendar and agenda items.
 class CalendarCard extends StatelessWidget {
   /// Custom nested content or widget tree.
   final Widget? child;
 
-  /// Callback to launch the size selection dialog.
-  final VoidCallback? onEdit;
+  /// Callback when a sizing tier is selected from the in-place popup menu.
+  final ValueChanged<CardSize>? onSelectSize;
 
-  /// Whether the card is currently presented in full-screen presentation mode.
-  final bool isFullScreen;
+  /// Active sizing tier for the card.
+  final CardSize currentSize;
 
   const CalendarCard({
     super.key,
     this.child,
-    this.onEdit,
-    this.isFullScreen = false,
+    this.onSelectSize,
+    this.currentSize = CardSize.small,
   });
 
   @override
@@ -34,13 +35,13 @@ class CalendarCard extends StatelessWidget {
     return BentoBox(
       color: AppColors.cardYellow,
       borderRadius: 30.0,
-      child: onEdit != null
+      child: onSelectSize != null
           ? Stack(
               children: [
                 Center(child: content),
                 CardEditButton(
-                  onTap: onEdit!,
-                  isFullScreen: isFullScreen,
+                  onSelectSize: onSelectSize!,
+                  currentSize: currentSize,
                   isDarkGlyph: true,
                 ),
               ],

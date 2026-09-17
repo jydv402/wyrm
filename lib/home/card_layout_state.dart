@@ -1,18 +1,45 @@
+import 'dart:convert';
+import 'dart:io';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:path_provider/path_provider.dart';
 
-/// Available sizing dimensions for the clock widget.
-enum ClockCardSize {
+/// Available sizing dimensions for bento cards across the horizontal layout.
+enum CardSize {
   /// Standard compact card width in the horizontal deck.
   small,
 
   /// Expands horizontally to occupy half of the active viewport width.
   medium,
 
-  /// Expands to fill the entire screen below the top bar.
-  large,
+  /// Expands horizontally to occupy the entire viewport width.
+  fullscreen;
+
+  /// Returns the next size in the cycle progression.
+  CardSize get next {
+    switch (this) {
+      case CardSize.small:
+        return CardSize.medium;
+      case CardSize.medium:
+        return CardSize.fullscreen;
+      case CardSize.fullscreen:
+        return CardSize.small;
+    }
+  }
+
+  /// Resolves the human-readable display label.
+  String get label {
+    switch (this) {
+      case CardSize.small:
+        return 'Small';
+      case CardSize.medium:
+        return 'Medium';
+      case CardSize.fullscreen:
+        return 'Fullscreen';
+    }
+  }
 }
 
-/// Identifiers for the modular cards hosted on the dashboard.
+/// Identifiers for the primary modular cards hosted on the dashboard.
 enum DashboardCardType {
   /// Clock and ambient time card.
   clock,
@@ -27,74 +54,171 @@ enum DashboardCardType {
   tasks,
 }
 
-/// Immutable state containing active card dimensions and full-screen overrides.
-class CardLayoutState {
-  /// Current horizontal size configuration for the clock card.
-  final ClockCardSize clockSize;
+/// Immutable configuration model mapping each dashboard card to its active size.
+class CardLayoutConfig {
+  final CardSize clock;
+  final CardSize habits;
+  final CardSize calendar;
+  final CardSize tasks;
 
-  /// Card currently displayed in full-screen mode, or null if in default deck view.
-  final DashboardCardType? fullScreenCard;
-
-  const CardLayoutState({
-    this.clockSize = ClockCardSize.small,
-    this.fullScreenCard,
+  const CardLayoutConfig({
+    this.clock = CardSize.small,
+    this.habits = CardSize.small,
+    this.calendar = CardSize.small,
+    this.tasks = CardSize.small,
   });
 
-  /// Creates a copy of the state with specified values updated.
-  CardLayoutState copyWith({
-    ClockCardSize? clockSize,
-    DashboardCardType? Function()? fullScreenCard,
+  /// Resolves the active size for the specified card type.
+  CardSize sizeFor(DashboardCardType type) {
+    switch (type) {
+      case DashboardCardType.clock:
+        return clock;
+      case DashboardCardType.habits:
+        return habits;
+      case DashboardCardType.calendar:
+        return calendar;
+      case DashboardCardType.tasks:
+        return tasks;
+    }
+  }
+
+  /// Returns a new configuration with the designated card size updated.
+  CardLayoutConfig withSize(DashboardCardType type, CardSize size) {
+    switch (type) {
+      case DashboardCardType.clock:
+        return copyWith(clock: size);
+      case DashboardCardType.habits:
+        return copyWith(habits: size);
+      case DashboardCardType.calendar:
+        return copyWith(calendar: size);
+      case DashboardCardType.tasks:
+        return copyWith(tasks: size);
+    }
+  }
+
+  /// Creates a copy of the configuration with specified overrides.
+  CardLayoutConfig copyWith({
+    CardSize? clock,
+    CardSize? habits,
+    CardSize? calendar,
+    CardSize? tasks,
   }) {
-    return CardLayoutState(
-      clockSize: clockSize ?? this.clockSize,
-      fullScreenCard: fullScreenCard != null ? fullScreenCard() : this.fullScreenCard,
+    return CardLayoutConfig(
+      clock: clock ?? this.clock,
+      habits: habits ?? this.habits,
+      calendar: calendar ?? this.calendar,
+      tasks: tasks ?? this.tasks,
     );
+  }
+
+  /// Serializes the layout configuration to a JSON map.
+  Map<String, dynamic> toJson() {
+    return {
+      'clock': clock.name,
+      'habits': habits.name,
+      'calendar': calendar.name,
+      'tasks': tasks.name,
+    };
+  }
+
+  /// Deserializes the layout configuration from a JSON map.
+  factory CardLayoutConfig.fromJson(Map<String, dynamic> json) {
+    return CardLayoutConfig(
+      clock: _parseSize(json['clock']),
+      habits: _parseSize(json['habits']),
+      calendar: _parseSize(json['calendar']),
+      tasks: _parseSize(json['tasks']),
+    );
+  }
+
+  /// Safely resolves a size enum value from a dynamic JSON token.
+  static CardSize _parseSize(dynamic value) {
+    if (value is String) {
+      final normalized = value.toLowerCase().trim();
+      return CardSize.values.firstWhere(
+        (entry) => entry.name.toLowerCase() == normalized,
+        orElse: () => CardSize.small,
+      );
+    }
+    return CardSize.small;
   }
 }
 
-/// Manages layout mutations, sizing adjustments, and full-screen presentations.
-class CardLayoutNotifier extends Notifier<CardLayoutState> {
+/// Persists and loads layout configuration files on the device filesystem.
+class CardLayoutStorage {
+  /// Resolves the local JSON file reference for card layout preferences.
+  static Future<File> getConfigFile() async {
+    final directory = await getApplicationDocumentsDirectory();
+    return File('${directory.path}/card_layout.json');
+  }
+
+  /// Reads and parses the stored JSON configuration, falling back to defaults.
+  static Future<CardLayoutConfig> loadConfig() async {
+    try {
+      final file = await getConfigFile();
+      if (await file.exists()) {
+        final rawJson = await file.readAsString();
+        final decoded = jsonDecode(rawJson) as Map<String, dynamic>;
+        return CardLayoutConfig.fromJson(decoded);
+      }
+    } catch (_) {
+      // Gracefully fall back to defaults if filesystem operations fail.
+    }
+    return const CardLayoutConfig();
+  }
+
+  /// Writes the current layout configuration as formatted JSON to disk.
+  static Future<void> saveConfig(CardLayoutConfig config) async {
+    try {
+      final file = await getConfigFile();
+      final encoder = const JsonEncoder.withIndent('  ');
+      await file.writeAsString(encoder.convert(config.toJson()));
+    } catch (_) {
+      // Silently ignore disk write failures in constrained environments.
+    }
+  }
+}
+
+/// Manages reactive layout sizing state and persists modifications to JSON.
+class CardLayoutNotifier extends Notifier<CardLayoutConfig> {
   @override
-  CardLayoutState build() {
-    return const CardLayoutState();
+  CardLayoutConfig build() {
+    _initializeFromDisk();
+    return const CardLayoutConfig();
   }
 
-  /// Sets the size of the clock card and adjusts full-screen mode accordingly.
-  void setClockSize(ClockCardSize size) {
-    if (size == ClockCardSize.large) {
-      state = state.copyWith(
-        clockSize: ClockCardSize.large,
-        fullScreenCard: () => DashboardCardType.clock,
-      );
-    } else {
-      state = state.copyWith(
-        clockSize: size,
-        fullScreenCard: () => null,
-      );
-    }
+  /// Asynchronously hydrates the state from local JSON storage.
+  Future<void> _initializeFromDisk() async {
+    final loaded = await CardLayoutStorage.loadConfig();
+    state = loaded;
   }
 
-  /// Expands or restores standard bento cards to and from full-screen presentation.
-  void setCardFullScreen(DashboardCardType cardType, bool isFullScreen) {
-    if (isFullScreen) {
-      state = state.copyWith(
-        fullScreenCard: () => cardType,
-      );
-    } else {
-      state = state.copyWith(
-        fullScreenCard: () => null,
-      );
-    }
+  /// Advances the size of the given card to the next progression tier.
+  void cycleCardSize(DashboardCardType type) {
+    final currentSize = state.sizeFor(type);
+    final nextSize = currentSize.next;
+    final updatedConfig = state.withSize(type, nextSize);
+    state = updatedConfig;
+    CardLayoutStorage.saveConfig(updatedConfig);
   }
 
-  /// Restores all cards back to the default bento layout.
+  /// Sets an explicit size for the given card.
+  void setCardSize(DashboardCardType type, CardSize size) {
+    final updatedConfig = state.withSize(type, size);
+    state = updatedConfig;
+    CardLayoutStorage.saveConfig(updatedConfig);
+  }
+
+  /// Resets all cards back to the default small layout.
   void restoreDefaultLayout() {
-    state = const CardLayoutState();
+    const defaultConfig = CardLayoutConfig();
+    state = defaultConfig;
+    CardLayoutStorage.saveConfig(defaultConfig);
   }
 }
 
 /// Riverpod provider exposing layout state and configuration methods.
 final cardLayoutProvider =
-    NotifierProvider<CardLayoutNotifier, CardLayoutState>(
+    NotifierProvider<CardLayoutNotifier, CardLayoutConfig>(
   CardLayoutNotifier.new,
 );

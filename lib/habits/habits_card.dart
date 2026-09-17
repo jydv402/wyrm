@@ -1,22 +1,23 @@
 import 'package:flutter/material.dart';
 import 'package:wyrm_desk/core/core.dart';
+import 'package:wyrm_desk/home/card_layout_state.dart';
 
-/// Sage green bento card from the top-center of the reference design.
+/// Sage green bento card designated for habit tracking.
 class HabitsCard extends StatelessWidget {
   /// Custom nested content or widget tree.
   final Widget? child;
 
-  /// Callback to launch the size selection dialog.
-  final VoidCallback? onEdit;
+  /// Callback when a sizing tier is selected from the in-place popup menu.
+  final ValueChanged<CardSize>? onSelectSize;
 
-  /// Whether the card is currently presented in full-screen presentation mode.
-  final bool isFullScreen;
+  /// Active sizing tier for the card.
+  final CardSize currentSize;
 
   const HabitsCard({
     super.key,
     this.child,
-    this.onEdit,
-    this.isFullScreen = false,
+    this.onSelectSize,
+    this.currentSize = CardSize.small,
   });
 
   @override
@@ -34,13 +35,13 @@ class HabitsCard extends StatelessWidget {
     return BentoBox(
       color: AppColors.cardSage,
       borderRadius: 30.0,
-      child: onEdit != null
+      child: onSelectSize != null
           ? Stack(
               children: [
                 Center(child: content),
                 CardEditButton(
-                  onTap: onEdit!,
-                  isFullScreen: isFullScreen,
+                  onSelectSize: onSelectSize!,
+                  currentSize: currentSize,
                   isDarkGlyph: true,
                 ),
               ],

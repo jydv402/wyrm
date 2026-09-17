@@ -9,7 +9,8 @@ import 'package:wyrm_desk/home/home.dart';
 import 'package:wyrm_desk/tasks/tasks.dart';
 
 void main() {
-  testWidgets('HomePage renders horizontally scrollable deck with cards',
+  testWidgets(
+      'HomePage renders pinned top bar, horizontal deck, all cards, and scroll indicator',
       (WidgetTester tester) async {
     tester.view.physicalSize = const Size(1280, 800);
     tester.view.devicePixelRatio = 1.0;
@@ -27,18 +28,21 @@ void main() {
     expect(find.byType(TopPillBar), findsOneWidget);
     expect(find.byType(SingleChildScrollView), findsOneWidget);
 
-    // Verify presence of all primary domain cards.
+    // Verify all four domain cards are rendered.
     expect(find.byType(ClockContainer), findsOneWidget);
     expect(find.byType(HabitsCard), findsOneWidget);
     expect(find.byType(CalendarCard), findsOneWidget);
     expect(find.byType(TasksCard), findsOneWidget);
 
-    // Verify edit buttons on each card.
+    // Verify presence of corner cycle buttons on all four cards.
     expect(find.byType(CardEditButton), findsNWidgets(4));
+
+    // Verify presence of retro scroll indicator at the bottom.
+    expect(find.byType(RetroScrollIndicator), findsOneWidget);
   });
 
   testWidgets(
-      'Clock card edit button opens dialog with Small, Medium, and Full Screen',
+      'Clock card in-place popup menu allows selecting Small, Medium, and Fullscreen',
       (WidgetTester tester) async {
     tester.view.physicalSize = const Size(1280, 800);
     tester.view.devicePixelRatio = 1.0;
@@ -52,29 +56,55 @@ void main() {
       ),
     );
 
-    // Tap the edit button on the clock container.
-    final clockEditFinder = find.descendant(
-      of: find.byType(ClockContainer),
+    final clockFinder = find.byType(ClockContainer);
+    final initialWidth = tester.getSize(clockFinder).width;
+
+    final clockMenuButton = find.descendant(
+      of: clockFinder,
       matching: find.byType(CardEditButton),
     );
-    await tester.tap(clockEditFinder);
+
+    // Tap corner button to expand in-place popup menu.
+    await tester.tap(clockMenuButton);
     await tester.pumpAndSettle();
 
-    // Verify the size dialog is displayed with clock-specific options.
-    expect(find.byType(CardSizeDialog), findsOneWidget);
-    expect(find.text('Clock Card Size'), findsOneWidget);
     expect(find.text('Small'), findsOneWidget);
     expect(find.text('Medium'), findsOneWidget);
-    expect(find.text('Full Screen'), findsOneWidget);
+    expect(find.text('Fullscreen'), findsOneWidget);
 
-    // Select Medium and verify dismissal and animated transition.
+    // Select Medium.
     await tester.tap(find.text('Medium'));
     await tester.pumpAndSettle();
-    expect(find.byType(CardSizeDialog), findsNothing);
+
+    final mediumWidth = tester.getSize(clockFinder).width;
+    expect(mediumWidth, greaterThan(initialWidth));
+
+    // Tap menu button again and select Fullscreen.
+    await tester.tap(clockMenuButton);
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Fullscreen'));
+    await tester.pumpAndSettle();
+
+    final fullscreenWidth = tester.getSize(clockFinder).width;
+    expect(fullscreenWidth, greaterThanOrEqualTo(1200));
+
+    // Page must still be horizontally scrollable in Fullscreen.
+    expect(find.byType(SingleChildScrollView), findsOneWidget);
+
+    // Tap menu button again and restore to Small.
+    await tester.tap(clockMenuButton);
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Small'));
+    await tester.pumpAndSettle();
+
+    final restoredWidth = tester.getSize(clockFinder).width;
+    expect(restoredWidth, lessThan(mediumWidth));
   });
 
   testWidgets(
-      'Standard bento card edit button opens dialog and toggles full screen',
+      'Habits card in-place popup menu allows selecting Medium and Fullscreen with adaptive unstacking',
       (WidgetTester tester) async {
     tester.view.physicalSize = const Size(1280, 800);
     tester.view.devicePixelRatio = 1.0;
@@ -88,118 +118,72 @@ void main() {
       ),
     );
 
-    // Tap edit on Habits card.
-    final habitsEditFinder = find.descendant(
-      of: find.byType(HabitsCard),
+    final habitsFinder = find.byType(HabitsCard);
+    final habitsMenuButton = find.descendant(
+      of: habitsFinder,
       matching: find.byType(CardEditButton),
     );
-    await tester.tap(habitsEditFinder);
+
+    // Expand popup menu on Habits card and select Medium.
+    await tester.tap(habitsMenuButton);
     await tester.pumpAndSettle();
 
-    // Verify dialog shows two sizing options for standard cards.
-    expect(find.byType(CardSizeDialog), findsOneWidget);
-    expect(find.text('Habits Card Size'), findsOneWidget);
     expect(find.text('Small'), findsOneWidget);
-    expect(find.text('Full Screen'), findsOneWidget);
-
-    // Expand to full screen.
-    await tester.tap(find.text('Full Screen'));
-    await tester.pumpAndSettle();
-
-    // Verify full screen presentation.
-    expect(find.byType(SingleChildScrollView), findsNothing);
-    expect(find.byType(HabitsCard), findsOneWidget);
-
-    // Tap restore icon on full screen habits card to exit.
-    final restoreButtonFinder = find.descendant(
-      of: find.byType(HabitsCard),
-      matching: find.byType(CardEditButton),
-    );
-    await tester.tap(restoreButtonFinder);
-    await tester.pumpAndSettle();
-
-    // Verify deck is restored.
-    expect(find.byType(SingleChildScrollView), findsOneWidget);
-  });
-
-  testWidgets(
-      'Clock card smoothly transitions between Small, Medium, and Full Screen',
-      (WidgetTester tester) async {
-    tester.view.physicalSize = const Size(1280, 800);
-    tester.view.devicePixelRatio = 1.0;
-    addTearDown(tester.view.resetPhysicalSize);
-
-    await tester.pumpWidget(
-      const ProviderScope(
-        child: MaterialApp(
-          home: HomePage(),
-        ),
-      ),
-    );
-
-    // Verify initial clock width.
-    final initialClockFinder = find.byType(ClockContainer);
-    final initialSize = tester.getSize(initialClockFinder);
-
-    // Expand clock to Medium.
-    final clockEditFinder = find.descendant(
-      of: find.byType(ClockContainer),
-      matching: find.byType(CardEditButton),
-    );
-    await tester.tap(clockEditFinder);
-    await tester.pumpAndSettle();
+    expect(find.text('Medium'), findsOneWidget);
+    expect(find.text('Fullscreen'), findsOneWidget);
 
     await tester.tap(find.text('Medium'));
     await tester.pumpAndSettle();
 
-    // Verify clock expanded horizontally.
-    final mediumSize = tester.getSize(initialClockFinder);
-    expect(mediumSize.width, greaterThan(initialSize.width));
-
-    // Expand clock to Full Screen.
-    await tester.tap(clockEditFinder);
-    await tester.pumpAndSettle();
-
-    await tester.tap(find.text('Full Screen'));
-    await tester.pumpAndSettle();
-
-    // Verify full screen covers the horizontal deck.
-    expect(find.byType(SingleChildScrollView), findsNothing);
-    expect(find.byType(ClockContainer), findsOneWidget);
-
-    // Restore to default layout.
-    final restoreButtonFinder = find.descendant(
-      of: find.byType(ClockContainer),
-      matching: find.byType(CardEditButton),
-    );
-    await tester.tap(restoreButtonFinder);
-    await tester.pumpAndSettle();
-
-    // Verify return to default deck.
-    expect(find.byType(SingleChildScrollView), findsOneWidget);
-  });
-
-  testWidgets(
-      'HomePage renders consolidated dashboard layout directly without extra wrappers',
-      (WidgetTester tester) async {
-    tester.view.physicalSize = const Size(1280, 800);
-    tester.view.devicePixelRatio = 1.0;
-    addTearDown(tester.view.resetPhysicalSize);
-
-    await tester.pumpWidget(
-      const ProviderScope(
-        child: MaterialApp(
-          home: HomePage(),
-        ),
-      ),
-    );
-
-    expect(find.byType(HomePage), findsOneWidget);
-    expect(find.byType(TopPillBar), findsOneWidget);
-    expect(find.byType(SingleChildScrollView), findsOneWidget);
-    expect(find.byType(ClockContainer), findsOneWidget);
+    // Verify both Habits and Calendar remain in the horizontal tree as separate columns.
     expect(find.byType(HabitsCard), findsOneWidget);
     expect(find.byType(CalendarCard), findsOneWidget);
-    expect(find.byType(TasksCard), findsOneWidget);
+    expect(find.byType(SingleChildScrollView), findsOneWidget);
+
+    // Expand popup menu on Habits card and select Fullscreen.
+    await tester.tap(habitsMenuButton);
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Fullscreen'));
+    await tester.pumpAndSettle();
+
+    final habitsFullscreenWidth = tester.getSize(habitsFinder).width;
+    expect(habitsFullscreenWidth, greaterThanOrEqualTo(1200));
+
+    // Scrollable deck remains active to access other widgets.
+    expect(find.byType(SingleChildScrollView), findsOneWidget);
+
+    // Restore to Small.
+    await tester.ensureVisible(habitsMenuButton);
+    await tester.pumpAndSettle();
+    await tester.tap(habitsMenuButton);
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Small'));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(HabitsCard), findsOneWidget);
+    expect(find.byType(CalendarCard), findsOneWidget);
+  });
+
+  test('CardLayoutConfig serializes to and deserializes from JSON accurately', () {
+    const config = CardLayoutConfig(
+      clock: CardSize.medium,
+      habits: CardSize.fullscreen,
+      calendar: CardSize.small,
+      tasks: CardSize.medium,
+    );
+
+    final jsonMap = config.toJson();
+    expect(jsonMap['clock'], 'medium');
+    expect(jsonMap['habits'], 'fullscreen');
+    expect(jsonMap['calendar'], 'small');
+    expect(jsonMap['tasks'], 'medium');
+
+    final restored = CardLayoutConfig.fromJson(jsonMap);
+    expect(restored.clock, CardSize.medium);
+    expect(restored.habits, CardSize.fullscreen);
+    expect(restored.calendar, CardSize.small);
+    expect(restored.tasks, CardSize.medium);
   });
 }
