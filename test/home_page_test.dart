@@ -3,7 +3,6 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:wyrm_desk/home/homepage.dart';
-import 'package:wyrm_desk/widgets/desk_layout.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -36,8 +35,8 @@ void main() {
       isTrue,
     );
 
-    // Verify DeskLayout is present
-    expect(find.byType(DeskLayout), findsOneWidget);
+    // Verify HomePage is present
+    expect(find.byType(HomePage), findsOneWidget);
 
     // Simulate lifecycle change to resumed
     log.clear();

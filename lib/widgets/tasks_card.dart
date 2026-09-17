@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:wyrm_desk/core/theme.dart';
-
 import 'bento_box.dart';
 import 'card_edit_button.dart';
 
@@ -24,31 +23,31 @@ class TasksCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final content = child ??
+        const Text(
+          'Tasks',
+          style: TextStyle(
+            color: AppColors.textOnLight,
+            fontWeight: FontWeight.w700,
+            fontSize: 16,
+          ),
+        );
+
     return BentoBox(
       color: AppColors.cardOrange,
       borderRadius: 28.0,
-      child: Stack(
-        children: [
-          Center(
-            child:
-                child ??
-                const Text(
-                  'Tasks',
-                  style: TextStyle(
-                    color: AppColors.textOnLight,
-                    fontWeight: FontWeight.w700,
-                    fontSize: 16,
-                  ),
+      child: onEdit != null
+          ? Stack(
+              children: [
+                Center(child: content),
+                CardEditButton(
+                  onTap: onEdit!,
+                  isFullScreen: isFullScreen,
+                  isDarkGlyph: true,
                 ),
-          ),
-          if (onEdit != null)
-            CardEditButton(
-              onTap: onEdit!,
-              isFullScreen: isFullScreen,
-              isDarkGlyph: true,
-            ),
-        ],
-      ),
+              ],
+            )
+          : Center(child: content),
     );
   }
 }

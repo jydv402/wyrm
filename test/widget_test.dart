@@ -181,5 +181,29 @@ void main() {
     // Verify return to default deck.
     expect(find.byType(SingleChildScrollView), findsOneWidget);
   });
+
+  testWidgets(
+      'HomePage renders consolidated dashboard layout directly without extra wrappers',
+      (WidgetTester tester) async {
+    tester.view.physicalSize = const Size(1280, 800);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+
+    await tester.pumpWidget(
+      const ProviderScope(
+        child: MaterialApp(
+          home: HomePage(),
+        ),
+      ),
+    );
+
+    expect(find.byType(HomePage), findsOneWidget);
+    expect(find.byType(TopPillBar), findsOneWidget);
+    expect(find.byType(SingleChildScrollView), findsOneWidget);
+    expect(find.byType(ClockContainer), findsOneWidget);
+    expect(find.byType(HabitsCard), findsOneWidget);
+    expect(find.byType(CalendarCard), findsOneWidget);
+    expect(find.byType(TasksCard), findsOneWidget);
+  });
 }
 

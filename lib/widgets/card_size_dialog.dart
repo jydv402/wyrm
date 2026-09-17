@@ -110,9 +110,9 @@ class CardSizeDialog extends StatelessWidget {
               ),
               const SizedBox(height: 20),
               if (cardType == DashboardCardType.clock)
-                ..._buildClockOptions(context)
+                _buildClockOptions(context)
               else
-                ..._buildStandardOptions(context),
+                _buildStandardOptions(context),
             ],
           ),
         ),
@@ -121,68 +121,75 @@ class CardSizeDialog extends StatelessWidget {
   }
 
   /// Builds the three-tier sizing options available specifically to the clock card.
-  List<Widget> _buildClockOptions(BuildContext context) {
-    return [
-      _buildOptionTile(
-        context: context,
-        title: 'Small',
-        description: 'Default compact vertical card in the horizontal deck',
-        isSelected: currentClockSize == ClockCardSize.small && !isFullScreen,
-        onTap: () {
-          Navigator.of(context).pop();
-          onClockSizeSelected?.call(ClockCardSize.small);
-        },
-      ),
-      const SizedBox(height: 10),
-      _buildOptionTile(
-        context: context,
-        title: 'Medium',
-        description: 'Expands horizontally to occupy half of the screen width',
-        isSelected: currentClockSize == ClockCardSize.medium && !isFullScreen,
-        onTap: () {
-          Navigator.of(context).pop();
-          onClockSizeSelected?.call(ClockCardSize.medium);
-        },
-      ),
-      const SizedBox(height: 10),
-      _buildOptionTile(
-        context: context,
-        title: 'Full Screen',
-        description: 'Fills the entire screen area below the top navigation bar',
-        isSelected: isFullScreen || currentClockSize == ClockCardSize.large,
-        onTap: () {
-          Navigator.of(context).pop();
-          onClockSizeSelected?.call(ClockCardSize.large);
-        },
-      ),
-    ];
+  Widget _buildClockOptions(BuildContext context) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      spacing: 10,
+      children: [
+        _buildOptionTile(
+          context: context,
+          title: 'Small',
+          description: 'Default compact vertical card in the horizontal deck',
+          isSelected: currentClockSize == ClockCardSize.small && !isFullScreen,
+          onTap: () {
+            Navigator.of(context).pop();
+            onClockSizeSelected?.call(ClockCardSize.small);
+          },
+        ),
+        _buildOptionTile(
+          context: context,
+          title: 'Medium',
+          description: 'Expands horizontally to occupy half of the screen width',
+          isSelected: currentClockSize == ClockCardSize.medium && !isFullScreen,
+          onTap: () {
+            Navigator.of(context).pop();
+            onClockSizeSelected?.call(ClockCardSize.medium);
+          },
+        ),
+        _buildOptionTile(
+          context: context,
+          title: 'Full Screen',
+          description: 'Fills the entire screen area below the top navigation bar',
+          isSelected: isFullScreen || currentClockSize == ClockCardSize.large,
+          onTap: () {
+            Navigator.of(context).pop();
+            onClockSizeSelected?.call(ClockCardSize.large);
+          },
+        ),
+      ],
+    );
   }
 
   /// Builds two-tier sizing options for standard bento cards.
-  List<Widget> _buildStandardOptions(BuildContext context) {
-    return [
-      _buildOptionTile(
-        context: context,
-        title: 'Small',
-        description: 'Default bento grid container placement',
-        isSelected: !isFullScreen,
-        onTap: () {
-          Navigator.of(context).pop();
-          onFullScreenToggled?.call(false);
-        },
-      ),
-      const SizedBox(height: 10),
-      _buildOptionTile(
-        context: context,
-        title: 'Full Screen',
-        description: 'Fills the entire screen area below the top navigation bar',
-        isSelected: isFullScreen,
-        onTap: () {
-          Navigator.of(context).pop();
-          onFullScreenToggled?.call(true);
-        },
-      ),
-    ];
+  Widget _buildStandardOptions(BuildContext context) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      spacing: 10,
+      children: [
+        _buildOptionTile(
+          context: context,
+          title: 'Small',
+          description: 'Default bento grid container placement',
+          isSelected: !isFullScreen,
+          onTap: () {
+            Navigator.of(context).pop();
+            onFullScreenToggled?.call(false);
+          },
+        ),
+        _buildOptionTile(
+          context: context,
+          title: 'Full Screen',
+          description: 'Fills the entire screen area below the top navigation bar',
+          isSelected: isFullScreen,
+          onTap: () {
+            Navigator.of(context).pop();
+            onFullScreenToggled?.call(true);
+          },
+        ),
+      ],
+    );
   }
 
   /// Constructs an individual interactive selection tile with retro styling.
@@ -193,65 +200,62 @@ class CardSizeDialog extends StatelessWidget {
     required bool isSelected,
     required VoidCallback onTap,
   }) {
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(16),
-        child: Ink(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          decoration: BoxDecoration(
-            color: isSelected
-                ? AppColors.cardYellow
-                : AppColors.surfaceElevated,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(
-              color: isSelected ? Colors.transparent : AppColors.borderDark,
-              width: 1.0,
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(16),
+      child: Ink(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        decoration: BoxDecoration(
+          color: isSelected
+              ? AppColors.cardYellow
+              : AppColors.surfaceElevated,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: isSelected ? Colors.transparent : AppColors.borderDark,
+            width: 1.0,
+          ),
+        ),
+        child: Row(
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                spacing: 2,
+                children: [
+                  Text(
+                    title,
+                    style: TextStyle(
+                      color: isSelected
+                          ? AppColors.textOnLight
+                          : AppColors.textPrimary,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  Text(
+                    description,
+                    style: TextStyle(
+                      color: isSelected
+                          ? AppColors.textOnLight.withValues(alpha: 0.8)
+                          : AppColors.textSecondary,
+                      fontSize: 11,
+                      height: 1.25,
+                    ),
+                  ),
+                ],
+              ),
             ),
-          ),
-          child: Row(
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      title,
-                      style: TextStyle(
-                        color: isSelected
-                            ? AppColors.textOnLight
-                            : AppColors.textPrimary,
-                        fontSize: 14,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      description,
-                      style: TextStyle(
-                        color: isSelected
-                            ? AppColors.textOnLight.withValues(alpha: 0.8)
-                            : AppColors.textSecondary,
-                        fontSize: 11,
-                        height: 1.25,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 8),
-              Icon(
-                isSelected
-                    ? Icons.check_circle_rounded
-                    : Icons.radio_button_unchecked_rounded,
-                color: isSelected
-                    ? AppColors.textOnLight
-                    : AppColors.textSecondary,
-                size: 20,
-              ),
-            ],
-          ),
+            const SizedBox(width: 8),
+            Icon(
+              isSelected
+                  ? Icons.check_circle_rounded
+                  : Icons.radio_button_unchecked_rounded,
+              color: isSelected
+                  ? AppColors.textOnLight
+                  : AppColors.textSecondary,
+              size: 20,
+            ),
+          ],
         ),
       ),
     );

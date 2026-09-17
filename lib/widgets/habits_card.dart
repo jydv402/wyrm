@@ -23,30 +23,31 @@ class HabitsCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final content = child ??
+        const Text(
+          'Habits',
+          style: TextStyle(
+            color: AppColors.textOnLight,
+            fontWeight: FontWeight.w700,
+            fontSize: 16,
+          ),
+        );
+
     return BentoBox(
       color: AppColors.cardSage,
       borderRadius: 30.0,
-      child: Stack(
-        children: [
-          Center(
-            child: child ??
-                const Text(
-                  'Habits',
-                  style: TextStyle(
-                    color: AppColors.textOnLight,
-                    fontWeight: FontWeight.w700,
-                    fontSize: 16,
-                  ),
+      child: onEdit != null
+          ? Stack(
+              children: [
+                Center(child: content),
+                CardEditButton(
+                  onTap: onEdit!,
+                  isFullScreen: isFullScreen,
+                  isDarkGlyph: true,
                 ),
-          ),
-          if (onEdit != null)
-            CardEditButton(
-              onTap: onEdit!,
-              isFullScreen: isFullScreen,
-              isDarkGlyph: true,
-            ),
-        ],
-      ),
+              ],
+            )
+          : Center(child: content),
     );
   }
 }

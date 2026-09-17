@@ -31,29 +31,26 @@ class CardEditButton extends StatelessWidget {
     return Positioned(
       top: 12,
       right: 12,
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: onTap,
-          borderRadius: BorderRadius.circular(16),
-          child: Ink(
-            width: 32,
-            height: 32,
-            decoration: BoxDecoration(
-              color: containerColor,
-              shape: BoxShape.circle,
-              border: Border.all(
-                color: borderColor,
-                width: 1.0,
-              ),
+      child: InkResponse(
+        onTap: onTap,
+        radius: 16,
+        child: Container(
+          width: 32,
+          height: 32,
+          decoration: BoxDecoration(
+            color: containerColor,
+            shape: BoxShape.circle,
+            border: Border.all(
+              color: borderColor,
+              width: 1.0,
             ),
-            child: Icon(
-              isFullScreen
-                  ? Icons.fullscreen_exit_rounded
-                  : Icons.tune_rounded,
-              size: 16,
-              color: iconColor,
-            ),
+          ),
+          child: Icon(
+            isFullScreen
+                ? Icons.fullscreen_exit_rounded
+                : Icons.tune_rounded,
+            size: 16,
+            color: iconColor,
           ),
         ),
       ),

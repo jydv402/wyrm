@@ -23,31 +23,32 @@ class ClockContainer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final content = child ??
+        const Text(
+          '12:50 PM',
+          style: TextStyle(
+            color: Colors.black,
+            fontSize: 22,
+            fontWeight: FontWeight.w700,
+            letterSpacing: -0.5,
+          ),
+        );
+
     return BentoBox(
       color: AppColors.cardWhite,
       borderRadius: 32.0,
-      child: Stack(
-        children: [
-          Center(
-            child: child ??
-                const Text(
-                  '12:50 PM',
-                  style: TextStyle(
-                    color: Colors.black,
-                    fontSize: 22,
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: -0.5,
-                  ),
+      child: onEdit != null
+          ? Stack(
+              children: [
+                Center(child: content),
+                CardEditButton(
+                  onTap: onEdit!,
+                  isFullScreen: isFullScreen,
+                  isDarkGlyph: true,
                 ),
-          ),
-          if (onEdit != null)
-            CardEditButton(
-              onTap: onEdit!,
-              isFullScreen: isFullScreen,
-              isDarkGlyph: true,
-            ),
-        ],
-      ),
+              ],
+            )
+          : Center(child: content),
     );
   }
 }
