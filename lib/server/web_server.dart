@@ -30,6 +30,7 @@ class ShelfWebServer {
   final String? htmlOverride;
   final String? cssOverride;
   final String? jsOverride;
+  final List<int>? faviconOverride;
 
   HttpServer? _server;
   final Set<WebSocketChannel> _activeClients = <WebSocketChannel>{};
@@ -47,6 +48,7 @@ class ShelfWebServer {
     this.htmlOverride,
     this.cssOverride,
     this.jsOverride,
+    this.faviconOverride,
   });
 
   /// Starts the embedded HTTP and WebSocket server on the designated port.
@@ -58,6 +60,9 @@ class ShelfWebServer {
     router.get('/index.html', _handleIndexHtml);
     router.get('/style.css', _handleStyleCss);
     router.get('/app.js', _handleAppJs);
+    router.get('/favicon.ico', _handleFavicon);
+    router.get('/icon_flat.png', _handleFavicon);
+    router.get('/assets/icons/icon_flat.png', _handleFavicon);
 
     // REST API endpoints.
     router.get('/api/status', _handleGetStatus);
@@ -264,6 +269,31 @@ class ShelfWebServer {
       );
     } catch (_) {
       return Response.notFound('// JS asset not found');
+    }
+  }
+
+  /// Serves the client favicon icon.
+  Future<Response> _handleFavicon(Request request) async {
+    try {
+      if (faviconOverride != null) {
+        return Response.ok(
+          faviconOverride!,
+          headers: {
+            'Content-Type': 'image/png',
+            'Cache-Control': 'public, max-age=86400',
+          },
+        );
+      }
+      final data = await rootBundle.load('assets/icons/icon_flat.png');
+      return Response.ok(
+        data.buffer.asUint8List(data.offsetInBytes, data.lengthInBytes),
+        headers: {
+          'Content-Type': 'image/png',
+          'Cache-Control': 'public, max-age=86400',
+        },
+      );
+    } catch (_) {
+      return Response.notFound('Favicon not found');
     }
   }
 

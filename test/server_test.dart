@@ -64,6 +64,7 @@ void main() {
         htmlOverride: '<!DOCTYPE html><html><body>Wyrm Web Test</body></html>',
         cssOverride: 'body { background: #000; }',
         jsOverride: 'console.log("Wyrm JS");',
+        faviconOverride: [137, 80, 78, 71, 13, 10, 26, 10],
       );
 
       // Start on ephemeral port for reliable testing.
@@ -98,6 +99,23 @@ void main() {
       expect(
           response.headers['content-type'], contains('application/javascript'));
       expect(response.body, contains('Wyrm JS'));
+    });
+
+    test('GET /favicon.ico serves favicon with image/png MIME', () async {
+      final response = await http
+          .get(Uri.parse('http://127.0.0.1:${server.port}/favicon.ico'));
+      expect(response.statusCode, 200);
+      expect(response.headers['content-type'], contains('image/png'));
+      expect(response.bodyBytes, equals([137, 80, 78, 71, 13, 10, 26, 10]));
+    });
+
+    test('GET /assets/icons/icon_flat.png serves favicon with image/png MIME',
+        () async {
+      final response = await http.get(Uri.parse(
+          'http://127.0.0.1:${server.port}/assets/icons/icon_flat.png'));
+      expect(response.statusCode, 200);
+      expect(response.headers['content-type'], contains('image/png'));
+      expect(response.bodyBytes, equals([137, 80, 78, 71, 13, 10, 26, 10]));
     });
 
     test('GET /api/status returns JSON snapshot of layout, settings, and tasks',
