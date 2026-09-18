@@ -35,18 +35,21 @@ class CalendarCard extends StatelessWidget {
     return BentoBox(
       color: AppColors.cardYellow,
       borderRadius: 30.0,
-      child: onSelectSize != null
-          ? Stack(
-              children: [
-                Center(child: content),
-                CardEditButton(
-                  onSelectSize: onSelectSize!,
-                  currentSize: currentSize,
-                  isDarkGlyph: true,
-                ),
-              ],
-            )
-          : Center(child: content),
+      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          CardHeader(
+            icon: Icons.calendar_today_rounded,
+            title: 'Calendar',
+            onSelectSize: onSelectSize,
+            currentSize: currentSize,
+            isDarkGlyph: true,
+          ),
+          const SizedBox(height: 10),
+          Expanded(child: Center(child: content)),
+        ],
+      ),
     );
   }
 }

@@ -44,6 +44,8 @@ void main() {
       expect(find.byType(DigitalClockSmall), findsOneWidget);
       expect(find.byType(DigitalClockMedium), findsNothing);
       expect(find.byType(AnalogClock), findsNothing);
+      expect(find.text('Clock'), findsOneWidget);
+      expect(find.byIcon(Icons.schedule_rounded), findsOneWidget);
     },
   );
 
@@ -101,7 +103,7 @@ void main() {
     'ClockContainer renders pitch black dual layout in nightstand mode',
     (WidgetTester tester) async {
       await tester.pumpWidget(
-        const ProviderScope(
+        ProviderScope(
           child: MaterialApp(
             home: Scaffold(
               body: SizedBox(
@@ -109,6 +111,7 @@ void main() {
                 height: 600,
                 child: ClockContainer(
                   currentSize: CardSize.nightstand,
+                  onSelectSize: (_) {},
                 ),
               ),
             ),
@@ -124,6 +127,9 @@ void main() {
       expect(bentoFinder, findsOneWidget);
       final bentoBox = tester.widget<BentoBox>(bentoFinder);
       expect(bentoBox.color, Colors.black);
+      expect(find.text('Clock'), findsNothing);
+      expect(find.byIcon(Icons.schedule_rounded), findsNothing);
+      expect(find.byType(CardEditButton), findsOneWidget);
     },
   );
 

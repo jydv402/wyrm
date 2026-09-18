@@ -17,7 +17,9 @@ class WyrmStateStore {
       },
       settings: {
         is24HourFormat: false,
+        cardFontSize: 14.0,
       },
+      tasks: [],
       activeFilter: 'all',
       isConnected: false,
     };
@@ -36,6 +38,7 @@ class WyrmStateStore {
       ...partialState,
       layout: { ...this.state.layout, ...(partialState.layout || {}) },
       settings: { ...this.state.settings, ...(partialState.settings || {}) },
+      tasks: partialState.tasks !== undefined ? partialState.tasks : this.state.tasks,
     };
     for (const listener of this.listeners) {
       listener(this.state);
@@ -127,6 +130,48 @@ class WyrmWebSocketManager {
     }
   }
 
+  createTask(title, priority = 'normal') {
+    const message = JSON.stringify({ type: 'create_task', title, priority });
+
+    if (this.socket && this.socket.readyState === WebSocket.OPEN) {
+      this.socket.send(message);
+    } else {
+      fetch('/api/tasks', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title, priority }),
+      }).catch(() => {});
+    }
+  }
+
+  toggleTask(id) {
+    const message = JSON.stringify({ type: 'toggle_task', id });
+
+    if (this.socket && this.socket.readyState === WebSocket.OPEN) {
+      this.socket.send(message);
+    } else {
+      fetch('/api/tasks/toggle', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id }),
+      }).catch(() => {});
+    }
+  }
+
+  deleteTask(id) {
+    const message = JSON.stringify({ type: 'delete_task', id });
+
+    if (this.socket && this.socket.readyState === WebSocket.OPEN) {
+      this.socket.send(message);
+    } else {
+      fetch('/api/tasks/delete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id }),
+      }).catch(() => {});
+    }
+  }
+
   _handleIncomingMessage(rawMessage) {
     try {
       const payload = JSON.parse(rawMessage);
@@ -134,6 +179,7 @@ class WyrmWebSocketManager {
         this.store.setState({
           layout: payload.layout || {},
           settings: payload.settings || {},
+          tasks: payload.tasks !== undefined ? payload.tasks : this.store.getState().tasks,
         });
       }
     } catch (_) {}
@@ -160,7 +206,12 @@ class WyrmUiRenderer {
     this.networkBadge = document.getElementById('networkBadge');
     this.networkLabel = document.getElementById('networkLabel');
     this.timeFormatToggle = document.getElementById('timeFormatToggle');
+    this.fontSizeDisplay = document.getElementById('fontSizeDisplay');
     this.cardClock = document.getElementById('card-clock');
+    this.tasksList = document.getElementById('tasksList');
+    this.tasksCounter = document.getElementById('tasksCounter');
+    this.taskInput = document.getElementById('taskInput');
+    this.taskPriority = document.getElementById('taskPriority');
 
     this.cardMap = {
       clock: document.getElementById('card-clock'),
@@ -193,11 +244,44 @@ class WyrmUiRenderer {
     this.wsManager.sendSettingsMutation({ is24HourFormat: is24Hour });
   }
 
+  incrementFontSize() {
+    const current = (this.store.getState().settings && this.store.getState().settings.cardFontSize) || 14.0;
+    const updated = Math.min(22.0, Math.round(current + 1.0));
+    this.store.setState({ settings: { cardFontSize: updated } });
+    this.wsManager.sendSettingsMutation({ cardFontSize: updated });
+  }
+
+  decrementFontSize() {
+    const current = (this.store.getState().settings && this.store.getState().settings.cardFontSize) || 14.0;
+    const updated = Math.max(11.0, Math.round(current - 1.0));
+    this.store.setState({ settings: { cardFontSize: updated } });
+    this.wsManager.sendSettingsMutation({ cardFontSize: updated });
+  }
+
+  addTask() {
+    if (!this.taskInput) return;
+    const title = this.taskInput.value.trim();
+    if (!title) return;
+    const priority = this.taskPriority ? this.taskPriority.value : 'normal';
+    this.wsManager.createTask(title, priority);
+    this.taskInput.value = '';
+  }
+
+  toggleTask(id) {
+    this.wsManager.toggleTask(id);
+  }
+
+  deleteTask(id) {
+    this.wsManager.deleteTask(id);
+  }
+
   render(state) {
     this._renderNetworkStatus(state);
     this._renderPageSwitcher(state);
     this._renderCards(state);
     this._render24HourToggle(state);
+    this._renderFontSize(state);
+    this._renderTasks(state);
   }
 
   _renderNetworkStatus(state) {
@@ -215,6 +299,9 @@ class WyrmUiRenderer {
   _renderPageSwitcher(state) {
     const activeFilter = state.activeFilter || 'all';
 
+    // Synchronize page data attribute on body for scoped CSS rules
+    document.body.setAttribute('data-active-page', activeFilter);
+
     // Update capsule tabs
     Object.keys(this.tabButtons).forEach((key) => {
       const btn = this.tabButtons[key];
@@ -223,11 +310,20 @@ class WyrmUiRenderer {
       }
     });
 
-    // Update card stream visibility
-    Object.keys(this.cardMap).forEach((cardKey) => {
-      const cardEl = this.cardMap[cardKey];
-      if (cardEl) {
-        if (activeFilter === 'all' || activeFilter === cardKey) {
+    // Update card stream visibility across all cards
+    const allCards = document.querySelectorAll('.layout-card');
+    allCards.forEach((cardEl) => {
+      const cardCategory = cardEl.getAttribute('data-card');
+      const isDetailCard = cardEl.classList.contains('detail-card');
+
+      if (activeFilter === 'all') {
+        if (isDetailCard) {
+          cardEl.classList.add('filtered-out');
+        } else {
+          cardEl.classList.remove('filtered-out');
+        }
+      } else {
+        if (cardCategory === activeFilter) {
           cardEl.classList.remove('filtered-out');
         } else {
           cardEl.classList.add('filtered-out');
@@ -282,6 +378,58 @@ class WyrmUiRenderer {
     this.timeFormatToggle.classList.toggle('active', is24Hour);
     this.timeFormatToggle.setAttribute('aria-checked', is24Hour ? 'true' : 'false');
   }
+
+  _renderFontSize(state) {
+    if (!this.fontSizeDisplay) return;
+    const fontSize = (state.settings && state.settings.cardFontSize) || 14.0;
+    this.fontSizeDisplay.textContent = `${Math.round(fontSize)} pt`;
+  }
+
+  _renderTasks(state) {
+    if (!this.tasksList) return;
+
+    const tasks = state.tasks || [];
+    const completedCount = tasks.filter((t) => t.is_completed || t.completed).length;
+
+    if (this.tasksCounter) {
+      this.tasksCounter.textContent = `${completedCount}/${tasks.length}`;
+    }
+
+    if (tasks.length === 0) {
+      this.tasksList.innerHTML = '<div class="tasks-empty-msg">No tasks yet. Add one above!</div>';
+      return;
+    }
+
+    const cardFontSize = Math.round((state.settings && state.settings.cardFontSize) || 14);
+
+    this.tasksList.innerHTML = tasks.map((task) => {
+      const isCompleted = !!(task.is_completed || task.completed);
+      const isHigh = (task.priority || '').toLowerCase() === 'high';
+      const checkIcon = isCompleted
+        ? '<svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg>'
+        : '';
+      const priorityBadge = (isHigh && !isCompleted)
+        ? '<span class="task-priority-tag">HIGH</span>'
+        : '';
+
+      return `
+        <div class="task-item-row ${isCompleted ? 'completed' : ''}" data-task-id="${task.id}">
+          <button class="task-checkbox ${isCompleted ? 'checked' : ''}" onclick="window.wyrmRemote.toggleTask('${task.id}')" title="Toggle completion">
+            ${checkIcon}
+          </button>
+          <span class="task-title-text" style="font-size: ${cardFontSize}px" onclick="window.wyrmRemote.toggleTask('${task.id}')">${this._escapeHtml(task.title || task.text || '')}</span>
+          ${priorityBadge}
+          <button class="task-delete-btn" onclick="window.wyrmRemote.deleteTask('${task.id}')" title="Delete task">×</button>
+        </div>
+      `;
+    }).join('');
+  }
+
+  _escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+  }
 }
 
 // Application Bootstrap Execution
@@ -294,7 +442,12 @@ document.addEventListener('DOMContentLoaded', async () => {
   window.wyrmRemote = {
     setCardSize: (card, size) => renderer.setCardSize(card, size),
     toggleTimeFormat: () => renderer.toggleTimeFormat(),
+    incrementFontSize: () => renderer.incrementFontSize(),
+    decrementFontSize: () => renderer.decrementFontSize(),
     setCardFilter: (filter) => renderer.setCardFilter(filter),
+    addTask: () => renderer.addTask(),
+    toggleTask: (id) => renderer.toggleTask(id),
+    deleteTask: (id) => renderer.deleteTask(id),
   };
 
   // Subscribe renderer to state mutations
@@ -308,6 +461,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       store.setState({
         layout: initialSnapshot.layout || {},
         settings: initialSnapshot.settings || {},
+        tasks: initialSnapshot.tasks || [],
       });
     }
   } catch (_) {}

@@ -1,23 +1,27 @@
-import 'dart:convert';
-import 'dart:io';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:path_provider/path_provider.dart';
+import 'package:wyrm_desk/core/app_database.dart';
 
 /// Immutable configuration model storing user preferences.
 class AppSettingsConfig {
   /// Whether the ambient clock formats time in 24-hour mode.
   final bool is24HourFormat;
 
+  /// Font size for text inside task and habit cards (clamped between 11.0 and 22.0 pt).
+  final double cardFontSize;
+
   const AppSettingsConfig({
     this.is24HourFormat = false,
+    this.cardFontSize = 14.0,
   });
 
   /// Returns a copy of the configuration with specified overrides.
   AppSettingsConfig copyWith({
     bool? is24HourFormat,
+    double? cardFontSize,
   }) {
     return AppSettingsConfig(
       is24HourFormat: is24HourFormat ?? this.is24HourFormat,
+      cardFontSize: cardFontSize ?? this.cardFontSize,
     );
   }
 
@@ -25,6 +29,7 @@ class AppSettingsConfig {
   Map<String, dynamic> toJson() {
     return {
       'is_24_hour_format': is24HourFormat,
+      'card_font_size': cardFontSize,
     };
   }
 
@@ -32,42 +37,21 @@ class AppSettingsConfig {
   factory AppSettingsConfig.fromJson(Map<String, dynamic> json) {
     return AppSettingsConfig(
       is24HourFormat: json['is_24_hour_format'] as bool? ?? false,
+      cardFontSize: (json['card_font_size'] as num?)?.toDouble() ?? 14.0,
     );
   }
 }
 
-/// Persists application settings to local JSON storage.
+/// Persists application settings to local JSON storage via AppDatabase.
 class AppSettingsStorage {
-  /// Resolves the JSON settings file path on the device filesystem.
-  static Future<File> getSettingsFile() async {
-    final directory = await getApplicationDocumentsDirectory();
-    return File('${directory.path}/app_settings.json');
-  }
-
-  /// Loads configuration from local JSON storage, falling back to defaults.
+  /// Loads configuration from unified JSON database storage.
   static Future<AppSettingsConfig> loadSettings() async {
-    try {
-      final file = await getSettingsFile();
-      if (await file.exists()) {
-        final rawJson = await file.readAsString();
-        final decoded = jsonDecode(rawJson) as Map<String, dynamic>;
-        return AppSettingsConfig.fromJson(decoded);
-      }
-    } catch (_) {
-      // Gracefully fall back to defaults if filesystem operations fail.
-    }
-    return const AppSettingsConfig();
+    return await AppDatabase.loadSettings();
   }
 
-  /// Saves the current configuration to local JSON storage.
+  /// Saves the current configuration to unified JSON database storage.
   static Future<void> saveSettings(AppSettingsConfig config) async {
-    try {
-      final file = await getSettingsFile();
-      final encoder = const JsonEncoder.withIndent('  ');
-      await file.writeAsString(encoder.convert(config.toJson()));
-    } catch (_) {
-      // Silently ignore disk write failures in constrained environments.
-    }
+    await AppDatabase.saveSettings(config);
   }
 }
 
@@ -95,6 +79,24 @@ class AppSettingsNotifier extends Notifier<AppSettingsConfig> {
     final updated = state.copyWith(is24HourFormat: value);
     state = updated;
     AppSettingsStorage.saveSettings(updated);
+  }
+
+  /// Sets an explicit font size for card text, clamped between 11.0 and 22.0 pt.
+  void setCardFontSize(double size) {
+    final clamped = size.clamp(11.0, 22.0);
+    final updated = state.copyWith(cardFontSize: clamped);
+    state = updated;
+    AppSettingsStorage.saveSettings(updated);
+  }
+
+  /// Increments card text font size by 1.0 pt up to 22.0 pt.
+  void incrementCardFontSize() {
+    setCardFontSize(state.cardFontSize + 1.0);
+  }
+
+  /// Decrements card text font size by 1.0 pt down to 11.0 pt.
+  void decrementCardFontSize() {
+    setCardFontSize(state.cardFontSize - 1.0);
   }
 }
 

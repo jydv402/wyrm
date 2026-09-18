@@ -47,7 +47,7 @@ dependencies:
   qr_flutter: ^4.1.0
   http: ^1.2.0
   flutter_svg: ^2.0.17
-  google_fonts: ^6.2.1
+  google_fonts: ^8.2.1
 
 dev_dependencies:
   flutter_test:
@@ -105,30 +105,30 @@ flutter:
 
 package_rename_config:
   android:
-    app_name: "wyrm" # Display name
+    app_name: "WYRM" # Display name
     package_name: "com.jdmakes.wyrm" # Package name
 
   ios:
-    app_name: "wyrm" # Display name
-    bundle_name: "wyrm" # Bundle name
+    app_name: "WYRM" # Display name
+    bundle_name: "WYRM" # Bundle name
     package_name: "com.jdmakes.wyrm" # Product Bundle Identifier
 
   linux:
-    app_name: "wyrm" # Window title
+    app_name: "WYRM" # Window title
     package_name: "com.jdmakes.wyrm" # Application ID
     exe_name: "my_app" # Executable name (binary)
 
   macos:
-    app_name: "wyrm" # Product name
+    app_name: "WYRM" # Product name
     package_name: "com.jdmakes.wyrm" # Product Bundle Identifier
     copyright_notice: "Copyright © 2024" # Copyright notice
 
   web:
-    app_name: "wyrm" # App title & PWA name
+    app_name: "WYRM" # App title & PWA name
     short_app_name: "WYRM" # PWA short name (defaults to app_name)
     description: "Desktop Companion App" # Web app description
 
   windows:
-    app_name: "wyrm" # Window title & Software name
+    app_name: "WYRM" # Window title & Software name
     organization: "jdmakes" # Organization/Company name
-    exe_name: "wyrm" # Executable name (binary)
+    exe_name: "WYRM" # Executable name (binary)

@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:wyrm_desk/core/theme.dart';
 import 'package:wyrm_desk/server/network_info.dart';
+
 import 'settings_state.dart';
 
 /// Modal dialog displaying application configuration options.
@@ -31,10 +32,7 @@ class SettingsDialog extends ConsumerWidget {
       elevation: 0,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(24.0),
-        side: const BorderSide(
-          color: AppColors.borderDark,
-          width: 1.5,
-        ),
+        side: const BorderSide(color: AppColors.borderDark, width: 1.5),
       ),
       child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 400),
@@ -89,10 +87,7 @@ class SettingsDialog extends ConsumerWidget {
                 decoration: BoxDecoration(
                   color: AppColors.surfaceElevated,
                   borderRadius: BorderRadius.circular(16),
-                  border: Border.all(
-                    color: AppColors.borderDark,
-                    width: 1.0,
-                  ),
+                  border: Border.all(color: AppColors.borderDark, width: 1.0),
                 ),
                 child: Row(
                   children: [
@@ -128,11 +123,149 @@ class SettingsDialog extends ConsumerWidget {
                     Switch.adaptive(
                       value: settings.is24HourFormat,
                       activeThumbColor: AppColors.accentOrange,
-                      activeTrackColor:
-                          AppColors.accentOrange.withValues(alpha: 0.4),
+                      activeTrackColor: AppColors.accentOrange.withValues(
+                        alpha: 0.4,
+                      ),
                       inactiveThumbColor: AppColors.textSecondary,
                       inactiveTrackColor: AppColors.surface,
                       onChanged: (val) => notifier.set24HourFormat(val),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 12),
+
+              // Card text font size counter row.
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 14,
+                ),
+                decoration: BoxDecoration(
+                  color: AppColors.surfaceElevated,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: AppColors.borderDark, width: 1.0),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(
+                      Icons.format_size_rounded,
+                      size: 20,
+                      color: AppColors.accentOrange,
+                    ),
+                    const SizedBox(width: 12),
+                    const Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Card Text Size',
+                            style: TextStyle(
+                              color: AppColors.textPrimary,
+                              fontWeight: FontWeight.w700,
+                              fontSize: 14,
+                            ),
+                          ),
+                          SizedBox(height: 2),
+                          Text(
+                            'Adjust font scale for task and habit checklists',
+                            style: TextStyle(
+                              color: AppColors.textSecondary,
+                              fontSize: 11,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    // Tactile counter style stepper.
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Material(
+                          color: Colors.transparent,
+                          child: InkWell(
+                            onTap: settings.cardFontSize > 11.0
+                                ? () => notifier.decrementCardFontSize()
+                                : null,
+                            borderRadius: BorderRadius.circular(8),
+                            child: Container(
+                              width: 32,
+                              height: 32,
+                              decoration: BoxDecoration(
+                                color: Colors.black.withValues(alpha: 0.25),
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(
+                                  color: AppColors.borderDark,
+                                  width: 1.0,
+                                ),
+                              ),
+                              child: Icon(
+                                Icons.remove_rounded,
+                                size: 16,
+                                color: settings.cardFontSize > 11.0
+                                    ? AppColors.textPrimary
+                                    : AppColors.textSecondary.withValues(
+                                        alpha: 0.4,
+                                      ),
+                              ),
+                            ),
+                          ),
+                        ),
+                        Container(
+                          margin: const EdgeInsets.symmetric(horizontal: 8),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 6,
+                          ),
+                          decoration: BoxDecoration(
+                            color: Colors.black.withValues(alpha: 0.15),
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(
+                              color: AppColors.borderDark,
+                              width: 1.0,
+                            ),
+                          ),
+                          child: Text(
+                            '${settings.cardFontSize.toInt()} pt',
+                            style: const TextStyle(
+                              color: AppColors.accentOrange,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w700,
+                              fontFeatures: [FontFeature.tabularFigures()],
+                            ),
+                          ),
+                        ),
+                        Material(
+                          color: Colors.transparent,
+                          child: InkWell(
+                            onTap: settings.cardFontSize < 22.0
+                                ? () => notifier.incrementCardFontSize()
+                                : null,
+                            borderRadius: BorderRadius.circular(8),
+                            child: Container(
+                              width: 32,
+                              height: 32,
+                              decoration: BoxDecoration(
+                                color: Colors.black.withValues(alpha: 0.25),
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(
+                                  color: AppColors.borderDark,
+                                  width: 1.0,
+                                ),
+                              ),
+                              child: Icon(
+                                Icons.add_rounded,
+                                size: 16,
+                                color: settings.cardFontSize < 22.0
+                                    ? AppColors.textPrimary
+                                    : AppColors.textSecondary.withValues(
+                                        alpha: 0.4,
+                                      ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ],
                 ),
@@ -145,10 +278,7 @@ class SettingsDialog extends ConsumerWidget {
                 decoration: BoxDecoration(
                   color: AppColors.surfaceElevated,
                   borderRadius: BorderRadius.circular(16),
-                  border: Border.all(
-                    color: AppColors.borderDark,
-                    width: 1.0,
-                  ),
+                  border: Border.all(color: AppColors.borderDark, width: 1.0),
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,

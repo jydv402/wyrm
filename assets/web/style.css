@@ -205,6 +205,16 @@ body {
   font-weight: 700;
   color: var(--text-primary);
   letter-spacing: 0.2px;
+  transition: var(--transition-fast);
+}
+
+.card-title-group.clickable {
+  cursor: pointer;
+  user-select: none;
+}
+
+.card-title-group.clickable:hover .card-name {
+  color: var(--accent-amber);
 }
 
 .status-capsule {
@@ -276,7 +286,32 @@ body {
   font-weight: 700;
 }
 
-/* 24-Hour Format Setting Row */
+/* Card Detail & Settings Section */
+.card-detail-section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 4px;
+  animation: fadeIn 0.18s ease;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* In 'All' view, hide card-detail-section so only layout sizing controls appear */
+body[data-active-page="all"] .card-detail-section {
+  display: none !important;
+}
+
+/* Setting Row */
 .setting-row {
   display: flex;
   align-items: center;
@@ -342,6 +377,241 @@ body {
   background: #000000;
   border: 1.5px solid rgba(255, 149, 0, 0.4);
   box-shadow: 0 0 24px var(--accent-amber-glow);
+}
+
+/* Stepper Counter Control */
+.stepper-control {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: var(--bg-track);
+  border: var(--border-subtle);
+  border-radius: 8px;
+  padding: 2px 4px;
+}
+
+.stepper-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-primary);
+  font-size: 14px;
+  font-weight: 700;
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: var(--transition-fast);
+}
+
+.stepper-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.stepper-value {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-primary);
+  min-width: 42px;
+  text-align: center;
+}
+
+/* Tasks Manager Component */
+.task-counter-capsule {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text-secondary);
+}
+
+.task-manager-section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: var(--border-subtle);
+}
+
+.detail-card .task-manager-section {
+  margin-top: 6px;
+  padding-top: 0;
+  border-top: none;
+}
+
+.card-description-text {
+  font-size: 12px;
+  color: var(--text-secondary);
+  line-height: 1.5;
+  margin-top: -2px;
+}
+
+.task-input-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.task-text-input {
+  flex: 1;
+  background: var(--bg-track);
+  border: var(--border-subtle);
+  border-radius: 8px;
+  padding: 8px 12px;
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+  font-size: 13px;
+  outline: none;
+  transition: var(--transition-fast);
+}
+
+.task-text-input:focus {
+  border-color: var(--accent-amber);
+  box-shadow: 0 0 0 2px var(--accent-amber-glow);
+}
+
+.task-priority-select {
+  background: var(--bg-track);
+  border: var(--border-subtle);
+  border-radius: 8px;
+  padding: 8px 10px;
+  color: var(--text-secondary);
+  font-family: var(--font-sans);
+  font-size: 12px;
+  outline: none;
+  cursor: pointer;
+}
+
+.task-add-btn {
+  background: var(--accent-amber);
+  color: #000000;
+  border: none;
+  border-radius: 8px;
+  padding: 8px 14px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: var(--transition-fast);
+}
+
+.task-add-btn:hover {
+  opacity: 0.9;
+  transform: translateY(-1px);
+}
+
+.tasks-checklist {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 280px;
+  overflow-y: auto;
+}
+
+.task-item-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.04);
+  transition: var(--transition-fast);
+}
+
+.task-item-row:hover {
+  background: var(--bg-surface-hover);
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+.task-checkbox {
+  width: 18px;
+  height: 18px;
+  border-radius: 5px;
+  border: 1.5px solid rgba(255, 255, 255, 0.25);
+  background: transparent;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: var(--transition-fast);
+}
+
+.task-checkbox.checked {
+  background: var(--accent-amber);
+  border-color: var(--accent-amber);
+  color: #000000;
+}
+
+.task-checkbox svg {
+  width: 12px;
+  height: 12px;
+  fill: none;
+  stroke: #000000;
+  stroke-width: 2.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.task-title-text {
+  flex: 1;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-primary);
+  word-break: break-word;
+  transition: var(--transition-fast);
+}
+
+.task-item-row.completed .task-title-text {
+  text-decoration: line-through;
+  color: var(--text-muted);
+}
+
+.task-priority-tag {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: rgba(255, 149, 0, 0.15);
+  color: var(--accent-amber);
+  border: 1px solid rgba(255, 149, 0, 0.3);
+}
+
+.task-delete-btn {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.08);
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  line-height: 1;
+  transition: var(--transition-fast);
+  flex-shrink: 0;
+}
+
+.task-item-row:hover .task-delete-btn {
+  background: rgba(255, 255, 255, 0.16);
+  color: #ffffff;
+}
+
+.tasks-empty-msg {
+  text-align: center;
+  padding: 16px;
+  color: var(--text-muted);
+  font-size: 12px;
 }
 
 /* Mobile Responsiveness */

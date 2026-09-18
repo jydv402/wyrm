@@ -9,6 +9,7 @@ import 'package:shelf_web_socket/shelf_web_socket.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 import 'package:wyrm_desk/home/card_layout_state.dart';
 import 'package:wyrm_desk/settings/settings_state.dart';
+import 'package:wyrm_desk/tasks/task_model.dart';
 
 /// Embedded Shelf HTTP and WebSocket server hosting the remote web companion.
 class ShelfWebServer {
@@ -17,8 +18,13 @@ class ShelfWebServer {
 
   final CardLayoutConfig Function() getLayoutConfig;
   final AppSettingsConfig Function() getSettingsConfig;
+  final List<TaskItem> Function()? getTasksConfig;
   final void Function(DashboardCardType type, CardSize size) onSetCardSize;
   final void Function(bool is24Hour) onSet24HourFormat;
+  final void Function(double fontSize)? onSetCardFontSize;
+  final void Function(String title, String priority)? onAddTask;
+  final void Function(String id)? onToggleTask;
+  final void Function(String id)? onDeleteTask;
 
   /// Optional asset content overrides for headless testing environments.
   final String? htmlOverride;
@@ -31,8 +37,13 @@ class ShelfWebServer {
   ShelfWebServer({
     required this.getLayoutConfig,
     required this.getSettingsConfig,
+    this.getTasksConfig,
     required this.onSetCardSize,
     required this.onSet24HourFormat,
+    this.onSetCardFontSize,
+    this.onAddTask,
+    this.onToggleTask,
+    this.onDeleteTask,
     this.htmlOverride,
     this.cssOverride,
     this.jsOverride,
@@ -52,6 +63,10 @@ class ShelfWebServer {
     router.get('/api/status', _handleGetStatus);
     router.post('/api/layout', _handlePostLayout);
     router.post('/api/settings', _handlePostSettings);
+    router.get('/api/tasks', _handleGetTasks);
+    router.post('/api/tasks', _handlePostTask);
+    router.post('/api/tasks/toggle', _handlePostToggleTask);
+    router.post('/api/tasks/delete', _handlePostDeleteTask);
 
     // WebSocket real-time channel.
     router.get(
@@ -98,20 +113,25 @@ class ShelfWebServer {
   /// Number of active WebSocket clients connected to the server.
   int get connectedClientsCount => _activeClients.length;
 
-  /// Broadcasts updated layout and settings state to all connected WebSocket clients.
+  /// Broadcasts updated layout, settings, and task state to all connected WebSocket clients.
   void broadcastState({
     CardLayoutConfig? layout,
     AppSettingsConfig? settings,
+    List<TaskItem>? tasks,
   }) {
     final activeLayout = layout ?? getLayoutConfig();
     final activeSettings = settings ?? getSettingsConfig();
+    final activeTasks =
+        tasks ?? (getTasksConfig != null ? getTasksConfig!() : <TaskItem>[]);
 
     final payload = jsonEncode({
       'type': 'state_update',
       'layout': activeLayout.toJson(),
       'settings': {
         'is24HourFormat': activeSettings.is24HourFormat,
+        'cardFontSize': activeSettings.cardFontSize,
       },
+      'tasks': activeTasks.map((t) => t.toJson()).toList(),
     });
 
     for (final client in _activeClients.toList()) {
@@ -127,13 +147,18 @@ class ShelfWebServer {
   void _handleWebSocketConnection(WebSocketChannel webSocket) {
     _activeClients.add(webSocket);
 
+    final activeTasks =
+        getTasksConfig != null ? getTasksConfig!() : <TaskItem>[];
+
     // Send immediate state snapshot upon connection.
     final initialSnapshot = jsonEncode({
       'type': 'snapshot',
       'layout': getLayoutConfig().toJson(),
       'settings': {
         'is24HourFormat': getSettingsConfig().is24HourFormat,
+        'cardFontSize': getSettingsConfig().cardFontSize,
       },
+      'tasks': activeTasks.map((t) => t.toJson()).toList(),
     });
 
     try {
@@ -156,6 +181,26 @@ class ShelfWebServer {
             if (data.containsKey('is24HourFormat')) {
               final is24Hour = data['is24HourFormat'] as bool;
               onSet24HourFormat(is24Hour);
+            }
+            if (data.containsKey('cardFontSize') && onSetCardFontSize != null) {
+              final size = (data['cardFontSize'] as num).toDouble();
+              onSetCardFontSize!(size);
+            }
+          } else if (type == 'create_task') {
+            final title = data['title'] as String?;
+            final priority = (data['priority'] as String?) ?? 'normal';
+            if (title != null && title.trim().isNotEmpty && onAddTask != null) {
+              onAddTask!(title.trim(), priority);
+            }
+          } else if (type == 'toggle_task') {
+            final id = data['id']?.toString();
+            if (id != null && onToggleTask != null) {
+              onToggleTask!(id);
+            }
+          } else if (type == 'delete_task') {
+            final id = data['id']?.toString();
+            if (id != null && onDeleteTask != null) {
+              onDeleteTask!(id);
             }
           }
         } catch (_) {}
@@ -222,10 +267,12 @@ class ShelfWebServer {
     }
   }
 
-  /// Returns current system status, card layout, and clock settings in JSON.
+  /// Returns current system status, card layout, clock settings, and tasks in JSON.
   Response _handleGetStatus(Request request) {
     final layout = getLayoutConfig();
     final settings = getSettingsConfig();
+    final tasks =
+        getTasksConfig != null ? getTasksConfig!() : <TaskItem>[];
 
     return Response.ok(
       jsonEncode({
@@ -233,8 +280,88 @@ class ShelfWebServer {
         'layout': layout.toJson(),
         'settings': {
           'is24HourFormat': settings.is24HourFormat,
+          'cardFontSize': settings.cardFontSize,
         },
+        'tasks': tasks.map((t) => t.toJson()).toList(),
       }),
+      headers: {'Content-Type': 'application/json'},
+    );
+  }
+
+  /// Returns list of active tasks in JSON.
+  Response _handleGetTasks(Request request) {
+    final tasks =
+        getTasksConfig != null ? getTasksConfig!() : <TaskItem>[];
+
+    return Response.ok(
+      jsonEncode(tasks.map((t) => t.toJson()).toList()),
+      headers: {'Content-Type': 'application/json'},
+    );
+  }
+
+  /// Creates a new task via REST POST call.
+  Future<Response> _handlePostTask(Request request) async {
+    try {
+      final body = await request.readAsString();
+      final data = jsonDecode(body) as Map<String, dynamic>;
+      final title = (data['title'] ?? data['text']) as String?;
+      final priority = (data['priority'] as String?) ?? 'normal';
+
+      if (title != null && title.trim().isNotEmpty && onAddTask != null) {
+        onAddTask!(title.trim(), priority);
+        return Response.ok(
+          jsonEncode({'success': true}),
+          headers: {'Content-Type': 'application/json'},
+        );
+      }
+    } catch (_) {}
+
+    return Response.badRequest(
+      body: jsonEncode({'error': 'Invalid task payload'}),
+      headers: {'Content-Type': 'application/json'},
+    );
+  }
+
+  /// Toggles task completion status via REST POST call.
+  Future<Response> _handlePostToggleTask(Request request) async {
+    try {
+      final body = await request.readAsString();
+      final data = jsonDecode(body) as Map<String, dynamic>;
+      final id = data['id']?.toString();
+
+      if (id != null && onToggleTask != null) {
+        onToggleTask!(id);
+        return Response.ok(
+          jsonEncode({'success': true}),
+          headers: {'Content-Type': 'application/json'},
+        );
+      }
+    } catch (_) {}
+
+    return Response.badRequest(
+      body: jsonEncode({'error': 'Invalid toggle payload'}),
+      headers: {'Content-Type': 'application/json'},
+    );
+  }
+
+  /// Deletes a task via REST POST call.
+  Future<Response> _handlePostDeleteTask(Request request) async {
+    try {
+      final body = await request.readAsString();
+      final data = jsonDecode(body) as Map<String, dynamic>;
+      final id = data['id']?.toString();
+
+      if (id != null && onDeleteTask != null) {
+        onDeleteTask!(id);
+        return Response.ok(
+          jsonEncode({'success': true}),
+          headers: {'Content-Type': 'application/json'},
+        );
+      }
+    } catch (_) {}
+
+    return Response.badRequest(
+      body: jsonEncode({'error': 'Invalid delete payload'}),
       headers: {'Content-Type': 'application/json'},
     );
   }
@@ -269,9 +396,19 @@ class ShelfWebServer {
       final body = await request.readAsString();
       final data = jsonDecode(body) as Map<String, dynamic>;
 
+      bool updated = false;
       if (data.containsKey('is24HourFormat')) {
         final is24Hour = data['is24HourFormat'] as bool;
         onSet24HourFormat(is24Hour);
+        updated = true;
+      }
+      if (data.containsKey('cardFontSize') && onSetCardFontSize != null) {
+        final size = (data['cardFontSize'] as num).toDouble();
+        onSetCardFontSize!(size);
+        updated = true;
+      }
+
+      if (updated) {
         return Response.ok(
           jsonEncode({'success': true}),
           headers: {'Content-Type': 'application/json'},

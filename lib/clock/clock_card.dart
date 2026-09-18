@@ -59,19 +59,22 @@ class ClockContainer extends StatelessWidget {
       color: cardColor,
       borderRadius: 32.0,
       border: cardBorder,
-      child: onSelectSize != null
-          ? Stack(
-              children: [
-                Positioned.fill(child: content),
-                CardEditButton(
-                  onSelectSize: onSelectSize!,
-                  currentSize: currentSize,
-                  isDarkGlyph: !isNightstand,
-                  showNightstandOption: true,
-                ),
-              ],
-            )
-          : content,
+      padding: const EdgeInsets.fromLTRB(16.0, 12.0, 12.0, 12.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          CardHeader(
+            icon: Icons.schedule_rounded,
+            title: 'Clock',
+            showHeader: isNightstand,
+            onSelectSize: onSelectSize,
+            currentSize: currentSize,
+            isDarkGlyph: !isNightstand,
+            showNightstandOption: true,
+          ),
+          Expanded(child: content),
+        ],
+      ),
     );
   }
 }
@@ -101,28 +104,19 @@ class _ClockFullscreenView extends StatelessWidget {
               ),
               child: FittedBox(
                 fit: BoxFit.scaleDown,
-                child: AnalogClock(
-                  size: 320,
-                  isNightstand: isNightstand,
-                ),
+                child: AnalogClock(size: 320, isNightstand: isNightstand),
               ),
             ),
           ),
         ),
 
         // Subtle vertical hardware separation seam.
-        Container(
-          width: 1.5,
-          height: 180,
-          color: seamColor,
-        ),
+        Container(width: 1.5, height: 180, color: seamColor),
 
         // Right side: horizontal digital clock layout.
         Expanded(
           flex: 6,
-          child: Center(
-            child: DigitalClockMedium(isNightstand: isNightstand),
-          ),
+          child: Center(child: DigitalClockMedium(isNightstand: isNightstand)),
         ),
       ],
     );

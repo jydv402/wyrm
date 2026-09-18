@@ -1,7 +1,5 @@
-import 'dart:convert';
-import 'dart:io';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:path_provider/path_provider.dart';
+import 'package:wyrm_desk/core/app_database.dart';
 
 /// Available sizing dimensions for bento cards across the horizontal layout.
 enum CardSize {
@@ -151,38 +149,16 @@ class CardLayoutConfig {
   }
 }
 
-/// Persists and loads layout configuration files on the device filesystem.
+/// Persists and loads layout configuration via unified AppDatabase storage.
 class CardLayoutStorage {
-  /// Resolves the local JSON file reference for card layout preferences.
-  static Future<File> getConfigFile() async {
-    final directory = await getApplicationDocumentsDirectory();
-    return File('${directory.path}/card_layout.json');
-  }
-
-  /// Reads and parses the stored JSON configuration, falling back to defaults.
+  /// Reads and parses the stored JSON configuration from unified AppDatabase.
   static Future<CardLayoutConfig> loadConfig() async {
-    try {
-      final file = await getConfigFile();
-      if (await file.exists()) {
-        final rawJson = await file.readAsString();
-        final decoded = jsonDecode(rawJson) as Map<String, dynamic>;
-        return CardLayoutConfig.fromJson(decoded);
-      }
-    } catch (_) {
-      // Gracefully fall back to defaults if filesystem operations fail.
-    }
-    return const CardLayoutConfig();
+    return await AppDatabase.loadLayout();
   }
 
-  /// Writes the current layout configuration as formatted JSON to disk.
+  /// Writes the current layout configuration to unified AppDatabase storage.
   static Future<void> saveConfig(CardLayoutConfig config) async {
-    try {
-      final file = await getConfigFile();
-      final encoder = const JsonEncoder.withIndent('  ');
-      await file.writeAsString(encoder.convert(config.toJson()));
-    } catch (_) {
-      // Silently ignore disk write failures in constrained environments.
-    }
+    await AppDatabase.saveLayout(config);
   }
 }
 
