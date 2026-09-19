@@ -9,19 +9,25 @@ class AppSettingsConfig {
   /// Font size for text inside task and habit cards (clamped between 11.0 and 22.0 pt).
   final double cardFontSize;
 
+  /// Whether the calendar week starts on Monday (false defaults to Sunday).
+  final bool startWeekOnMonday;
+
   const AppSettingsConfig({
     this.is24HourFormat = false,
     this.cardFontSize = 14.0,
+    this.startWeekOnMonday = false,
   });
 
   /// Returns a copy of the configuration with specified overrides.
   AppSettingsConfig copyWith({
     bool? is24HourFormat,
     double? cardFontSize,
+    bool? startWeekOnMonday,
   }) {
     return AppSettingsConfig(
       is24HourFormat: is24HourFormat ?? this.is24HourFormat,
       cardFontSize: cardFontSize ?? this.cardFontSize,
+      startWeekOnMonday: startWeekOnMonday ?? this.startWeekOnMonday,
     );
   }
 
@@ -30,6 +36,7 @@ class AppSettingsConfig {
     return {
       'is_24_hour_format': is24HourFormat,
       'card_font_size': cardFontSize,
+      'start_week_on_monday': startWeekOnMonday,
     };
   }
 
@@ -38,6 +45,7 @@ class AppSettingsConfig {
     return AppSettingsConfig(
       is24HourFormat: json['is_24_hour_format'] as bool? ?? false,
       cardFontSize: (json['card_font_size'] as num?)?.toDouble() ?? 14.0,
+      startWeekOnMonday: json['start_week_on_monday'] as bool? ?? false,
     );
   }
 }
@@ -97,6 +105,18 @@ class AppSettingsNotifier extends Notifier<AppSettingsConfig> {
   /// Decrements card text font size by 1.0 pt down to 11.0 pt.
   void decrementCardFontSize() {
     setCardFontSize(state.cardFontSize - 1.0);
+  }
+
+  /// Toggles whether calendar weeks start on Monday vs. Sunday.
+  void toggleStartWeekOnMonday() {
+    setStartWeekOnMonday(!state.startWeekOnMonday);
+  }
+
+  /// Sets an explicit value for whether calendar weeks start on Monday.
+  void setStartWeekOnMonday(bool value) {
+    final updated = state.copyWith(startWeekOnMonday: value);
+    state = updated;
+    AppSettingsStorage.saveSettings(updated);
   }
 }
 

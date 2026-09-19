@@ -62,12 +62,12 @@
       <nav class="page-switcher" aria-label="Card Switcher">
         <button id="tab-all" class="switcher-pill active"
           onclick="window.wyrmRemote.setCardFilter('all')">Layout</button>
-        <button id="tab-tasks" class="switcher-pill" onclick="window.wyrmRemote.setCardFilter('tasks')">Tasks</button>
+        <button id="tab-clock" class="switcher-pill" onclick="window.wyrmRemote.setCardFilter('clock')">Clock</button>
         <button id="tab-habits" class="switcher-pill"
           onclick="window.wyrmRemote.setCardFilter('habits')">Habits</button>
         <button id="tab-calendar" class="switcher-pill"
           onclick="window.wyrmRemote.setCardFilter('calendar')">Calendar</button>
-        <button id="tab-clock" class="switcher-pill" onclick="window.wyrmRemote.setCardFilter('clock')">Clock</button>
+        <button id="tab-tasks" class="switcher-pill" onclick="window.wyrmRemote.setCardFilter('tasks')">Tasks</button>
       </nav>
 
       <!-- Right: Live Connection Telemetry Badge -->
@@ -80,7 +80,7 @@
     <!-- Main Single Column Layout Cards Stream -->
     <main class="cards-stream">
 
-      <!-- 1. Clock Card -->
+      <!-- Clock Card -->
       <article id="card-clock" class="layout-card" data-card="clock">
         <div class="card-header">
           <div class="card-title-group clickable" onclick="window.wyrmRemote.setCardFilter('clock')"
@@ -120,7 +120,7 @@
         </div>
       </article>
 
-      <!-- 2. Habits Card -->
+      <!-- Habits Card -->
       <article id="card-habits" class="layout-card" data-card="habits">
         <div class="card-header">
           <div class="card-title-group clickable" onclick="window.wyrmRemote.setCardFilter('habits')"
@@ -141,7 +141,7 @@
         </div>
       </article>
 
-      <!-- 3. Calendar Card -->
+      <!-- Calendar Card -->
       <article id="card-calendar" class="layout-card" data-card="calendar">
         <div class="card-header">
           <div class="card-title-group clickable" onclick="window.wyrmRemote.setCardFilter('calendar')"
@@ -162,7 +162,102 @@
         </div>
       </article>
 
-      <!-- 4. Tasks Card (Layout Sizing) -->
+      <!-- Calendar Week Start Card (shown only in Calendar view) -->
+      <article id="card-calendar-weekstart" class="layout-card detail-card card-detail-section" data-card="calendar">
+        <div class="card-header">
+          <div class="card-title-group">
+            <span class="card-glyph">🗓️</span>
+            <span class="card-name">Start Week on Monday</span>
+          </div>
+          <div id="startWeekToggle" class="switch-pill" onclick="window.wyrmRemote.toggleStartWeekOnMonday()"
+            title="Toggle start of week between Sunday and Monday">
+            <div class="switch-thumb"></div>
+          </div>
+        </div>
+        <div class="card-description-text">
+          Display weeks starting on Monday instead of Sunday across all devices.
+        </div>
+      </article>
+
+      <!-- Calendar Progress Card (shown only in Calendar view) -->
+      <article id="card-calendar-progress" class="layout-card detail-card card-detail-section" data-card="calendar">
+        <div class="card-header">
+          <div class="card-title-group">
+            <span class="card-glyph">⏳</span>
+            <span class="card-name">Year & Quarter Progress</span>
+          </div>
+          <span id="dayOfYearBadge" class="status-capsule">DAY 1/365</span>
+        </div>
+        <div class="progress-section">
+          <div class="progress-bar-container">
+            <div class="progress-label-row">
+              <span id="yearProgressLabel" class="progress-subtext">Year Progress: 0%</span>
+            </div>
+            <div class="progress-track">
+              <div id="yearProgressFill" class="progress-fill" style="width: 0%"></div>
+            </div>
+          </div>
+          <div class="progress-bar-container">
+            <div class="progress-label-row">
+              <span id="quarterProgressLabel" class="progress-subtext">Quarter Progress: 0%</span>
+            </div>
+            <div class="progress-track">
+              <div id="quarterProgressFill" class="progress-fill" style="width: 0%"></div>
+            </div>
+          </div>
+        </div>
+      </article>
+
+      <!-- Interactive Web Calendar Widget Card (shown only in Calendar view) -->
+      <article id="card-calendar-grid" class="layout-card detail-card card-detail-section" data-card="calendar">
+        <div class="card-header">
+          <div class="card-title-group">
+            <span class="card-glyph">📆</span>
+            <span id="webCalMonthYear" class="card-name">September 2026</span>
+          </div>
+          <div class="cal-nav-buttons">
+            <button class="cal-nav-btn" onclick="window.wyrmRemote.prevWebMonth()" title="Previous month">‹</button>
+            <button id="webCalTodayBtn" class="cal-nav-btn" onclick="window.wyrmRemote.todayWebMonth()" title="Jump to today">Today</button>
+            <button class="cal-nav-btn" onclick="window.wyrmRemote.promptTravelDate()" title="Travel to date">Travel</button>
+            <button class="cal-nav-btn" onclick="window.wyrmRemote.nextWebMonth()" title="Next month">›</button>
+            <input type="date" id="webCalTravelInput" style="display:none;" onchange="window.wyrmRemote.travelWebDate(this.value)">
+          </div>
+        </div>
+        <div class="web-calendar-container">
+          <div id="webCalWeekdays" class="web-cal-weekdays"></div>
+          <div id="webCalDays" class="web-cal-days"></div>
+        </div>
+        <div id="webCalSelectedStatus" class="card-description-text">
+          Select a date to inspect relative distance.
+        </div>
+      </article>
+
+      <!-- Calendar Milestones Card (shown only in Calendar view) -->
+      <article id="card-calendar-milestones" class="layout-card detail-card card-detail-section" data-card="calendar">
+        <div class="card-header">
+          <div class="card-title-group">
+            <span class="card-glyph">🎯</span>
+            <span class="card-name">Milestones & Countdowns</span>
+            <span id="milestonesCounter" class="task-counter-capsule">0</span>
+          </div>
+        </div>
+
+        <div class="milestone-manager-section">
+          <div class="milestone-input-bar">
+            <input type="text" id="milestoneTitleInput" class="milestone-text-input" placeholder="Milestone title..."
+              onkeydown="if(event.key==='Enter')window.wyrmRemote.addMilestone()">
+            <input type="date" id="milestoneDateInput" class="milestone-date-input">
+            <label class="milestone-pin-label" title="Pin to prominent countdown banner">
+              <input type="checkbox" id="milestonePinCheckbox">
+              <span>Pin</span>
+            </label>
+            <button class="task-add-btn" onclick="window.wyrmRemote.addMilestone()">Add</button>
+          </div>
+          <div id="milestonesList" class="milestones-checklist"></div>
+        </div>
+      </article>
+
+      <!-- Tasks Card (Layout Sizing) -->
       <article id="card-tasks" class="layout-card" data-card="tasks">
         <div class="card-header">
           <div class="card-title-group clickable" onclick="window.wyrmRemote.setCardFilter('tasks')"

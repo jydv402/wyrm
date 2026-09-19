@@ -56,7 +56,19 @@ enum DashboardCardType {
   calendar,
 
   /// Tasks and priority management card.
-  tasks,
+  tasks;
+
+  /// Safely resolves a card type from a dynamic string token.
+  static DashboardCardType? tryParse(String? value) {
+    if (value == null) return null;
+    final normalized = value.toLowerCase().trim();
+    for (final entry in DashboardCardType.values) {
+      if (entry.name.toLowerCase() == normalized) {
+        return entry;
+      }
+    }
+    return null;
+  }
 }
 
 /// Immutable configuration model mapping each dashboard card to its active size.
@@ -205,3 +217,46 @@ final cardLayoutProvider =
     NotifierProvider<CardLayoutNotifier, CardLayoutConfig>(
   CardLayoutNotifier.new,
 );
+
+/// Represents a requested scroll target event for the dashboard deck.
+class CardScrollRequest {
+  final DashboardCardType card;
+  final int timestamp;
+
+  const CardScrollRequest({
+    required this.card,
+    required this.timestamp,
+  });
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is CardScrollRequest &&
+          runtimeType == other.runtimeType &&
+          card == other.card &&
+          timestamp == other.timestamp;
+
+  @override
+  int get hashCode => card.hashCode ^ timestamp.hashCode;
+}
+
+/// Manages requested scroll target events for the dashboard deck.
+class CardScrollRequestNotifier extends Notifier<CardScrollRequest?> {
+  @override
+  CardScrollRequest? build() => null;
+
+  /// Requests the dashboard to scroll to the start of the designated card.
+  void requestScroll(DashboardCardType card) {
+    state = CardScrollRequest(
+      card: card,
+      timestamp: DateTime.now().millisecondsSinceEpoch,
+    );
+  }
+}
+
+/// Riverpod provider exposing the latest card scroll request for the dashboard.
+final cardScrollRequestProvider =
+    NotifierProvider<CardScrollRequestNotifier, CardScrollRequest?>(
+  CardScrollRequestNotifier.new,
+);
+

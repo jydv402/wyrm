@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:wyrm_desk/calendar/calendar_state.dart';
 import 'package:wyrm_desk/home/card_layout_state.dart';
 import 'package:wyrm_desk/server/web_server.dart';
 import 'package:wyrm_desk/settings/settings_state.dart';
@@ -12,6 +13,7 @@ final webServerProvider = Provider<ShelfWebServer>((ref) {
     getLayoutConfig: () => ref.read(cardLayoutProvider),
     getSettingsConfig: () => ref.read(appSettingsProvider),
     getTasksConfig: () => ref.read(tasksProvider),
+    getCalendarConfig: () => ref.read(calendarProvider),
     onSetCardSize: (type, size) {
       ref.read(cardLayoutProvider.notifier).setCardSize(type, size);
     },
@@ -21,6 +23,9 @@ final webServerProvider = Provider<ShelfWebServer>((ref) {
     onSetCardFontSize: (fontSize) {
       ref.read(appSettingsProvider.notifier).setCardFontSize(fontSize);
     },
+    onSetStartWeekOnMonday: (startMon) {
+      ref.read(appSettingsProvider.notifier).setStartWeekOnMonday(startMon);
+    },
     onAddTask: (title, priority) {
       ref.read(tasksProvider.notifier).addTask(title, priority: priority);
     },
@@ -29,6 +34,18 @@ final webServerProvider = Provider<ShelfWebServer>((ref) {
     },
     onDeleteTask: (id) {
       ref.read(tasksProvider.notifier).deleteTask(id);
+    },
+    onAddMilestone: (title, targetDate, {isPinned = false}) {
+      ref.read(calendarProvider.notifier).addMilestone(title, targetDate, isPinned: isPinned);
+    },
+    onDeleteMilestone: (id) {
+      ref.read(calendarProvider.notifier).deleteMilestone(id);
+    },
+    onTogglePinMilestone: (id) {
+      ref.read(calendarProvider.notifier).togglePinMilestone(id);
+    },
+    onScrollToCard: (card) {
+      ref.read(cardScrollRequestProvider.notifier).requestScroll(card);
     },
   );
 
@@ -51,6 +68,11 @@ final webServerProvider = Provider<ShelfWebServer>((ref) {
   // Synchronize task mutations originating on the tablet to connected web clients.
   ref.listen<List<TaskItem>>(tasksProvider, (previous, next) {
     server.broadcastState(tasks: next);
+  });
+
+  // Synchronize calendar changes originating on the tablet to connected web clients.
+  ref.listen<CalendarState>(calendarProvider, (previous, next) {
+    server.broadcastState(calendar: next);
   });
 
   ref.onDispose(() {

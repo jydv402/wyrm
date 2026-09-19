@@ -272,6 +272,63 @@ class SettingsDialog extends ConsumerWidget {
               ),
               const SizedBox(height: 12),
 
+              // Calendar start day toggle row.
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 14,
+                ),
+                decoration: BoxDecoration(
+                  color: AppColors.surfaceElevated,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: AppColors.borderDark, width: 1.0),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(
+                      Icons.calendar_view_week_rounded,
+                      size: 20,
+                      color: AppColors.accentOrange,
+                    ),
+                    const SizedBox(width: 12),
+                    const Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Start Week on Monday',
+                            style: TextStyle(
+                              color: AppColors.textPrimary,
+                              fontWeight: FontWeight.w700,
+                              fontSize: 14,
+                            ),
+                          ),
+                          SizedBox(height: 2),
+                          Text(
+                            'Calendar starts on Monday instead of Sunday',
+                            style: TextStyle(
+                              color: AppColors.textSecondary,
+                              fontSize: 11,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Switch.adaptive(
+                      value: settings.startWeekOnMonday,
+                      activeThumbColor: AppColors.accentOrange,
+                      activeTrackColor: AppColors.accentOrange.withValues(
+                        alpha: 0.4,
+                      ),
+                      inactiveThumbColor: AppColors.textSecondary,
+                      inactiveTrackColor: AppColors.surface,
+                      onChanged: (val) => notifier.setStartWeekOnMonday(val),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 12),
+
               // Web Remote connection card.
               Container(
                 padding: const EdgeInsets.all(16),

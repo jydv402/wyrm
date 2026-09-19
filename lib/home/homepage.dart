@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -54,6 +55,7 @@ class HomePage extends ConsumerStatefulWidget {
 class _HomePageState extends ConsumerState<HomePage>
     with WidgetsBindingObserver {
   late final ScrollController _scrollController;
+  Timer? _scrollAlignTimer;
 
   final GlobalKey _clockKey = GlobalKey();
   final GlobalKey _habitsKey = GlobalKey();
@@ -77,6 +79,7 @@ class _HomePageState extends ConsumerState<HomePage>
 
   @override
   void dispose() {
+    _scrollAlignTimer?.cancel();
     _scrollController.dispose();
     WidgetsBinding.instance.removeObserver(this);
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
@@ -87,6 +90,47 @@ class _HomePageState extends ConsumerState<HomePage>
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
   }
 
+  GlobalKey _keyForCard(DashboardCardType type) {
+    switch (type) {
+      case DashboardCardType.clock:
+        return _clockKey;
+      case DashboardCardType.habits:
+        return _habitsKey;
+      case DashboardCardType.calendar:
+        return _calendarKey;
+      case DashboardCardType.tasks:
+        return _tasksKey;
+    }
+  }
+
+  /// Smoothly scrolls the horizontal deck to the start of the specified card if scrollable.
+  void _scrollToCard(DashboardCardType type) {
+    void performScroll() {
+      if (!mounted) return;
+      if (!_scrollController.hasClients) return;
+      if (_scrollController.position.maxScrollExtent <= 0) return;
+
+      final targetKey = _keyForCard(type);
+      final targetContext = targetKey.currentContext;
+      if (targetContext != null) {
+        Scrollable.ensureVisible(
+          targetContext,
+          duration: const Duration(milliseconds: 400),
+          curve: Curves.easeInOutCubic,
+          alignment: 0.0,
+        );
+      }
+    }
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      performScroll();
+      _scrollAlignTimer?.cancel();
+      _scrollAlignTimer = Timer(const Duration(milliseconds: 400), () {
+        if (mounted) performScroll();
+      });
+    });
+  }
+
   /// Sets the target card size and animates the viewport to bring that card into view.
   void _handleSelectSize(
     DashboardCardType type,
@@ -94,25 +138,20 @@ class _HomePageState extends ConsumerState<HomePage>
     GlobalKey targetKey,
   ) {
     ref.read(cardLayoutProvider.notifier).setCardSize(type, size);
-
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted) return;
-      final targetContext = targetKey.currentContext;
-      if (targetContext != null) {
-        Scrollable.ensureVisible(
-          targetContext,
-          duration: const Duration(milliseconds: 400),
-          curve: Curves.easeInOutCubic,
-          alignment: 0.5,
-        );
-      }
-    });
+    _scrollToCard(type);
   }
 
   @override
   Widget build(BuildContext context) {
     final layoutConfig = ref.watch(cardLayoutProvider);
     final isNightstand = layoutConfig.clock == CardSize.nightstand;
+
+    // Listen for scroll requests originating from the web remote companion.
+    ref.listen<CardScrollRequest?>(cardScrollRequestProvider, (previous, next) {
+      if (next != null) {
+        _scrollToCard(next.card);
+      }
+    });
 
     return Scaffold(
       backgroundColor: AppColors.background,

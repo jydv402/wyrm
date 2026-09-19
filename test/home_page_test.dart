@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:wyrm_desk/home/home.dart';
+import 'package:wyrm_desk/tasks/tasks.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -65,4 +66,77 @@ void main() {
       isTrue,
     );
   });
+
+  testWidgets(
+      'HomePage auto-scrolls to target card upon receiving CardScrollRequest',
+      (WidgetTester tester) async {
+    tester.view.physicalSize = const Size(800, 600);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+
+    final container = ProviderContainer(
+      overrides: [
+        cardLayoutProvider.overrideWith(
+          () => _CustomCardLayoutNotifier(
+            const CardLayoutConfig(
+              clock: CardSize.fullscreen,
+              habits: CardSize.fullscreen,
+              calendar: CardSize.fullscreen,
+              tasks: CardSize.fullscreen,
+            ),
+          ),
+        ),
+      ],
+    );
+    addTearDown(container.dispose);
+
+    await tester.pumpWidget(
+      UncontrolledProviderScope(
+        container: container,
+        child: const MaterialApp(
+          home: HomePage(
+            clockWidget: SizedBox(),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final scrollableFinder = find.byWidgetPredicate(
+      (widget) =>
+          widget is SingleChildScrollView &&
+          widget.scrollDirection == Axis.horizontal,
+    );
+    expect(scrollableFinder, findsOneWidget);
+
+    final scrollableState = Scrollable.of(tester.element(find.byType(TasksCard)));
+    final initialOffset = scrollableState.position.pixels;
+    expect(initialOffset, 0.0);
+
+    // Request scroll to tasks card
+    container
+        .read(cardScrollRequestProvider.notifier)
+        .requestScroll(DashboardCardType.tasks);
+
+    await tester.pump(const Duration(milliseconds: 500));
+    await tester.pumpAndSettle();
+
+    final newOffset = scrollableState.position.pixels;
+    expect(newOffset, greaterThan(0.0));
+
+    // Dispose HomePage and its child timers
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: SizedBox(),
+      ),
+    );
+  });
+}
+
+class _CustomCardLayoutNotifier extends CardLayoutNotifier {
+  final CardLayoutConfig _initial;
+  _CustomCardLayoutNotifier(this._initial);
+
+  @override
+  CardLayoutConfig build() => _initial;
 }

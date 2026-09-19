@@ -167,16 +167,35 @@ body {
   background: var(--bg-surface);
   border: var(--border-subtle);
   border-radius: 18px;
-  padding: 18px;
+  padding: 14px 16px;
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 12px;
+  cursor: pointer;
   transition: var(--transition-fast);
 }
 
 .layout-card:hover {
   border-color: var(--border-hover);
   background: rgba(28, 28, 28, 0.95);
+}
+
+.layout-card:active,
+.layout-card.card-tapped {
+  border-color: rgba(255, 149, 0, 0.45);
+  box-shadow: 0 0 16px rgba(255, 149, 0, 0.16);
+  transform: scale(0.996);
+  transition: all 0.12s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.layout-card input,
+.layout-card select,
+.layout-card textarea {
+  cursor: text;
+}
+
+.layout-card select {
+  cursor: pointer;
 }
 
 .layout-card.filtered-out {
@@ -188,6 +207,7 @@ body {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  min-height: 24px;
 }
 
 .card-title-group {
@@ -198,6 +218,7 @@ body {
 
 .card-glyph {
   font-size: 14px;
+  line-height: 1;
 }
 
 .card-name {
@@ -205,6 +226,7 @@ body {
   font-weight: 700;
   color: var(--text-primary);
   letter-spacing: 0.2px;
+  line-height: 1.2;
   transition: var(--transition-fast);
 }
 
@@ -239,10 +261,10 @@ body {
 .segmented-bar {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 4px;
+  gap: 3px;
   background: var(--bg-track);
-  padding: 4px;
-  border-radius: 12px;
+  padding: 3px;
+  border-radius: 10px;
   border: var(--border-subtle);
 }
 
@@ -257,12 +279,13 @@ body {
   font-family: var(--font-sans);
   font-size: 12px;
   font-weight: 600;
-  padding: 8px 2px;
-  border-radius: 8px;
+  padding: 6px 8px;
+  border-radius: 7px;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
+  white-space: nowrap;
   transition: var(--transition-fast);
 }
 
@@ -291,7 +314,6 @@ body {
   display: flex;
   flex-direction: column;
   gap: 12px;
-  margin-top: 4px;
   animation: fadeIn 0.18s ease;
 }
 
@@ -434,13 +456,10 @@ body[data-active-page="all"] .card-detail-section {
   display: flex;
   flex-direction: column;
   gap: 12px;
-  margin-top: 14px;
-  padding-top: 14px;
-  border-top: var(--border-subtle);
 }
 
 .detail-card .task-manager-section {
-  margin-top: 6px;
+  margin-top: 0;
   padding-top: 0;
   border-top: none;
 }
@@ -449,7 +468,6 @@ body[data-active-page="all"] .card-detail-section {
   font-size: 12px;
   color: var(--text-secondary);
   line-height: 1.5;
-  margin-top: -2px;
 }
 
 .task-input-bar {
@@ -463,10 +481,11 @@ body[data-active-page="all"] .card-detail-section {
   background: var(--bg-track);
   border: var(--border-subtle);
   border-radius: 8px;
-  padding: 8px 12px;
+  padding: 7px 12px;
   color: var(--text-primary);
   font-family: var(--font-sans);
   font-size: 13px;
+  height: 34px;
   outline: none;
   transition: var(--transition-fast);
 }
@@ -480,10 +499,11 @@ body[data-active-page="all"] .card-detail-section {
   background: var(--bg-track);
   border: var(--border-subtle);
   border-radius: 8px;
-  padding: 8px 10px;
+  padding: 0 10px;
   color: var(--text-secondary);
   font-family: var(--font-sans);
   font-size: 12px;
+  height: 34px;
   outline: none;
   cursor: pointer;
 }
@@ -493,9 +513,10 @@ body[data-active-page="all"] .card-detail-section {
   color: #000000;
   border: none;
   border-radius: 8px;
-  padding: 8px 14px;
+  padding: 0 14px;
   font-size: 12px;
   font-weight: 700;
+  height: 34px;
   cursor: pointer;
   transition: var(--transition-fast);
 }
@@ -517,7 +538,7 @@ body[data-active-page="all"] .card-detail-section {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 8px 10px;
+  padding: 7px 10px;
   border-radius: 8px;
   background: rgba(255, 255, 255, 0.02);
   border: 1px solid rgba(255, 255, 255, 0.04);
@@ -614,8 +635,266 @@ body[data-active-page="all"] .card-detail-section {
   font-size: 12px;
 }
 
+/* Calendar Progress Bars */
+.progress-section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.progress-bar-container {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.progress-label-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.progress-subtext {
+  font-size: 11px;
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+.progress-track {
+  width: 100%;
+  height: 6px;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  background: var(--accent-amber);
+  border-radius: 3px;
+  transition: width 0.3s ease;
+}
+
+/* Web Calendar Navigation & Grid */
+.cal-nav-buttons {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.cal-nav-btn {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: var(--text-primary);
+  border-radius: 8px;
+  padding: 3px 8px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: var(--transition-fast);
+}
+
+.cal-nav-btn:hover {
+  background: rgba(255, 255, 255, 0.16);
+}
+
+.web-calendar-container {
+  background: var(--bg-track);
+  border-radius: 12px;
+  padding: 10px;
+  border: var(--border-subtle);
+}
+
+.web-cal-weekdays {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  text-align: center;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-muted);
+  margin-bottom: 6px;
+}
+
+.web-cal-days {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
+}
+
+.web-cal-day-cell {
+  aspect-ratio: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-primary);
+  cursor: pointer;
+  position: relative;
+  transition: var(--transition-fast);
+}
+
+.web-cal-day-cell:hover:not(.empty) {
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 255, 255, 0.18);
+}
+
+.web-cal-day-cell.empty {
+  background: transparent;
+  border-color: transparent;
+  cursor: default;
+}
+
+.web-cal-day-cell.today {
+  border: 1px solid var(--accent-amber);
+  color: var(--accent-amber);
+  font-weight: 700;
+}
+
+.web-cal-day-cell.selected {
+  background: var(--accent-amber);
+  color: #121214;
+  font-weight: 800;
+}
+
+.web-cal-day-cell.has-milestone::after {
+  content: '';
+  position: absolute;
+  bottom: 3px;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+/* Milestone Manager Section */
+.milestone-manager-section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.milestone-input-bar {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.milestone-text-input {
+  flex: 1;
+  min-width: 140px;
+  background: var(--bg-track);
+  border: var(--border-subtle);
+  border-radius: 8px;
+  padding: 7px 12px;
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+  font-size: 13px;
+  height: 34px;
+  outline: none;
+  transition: var(--transition-fast);
+}
+
+.milestone-text-input:focus {
+  border-color: var(--accent-amber);
+}
+
+.milestone-date-input {
+  background: var(--bg-track);
+  border: var(--border-subtle);
+  border-radius: 8px;
+  padding: 0 10px;
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+  font-size: 12px;
+  height: 34px;
+  outline: none;
+}
+
+.milestone-pin-label {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  user-select: none;
+}
+
+.milestones-checklist {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 280px;
+  overflow-y: auto;
+}
+
+.milestone-item-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 10px;
+  background: rgba(255, 255, 255, 0.04);
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  transition: var(--transition-fast);
+}
+
+.milestone-item-row:hover {
+  background: rgba(255, 255, 255, 0.07);
+}
+
+.milestone-pin-btn {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  font-size: 13px;
+  opacity: 0.5;
+  transition: var(--transition-fast);
+}
+
+.milestone-pin-btn.pinned {
+  opacity: 1;
+}
+
+.milestone-title-group {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.milestone-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.milestone-date-subtext {
+  font-size: 10px;
+  color: var(--text-muted);
+}
+
+.milestone-days-capsule {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 6px;
+  background: rgba(255, 149, 0, 0.15);
+  color: var(--accent-amber);
+  border: 1px solid rgba(255, 149, 0, 0.3);
+  white-space: nowrap;
+}
+
 /* Mobile Responsiveness */
-@media (max-width: 480px) {
+@media (max-width: 540px) {
   .app-container {
     padding: 16px 12px 36px;
   }
@@ -643,5 +922,16 @@ body[data-active-page="all"] .card-detail-section {
   .switcher-pill {
     padding: 5px 6px;
     font-size: 10px;
+  }
+
+  .layout-card {
+    padding: 12px 14px;
+    gap: 10px;
+    border-radius: 16px;
+  }
+
+  .segment-btn {
+    padding: 6px 4px;
+    font-size: 11px;
   }
 }

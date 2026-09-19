@@ -7,6 +7,7 @@ import 'package:shelf/shelf_io.dart' as shelf_io;
 import 'package:shelf_router/shelf_router.dart';
 import 'package:shelf_web_socket/shelf_web_socket.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
+import 'package:wyrm_desk/calendar/calendar_state.dart';
 import 'package:wyrm_desk/home/card_layout_state.dart';
 import 'package:wyrm_desk/settings/settings_state.dart';
 import 'package:wyrm_desk/tasks/task_model.dart';
@@ -19,12 +20,18 @@ class ShelfWebServer {
   final CardLayoutConfig Function() getLayoutConfig;
   final AppSettingsConfig Function() getSettingsConfig;
   final List<TaskItem> Function()? getTasksConfig;
+  final CalendarState Function()? getCalendarConfig;
   final void Function(DashboardCardType type, CardSize size) onSetCardSize;
   final void Function(bool is24Hour) onSet24HourFormat;
   final void Function(double fontSize)? onSetCardFontSize;
+  final void Function(bool startWeekOnMonday)? onSetStartWeekOnMonday;
   final void Function(String title, String priority)? onAddTask;
   final void Function(String id)? onToggleTask;
   final void Function(String id)? onDeleteTask;
+  final void Function(String title, DateTime targetDate, {bool isPinned})? onAddMilestone;
+  final void Function(String id)? onDeleteMilestone;
+  final void Function(String id)? onTogglePinMilestone;
+  final void Function(DashboardCardType card)? onScrollToCard;
 
   /// Optional asset content overrides for headless testing environments.
   final String? htmlOverride;
@@ -39,12 +46,18 @@ class ShelfWebServer {
     required this.getLayoutConfig,
     required this.getSettingsConfig,
     this.getTasksConfig,
+    this.getCalendarConfig,
     required this.onSetCardSize,
     required this.onSet24HourFormat,
     this.onSetCardFontSize,
+    this.onSetStartWeekOnMonday,
     this.onAddTask,
     this.onToggleTask,
     this.onDeleteTask,
+    this.onAddMilestone,
+    this.onDeleteMilestone,
+    this.onTogglePinMilestone,
+    this.onScrollToCard,
     this.htmlOverride,
     this.cssOverride,
     this.jsOverride,
@@ -67,11 +80,16 @@ class ShelfWebServer {
     // REST API endpoints.
     router.get('/api/status', _handleGetStatus);
     router.post('/api/layout', _handlePostLayout);
+    router.post('/api/scroll', _handlePostScroll);
     router.post('/api/settings', _handlePostSettings);
     router.get('/api/tasks', _handleGetTasks);
     router.post('/api/tasks', _handlePostTask);
     router.post('/api/tasks/toggle', _handlePostToggleTask);
     router.post('/api/tasks/delete', _handlePostDeleteTask);
+    router.get('/api/calendar', _handleGetCalendar);
+    router.post('/api/calendar/milestones', _handlePostAddMilestone);
+    router.post('/api/calendar/milestones/delete', _handlePostDeleteMilestone);
+    router.post('/api/calendar/milestones/pin', _handlePostPinMilestone);
 
     // WebSocket real-time channel.
     router.get(
@@ -118,16 +136,19 @@ class ShelfWebServer {
   /// Number of active WebSocket clients connected to the server.
   int get connectedClientsCount => _activeClients.length;
 
-  /// Broadcasts updated layout, settings, and task state to all connected WebSocket clients.
+  /// Broadcasts updated layout, settings, task, and calendar state to all connected WebSocket clients.
   void broadcastState({
     CardLayoutConfig? layout,
     AppSettingsConfig? settings,
     List<TaskItem>? tasks,
+    CalendarState? calendar,
   }) {
     final activeLayout = layout ?? getLayoutConfig();
     final activeSettings = settings ?? getSettingsConfig();
     final activeTasks =
         tasks ?? (getTasksConfig != null ? getTasksConfig!() : <TaskItem>[]);
+    final activeCalendar =
+        calendar ?? (getCalendarConfig != null ? getCalendarConfig!() : null);
 
     final payload = jsonEncode({
       'type': 'state_update',
@@ -135,8 +156,10 @@ class ShelfWebServer {
       'settings': {
         'is24HourFormat': activeSettings.is24HourFormat,
         'cardFontSize': activeSettings.cardFontSize,
+        'startWeekOnMonday': activeSettings.startWeekOnMonday,
       },
       'tasks': activeTasks.map((t) => t.toJson()).toList(),
+      'calendar': _serializeCalendarState(activeCalendar, activeSettings.startWeekOnMonday),
     });
 
     for (final client in _activeClients.toList()) {
@@ -154,6 +177,8 @@ class ShelfWebServer {
 
     final activeTasks =
         getTasksConfig != null ? getTasksConfig!() : <TaskItem>[];
+    final activeCalendar =
+        getCalendarConfig != null ? getCalendarConfig!() : null;
 
     // Send immediate state snapshot upon connection.
     final initialSnapshot = jsonEncode({
@@ -162,8 +187,10 @@ class ShelfWebServer {
       'settings': {
         'is24HourFormat': getSettingsConfig().is24HourFormat,
         'cardFontSize': getSettingsConfig().cardFontSize,
+        'startWeekOnMonday': getSettingsConfig().startWeekOnMonday,
       },
       'tasks': activeTasks.map((t) => t.toJson()).toList(),
+      'calendar': _serializeCalendarState(activeCalendar, getSettingsConfig().startWeekOnMonday),
     });
 
     try {
@@ -191,6 +218,10 @@ class ShelfWebServer {
               final size = (data['cardFontSize'] as num).toDouble();
               onSetCardFontSize!(size);
             }
+            if (data.containsKey('startWeekOnMonday') && onSetStartWeekOnMonday != null) {
+              final startMon = data['startWeekOnMonday'] as bool;
+              onSetStartWeekOnMonday!(startMon);
+            }
           } else if (type == 'create_task') {
             final title = data['title'] as String?;
             final priority = (data['priority'] as String?) ?? 'normal';
@@ -206,6 +237,32 @@ class ShelfWebServer {
             final id = data['id']?.toString();
             if (id != null && onDeleteTask != null) {
               onDeleteTask!(id);
+            }
+          } else if (type == 'create_milestone') {
+            final title = data['title'] as String?;
+            final dateStr = (data['target_date'] ?? data['targetDate'] ?? data['date']) as String?;
+            final isPinned = (data['is_pinned'] ?? data['isPinned'] ?? false) as bool;
+            if (title != null && title.trim().isNotEmpty && onAddMilestone != null) {
+              final targetDate = dateStr != null
+                  ? (DateTime.tryParse(dateStr) ?? DateTime.now())
+                  : DateTime.now();
+              onAddMilestone!(title.trim(), targetDate, isPinned: isPinned);
+            }
+          } else if (type == 'delete_milestone') {
+            final id = data['id']?.toString();
+            if (id != null && onDeleteMilestone != null) {
+              onDeleteMilestone!(id);
+            }
+          } else if (type == 'toggle_pin_milestone') {
+            final id = data['id']?.toString();
+            if (id != null && onTogglePinMilestone != null) {
+              onTogglePinMilestone!(id);
+            }
+          } else if (type == 'scroll_to_card') {
+            final cardName = data['card'] as String?;
+            final card = DashboardCardType.tryParse(cardName);
+            if (card != null && onScrollToCard != null) {
+              onScrollToCard!(card);
             }
           }
         } catch (_) {}
@@ -297,12 +354,14 @@ class ShelfWebServer {
     }
   }
 
-  /// Returns current system status, card layout, clock settings, and tasks in JSON.
+  /// Returns current system status, card layout, clock settings, tasks, and calendar in JSON.
   Response _handleGetStatus(Request request) {
     final layout = getLayoutConfig();
     final settings = getSettingsConfig();
     final tasks =
         getTasksConfig != null ? getTasksConfig!() : <TaskItem>[];
+    final calendar =
+        getCalendarConfig != null ? getCalendarConfig!() : null;
 
     return Response.ok(
       jsonEncode({
@@ -311,9 +370,52 @@ class ShelfWebServer {
         'settings': {
           'is24HourFormat': settings.is24HourFormat,
           'cardFontSize': settings.cardFontSize,
+          'startWeekOnMonday': settings.startWeekOnMonday,
         },
         'tasks': tasks.map((t) => t.toJson()).toList(),
+        'calendar': _serializeCalendarState(calendar, settings.startWeekOnMonday),
       }),
+      headers: {'Content-Type': 'application/json'},
+    );
+  }
+
+  /// Serializes calendar state or fallback empty state to a JSON map.
+  Map<String, dynamic> _serializeCalendarState(CalendarState? cal, bool startWeekOnMonday) {
+    if (cal == null) {
+      final now = DateTime.now();
+      return {
+        'today': now.toIso8601String(),
+        'yearProgress': 0.0,
+        'quarterProgress': 0.0,
+        'dayOfYear': 1,
+        'daysInYear': 365,
+        'currentQuarter': 1,
+        'startWeekOnMonday': startWeekOnMonday,
+        'milestones': <dynamic>[],
+      };
+    }
+    return {
+      'today': DateTime.now().toIso8601String(),
+      'selectedDate': cal.selectedDate.toIso8601String(),
+      'viewMonth': cal.viewMonth.toIso8601String(),
+      'yearProgress': cal.yearProgress,
+      'quarterProgress': cal.quarterProgress,
+      'dayOfYear': cal.dayOfYear,
+      'daysInYear': cal.daysInYear,
+      'currentQuarter': cal.currentQuarter,
+      'startWeekOnMonday': startWeekOnMonday,
+      'milestones': cal.milestones.map((m) => m.toJson()).toList(),
+    };
+  }
+
+  /// Returns active calendar metrics and milestones in JSON.
+  Response _handleGetCalendar(Request request) {
+    final calendar =
+        getCalendarConfig != null ? getCalendarConfig!() : null;
+    final settings = getSettingsConfig();
+
+    return Response.ok(
+      jsonEncode(_serializeCalendarState(calendar, settings.startWeekOnMonday)),
       headers: {'Content-Type': 'application/json'},
     );
   }
@@ -396,6 +498,77 @@ class ShelfWebServer {
     );
   }
 
+  /// Creates a new calendar milestone via REST POST call.
+  Future<Response> _handlePostAddMilestone(Request request) async {
+    try {
+      final body = await request.readAsString();
+      final data = jsonDecode(body) as Map<String, dynamic>;
+      final title = (data['title'] ?? data['text'] ?? data['name']) as String?;
+      final dateStr = (data['target_date'] ?? data['targetDate'] ?? data['date']) as String?;
+      final isPinned = (data['is_pinned'] ?? data['isPinned'] ?? false) as bool;
+
+      if (title != null && title.trim().isNotEmpty && onAddMilestone != null) {
+        final targetDate = dateStr != null
+            ? (DateTime.tryParse(dateStr) ?? DateTime.now())
+            : DateTime.now();
+        onAddMilestone!(title.trim(), targetDate, isPinned: isPinned);
+        return Response.ok(
+          jsonEncode({'success': true}),
+          headers: {'Content-Type': 'application/json'},
+        );
+      }
+    } catch (_) {}
+
+    return Response.badRequest(
+      body: jsonEncode({'error': 'Invalid milestone payload'}),
+      headers: {'Content-Type': 'application/json'},
+    );
+  }
+
+  /// Deletes a calendar milestone via REST POST call.
+  Future<Response> _handlePostDeleteMilestone(Request request) async {
+    try {
+      final body = await request.readAsString();
+      final data = jsonDecode(body) as Map<String, dynamic>;
+      final id = data['id']?.toString();
+
+      if (id != null && onDeleteMilestone != null) {
+        onDeleteMilestone!(id);
+        return Response.ok(
+          jsonEncode({'success': true}),
+          headers: {'Content-Type': 'application/json'},
+        );
+      }
+    } catch (_) {}
+
+    return Response.badRequest(
+      body: jsonEncode({'error': 'Invalid delete milestone payload'}),
+      headers: {'Content-Type': 'application/json'},
+    );
+  }
+
+  /// Toggles pinned state for a calendar milestone via REST POST call.
+  Future<Response> _handlePostPinMilestone(Request request) async {
+    try {
+      final body = await request.readAsString();
+      final data = jsonDecode(body) as Map<String, dynamic>;
+      final id = data['id']?.toString();
+
+      if (id != null && onTogglePinMilestone != null) {
+        onTogglePinMilestone!(id);
+        return Response.ok(
+          jsonEncode({'success': true}),
+          headers: {'Content-Type': 'application/json'},
+        );
+      }
+    } catch (_) {}
+
+    return Response.badRequest(
+      body: jsonEncode({'error': 'Invalid pin milestone payload'}),
+      headers: {'Content-Type': 'application/json'},
+    );
+  }
+
   /// Mutates card dimensions via REST POST call.
   Future<Response> _handlePostLayout(Request request) async {
     try {
@@ -420,7 +593,30 @@ class ShelfWebServer {
     );
   }
 
-  /// Mutates clock settings via REST POST call.
+  /// Triggers auto-scroll to designated card via REST POST call.
+  Future<Response> _handlePostScroll(Request request) async {
+    try {
+      final body = await request.readAsString();
+      final data = jsonDecode(body) as Map<String, dynamic>;
+      final cardName = data['card'] as String?;
+      final card = DashboardCardType.tryParse(cardName);
+
+      if (card != null && onScrollToCard != null) {
+        onScrollToCard!(card);
+        return Response.ok(
+          jsonEncode({'success': true, 'card': card.name}),
+          headers: {'Content-Type': 'application/json'},
+        );
+      }
+    } catch (_) {}
+
+    return Response.badRequest(
+      body: jsonEncode({'error': 'Invalid scroll payload'}),
+      headers: {'Content-Type': 'application/json'},
+    );
+  }
+
+  /// Mutates settings via REST POST call.
   Future<Response> _handlePostSettings(Request request) async {
     try {
       final body = await request.readAsString();
@@ -435,6 +631,11 @@ class ShelfWebServer {
       if (data.containsKey('cardFontSize') && onSetCardFontSize != null) {
         final size = (data['cardFontSize'] as num).toDouble();
         onSetCardFontSize!(size);
+        updated = true;
+      }
+      if (data.containsKey('startWeekOnMonday') && onSetStartWeekOnMonday != null) {
+        final startMon = data['startWeekOnMonday'] as bool;
+        onSetStartWeekOnMonday!(startMon);
         updated = true;
       }
 
@@ -472,6 +673,9 @@ class ShelfWebServer {
 
     if (targetCard != null && targetSize != null) {
       onSetCardSize(targetCard, targetSize);
+      if (onScrollToCard != null) {
+        onScrollToCard!(targetCard);
+      }
     }
   }
 }

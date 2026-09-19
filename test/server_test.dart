@@ -3,6 +3,8 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:web_socket_channel/io.dart';
+import 'package:wyrm_desk/calendar/calendar_model.dart';
+import 'package:wyrm_desk/calendar/calendar_state.dart';
 import 'package:wyrm_desk/home/card_layout_state.dart';
 import 'package:wyrm_desk/server/server.dart';
 import 'package:wyrm_desk/settings/settings_state.dart';
@@ -14,10 +16,13 @@ void main() {
     late CardLayoutConfig activeLayout;
     late AppSettingsConfig activeSettings;
     late List<TaskItem> activeTasks;
+    late List<CalendarMilestone> activeMilestones;
+    DashboardCardType? lastScrolledCard;
 
     setUp(() async {
       activeLayout = const CardLayoutConfig();
       activeSettings = const AppSettingsConfig();
+      lastScrolledCard = null;
       activeTasks = [
         TaskItem(
           id: '1',
@@ -27,11 +32,25 @@ void main() {
           createdAt: DateTime.now(),
         ),
       ];
+      activeMilestones = [
+        CalendarMilestone(
+          id: 'ms_1',
+          title: 'Initial Test Milestone',
+          targetDate: DateTime(2026, 10, 1),
+          isPinned: true,
+          createdAt: DateTime.now(),
+        ),
+      ];
 
       server = ShelfWebServer(
         getLayoutConfig: () => activeLayout,
         getSettingsConfig: () => activeSettings,
         getTasksConfig: () => activeTasks,
+        getCalendarConfig: () => CalendarState(
+          selectedDate: DateTime(2026, 9, 19),
+          viewMonth: DateTime(2026, 9, 1),
+          milestones: activeMilestones,
+        ),
         onSetCardSize: (type, size) {
           activeLayout = activeLayout.withSize(type, size);
         },
@@ -40,6 +59,9 @@ void main() {
         },
         onSetCardFontSize: (fontSize) {
           activeSettings = activeSettings.copyWith(cardFontSize: fontSize);
+        },
+        onSetStartWeekOnMonday: (startMon) {
+          activeSettings = activeSettings.copyWith(startWeekOnMonday: startMon);
         },
         onAddTask: (title, priority) {
           activeTasks = [
@@ -60,6 +82,30 @@ void main() {
         },
         onDeleteTask: (id) {
           activeTasks = activeTasks.where((t) => t.id != id).toList();
+        },
+        onAddMilestone: (title, date, {isPinned = false}) {
+          activeMilestones = [
+            ...activeMilestones,
+            CalendarMilestone(
+              id: (activeMilestones.length + 1).toString(),
+              title: title,
+              targetDate: date,
+              isPinned: isPinned,
+              createdAt: DateTime.now(),
+            ),
+          ];
+        },
+        onDeleteMilestone: (id) {
+          activeMilestones = activeMilestones.where((m) => m.id != id).toList();
+        },
+        onTogglePinMilestone: (id) {
+          activeMilestones = activeMilestones.map((m) {
+            if (m.id == id) return m.copyWith(isPinned: !m.isPinned);
+            return m;
+          }).toList();
+        },
+        onScrollToCard: (card) {
+          lastScrolledCard = card;
         },
         htmlOverride: '<!DOCTYPE html><html><body>Wyrm Web Test</body></html>',
         cssOverride: 'body { background: #000; }',
@@ -189,6 +235,31 @@ void main() {
       final data = jsonDecode(response.body) as Map<String, dynamic>;
       expect(data['success'], true);
       expect(activeLayout.clock, CardSize.nightstand);
+      expect(lastScrolledCard, DashboardCardType.clock);
+    });
+
+    test('POST /api/scroll triggers onScrollToCard with valid card', () async {
+      final response = await http.post(
+        Uri.parse('http://127.0.0.1:${server.port}/api/scroll'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'card': 'tasks'}),
+      );
+
+      expect(response.statusCode, 200);
+      final data = jsonDecode(response.body) as Map<String, dynamic>;
+      expect(data['success'], true);
+      expect(data['card'], 'tasks');
+      expect(lastScrolledCard, DashboardCardType.tasks);
+    });
+
+    test('POST /api/scroll returns 400 for invalid card', () async {
+      final response = await http.post(
+        Uri.parse('http://127.0.0.1:${server.port}/api/scroll'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'card': 'non_existent_card'}),
+      );
+
+      expect(response.statusCode, 400);
     });
 
     test('POST /api/settings updates 24-hour time format', () async {
@@ -217,6 +288,78 @@ void main() {
       expect(activeSettings.cardFontSize, 18.0);
     });
 
+    test('POST /api/settings updates startWeekOnMonday setting', () async {
+      final response = await http.post(
+        Uri.parse('http://127.0.0.1:${server.port}/api/settings'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'startWeekOnMonday': true}),
+      );
+
+      expect(response.statusCode, 200);
+      final data = jsonDecode(response.body) as Map<String, dynamic>;
+      expect(data['success'], true);
+      expect(activeSettings.startWeekOnMonday, true);
+    });
+
+    test('GET /api/calendar returns active milestones and metrics', () async {
+      final response =
+          await http.get(Uri.parse('http://127.0.0.1:${server.port}/api/calendar'));
+      expect(response.statusCode, 200);
+      expect(response.headers['content-type'], contains('application/json'));
+
+      final data = jsonDecode(response.body) as Map<String, dynamic>;
+      expect(data.containsKey('yearProgress'), true);
+      expect(data.containsKey('quarterProgress'), true);
+      expect(data.containsKey('milestones'), true);
+
+      final milestones = data['milestones'] as List;
+      expect(milestones.isNotEmpty, true);
+      expect(milestones.first['title'], 'Initial Test Milestone');
+    });
+
+    test('POST /api/calendar/milestones creates a new milestone', () async {
+      final response = await http.post(
+        Uri.parse('http://127.0.0.1:${server.port}/api/calendar/milestones'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'title': 'New Vacation',
+          'target_date': '2026-12-25',
+          'is_pinned': false,
+        }),
+      );
+
+      expect(response.statusCode, 200);
+      final data = jsonDecode(response.body) as Map<String, dynamic>;
+      expect(data['success'], true);
+      expect(activeMilestones.any((m) => m.title == 'New Vacation'), true);
+    });
+
+    test('POST /api/calendar/milestones/pin toggles milestone pin state', () async {
+      final response = await http.post(
+        Uri.parse('http://127.0.0.1:${server.port}/api/calendar/milestones/pin'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'id': 'ms_1'}),
+      );
+
+      expect(response.statusCode, 200);
+      final data = jsonDecode(response.body) as Map<String, dynamic>;
+      expect(data['success'], true);
+      expect(activeMilestones.firstWhere((m) => m.id == 'ms_1').isPinned, false);
+    });
+
+    test('POST /api/calendar/milestones/delete removes a milestone item', () async {
+      final response = await http.post(
+        Uri.parse('http://127.0.0.1:${server.port}/api/calendar/milestones/delete'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'id': 'ms_1'}),
+      );
+
+      expect(response.statusCode, 200);
+      final data = jsonDecode(response.body) as Map<String, dynamic>;
+      expect(data['success'], true);
+      expect(activeMilestones.any((m) => m.id == 'ms_1'), false);
+    });
+
     test('WebSocket connection receives initial snapshot and accepts commands',
         () async {
       final channel = IOWebSocketChannel.connect(
@@ -231,6 +374,7 @@ void main() {
       expect(snapshot['layout']['clock'], 'small');
       expect(snapshot['settings']['cardFontSize'], 14.0);
       expect(snapshot['tasks'], isList);
+      expect(snapshot['calendar'], isMap);
 
       // Send set_layout message over WebSocket.
       channel.sink.add(jsonEncode({
@@ -262,6 +406,26 @@ void main() {
       await Future<void>.delayed(const Duration(milliseconds: 50));
       expect(activeTasks.any((t) => t.title == 'WebSocket Generated Task'), true);
 
+      // Send create_milestone message over WebSocket.
+      channel.sink.add(jsonEncode({
+        'type': 'create_milestone',
+        'title': 'WS Milestone',
+        'targetDate': '2026-11-15',
+        'isPinned': true,
+      }));
+
+      await Future<void>.delayed(const Duration(milliseconds: 50));
+      expect(activeMilestones.any((m) => m.title == 'WS Milestone'), true);
+
+      // Send scroll_to_card message over WebSocket.
+      channel.sink.add(jsonEncode({
+        'type': 'scroll_to_card',
+        'card': 'habits',
+      }));
+
+      await Future<void>.delayed(const Duration(milliseconds: 50));
+      expect(lastScrolledCard, DashboardCardType.habits);
+
       await channel.sink.close();
     });
 
@@ -287,26 +451,28 @@ void main() {
       expect(html, contains('card-habits'));
       expect(html, contains('card-calendar'));
       expect(html, contains('card-tasks'));
-      expect(html, contains('taskInput'));
-      expect(html, contains('fontSizeDisplay'));
-      expect(html, contains('card-detail-section'));
+      expect(html, contains('card-calendar-weekstart'));
+      expect(html, contains('card-calendar-progress'));
+      expect(html, contains('card-calendar-grid'));
+      expect(html, contains('card-calendar-milestones'));
 
       final css = await cssFile.readAsString();
       expect(css, contains('--accent-amber: #ff9500'));
       expect(css, contains('.task-manager-section'));
-      expect(css, contains('.task-item-row'));
-      expect(css, contains('.stepper-control'));
-      expect(css, contains('.card-detail-section'));
+      expect(css, contains('.progress-section'));
+      expect(css, contains('.web-calendar-container'));
+      expect(css, contains('.milestone-manager-section'));
+      expect(css, contains('.card-tapped'));
 
       final js = await jsFile.readAsString();
       expect(js, contains('WyrmStateStore'));
       expect(js, contains('WyrmWebSocketManager'));
       expect(js, contains('WyrmUiRenderer'));
-      expect(js, contains('createTask'));
-      expect(js, contains('toggleTask'));
-      expect(js, contains('deleteTask'));
-      expect(js, contains('incrementFontSize'));
-      expect(js, contains('data-active-page'));
+      expect(js, contains('toggleStartWeekOnMonday'));
+      expect(js, contains('createMilestone'));
+      expect(js, contains('deleteMilestone'));
+      expect(js, contains('togglePinMilestone'));
+      expect(js, contains('scrollToCard'));
     });
   });
 }
