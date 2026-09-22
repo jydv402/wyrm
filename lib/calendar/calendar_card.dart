@@ -2,10 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:wyrm_desk/core/core.dart';
 import 'package:wyrm_desk/home/card_layout_state.dart';
+import 'package:wyrm_desk/in_app_keyboard/in_app_keyboard.dart';
 import 'package:wyrm_desk/settings/settings_state.dart';
 
 import 'calendar_model.dart';
 import 'calendar_state.dart';
+import 'milestone_form_content.dart';
 
 /// Golden yellow main bento card designated for calendar, date navigation, and life milestones.
 class CalendarCard extends ConsumerWidget {
@@ -1070,10 +1072,83 @@ class CalendarCard extends ConsumerWidget {
     }
   }
 
-  /// Modal bottom sheet to create or pin a milestone.
-  void _showAddMilestoneSheet(BuildContext context, WidgetRef ref, {DateTime? initialDate}) {
+  /// Opens the full-screen two-pane virtual keyboard milestone editor.
+  void _openMilestoneTwoPaneEditor(
+    BuildContext context,
+    WidgetRef ref, {
+    DateTime? initialDate,
+  }) {
     final titleController = TextEditingController();
-    var selectedTargetDate = initialDate ?? ref.read(calendarProvider).selectedDate;
+    var selectedTargetDate =
+        initialDate ?? ref.read(calendarProvider).selectedDate;
+    var isPinned = false;
+
+    Navigator.of(context).push<void>(
+      MaterialPageRoute(
+        builder: (context) {
+          return StatefulBuilder(
+            builder: (context, setEditorState) {
+              void saveMilestone() {
+                final title = titleController.text.trim();
+                if (title.isNotEmpty) {
+                  ref.read(calendarProvider.notifier).addMilestone(
+                        title,
+                        selectedTargetDate,
+                        isPinned: isPinned,
+                      );
+                  Navigator.of(context).pop();
+                }
+              }
+
+              return TwoPaneKeyboardScaffold(
+                title: 'New Milestone',
+                saveLabel: 'Save Milestone',
+                saveButtonColor: AppColors.accentOrange,
+                saveTextColor: Colors.white,
+                onSave: saveMilestone,
+                formBuilder: (context, keyboard) {
+                  return MilestoneFormContent(
+                    titleController: titleController,
+                    selectedDate: selectedTargetDate,
+                    isPinned: isPinned,
+                    onDateChanged: (picked) =>
+                        setEditorState(() => selectedTargetDate = picked),
+                    onPinnedChanged: (val) =>
+                        setEditorState(() => isPinned = val),
+                    onChanged: () => setEditorState(() {}),
+                  );
+                },
+                previewBuilder: (context) {
+                  return MilestonePreviewCard(
+                    title: titleController.text,
+                    targetDate: selectedTargetDate,
+                    isPinned: isPinned,
+                  );
+                },
+              );
+            },
+          );
+        },
+      ),
+    );
+  }
+
+  /// Modal bottom sheet to create or pin a milestone, respecting user preference
+  /// for classic bottom sheet vs two-pane virtual keyboard editor.
+  void _showAddMilestoneSheet(
+    BuildContext context,
+    WidgetRef ref, {
+    DateTime? initialDate,
+  }) {
+    final settings = ref.read(appSettingsProvider);
+    if (!settings.useClassicModalSheet) {
+      _openMilestoneTwoPaneEditor(context, ref, initialDate: initialDate);
+      return;
+    }
+
+    final titleController = TextEditingController();
+    var selectedTargetDate =
+        initialDate ?? ref.read(calendarProvider).selectedDate;
     var isPinned = false;
 
     showModalBottomSheet<void>(
@@ -1086,6 +1161,18 @@ class CalendarCard extends ConsumerWidget {
       builder: (context) {
         return StatefulBuilder(
           builder: (context, setModalState) {
+            void saveMilestone() {
+              final title = titleController.text.trim();
+              if (title.isNotEmpty) {
+                ref.read(calendarProvider.notifier).addMilestone(
+                      title,
+                      selectedTargetDate,
+                      isPinned: isPinned,
+                    );
+                Navigator.pop(context);
+              }
+            }
+
             return Padding(
               padding: EdgeInsets.only(
                 left: 20,
@@ -1109,137 +1196,25 @@ class CalendarCard extends ConsumerWidget {
                       ),
                       const Spacer(),
                       IconButton(
-                        icon: const Icon(Icons.close_rounded, color: AppColors.textSecondary),
+                        icon: const Icon(Icons.close_rounded,
+                            color: AppColors.textSecondary),
                         onPressed: () => Navigator.pop(context),
                       ),
                     ],
                   ),
                   const SizedBox(height: 12),
-
-                  TextField(
-                    controller: titleController,
-                    autofocus: true,
-                    style: const TextStyle(color: AppColors.textPrimary, fontSize: 14),
-                    decoration: InputDecoration(
-                      hintText: 'Milestone name (e.g. Project Launch, Trip)',
-                      hintStyle: const TextStyle(color: AppColors.textSecondary),
-                      filled: true,
-                      fillColor: Colors.white.withValues(alpha: 0.06),
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide.none,
-                      ),
-                    ),
+                  MilestoneFormContent(
+                    titleController: titleController,
+                    selectedDate: selectedTargetDate,
+                    isPinned: isPinned,
+                    onDateChanged: (picked) =>
+                        setModalState(() => selectedTargetDate = picked),
+                    onPinnedChanged: (val) =>
+                        setModalState(() => isPinned = val),
                   ),
-
-                  const SizedBox(height: 12),
-
-                  // Target Date Picker Row
-                  InkWell(
-                    onTap: () async {
-                      final picked = await showDatePicker(
-                        context: context,
-                        initialDate: selectedTargetDate,
-                        firstDate: DateTime(2000),
-                        lastDate: DateTime(2100),
-                        builder: (context, child) {
-                          return Theme(
-                            data: Theme.of(context).copyWith(
-                              colorScheme: const ColorScheme.light(
-                                primary: Colors.black87,
-                                onPrimary: AppColors.cardYellow,
-                                surface: AppColors.surface,
-                                onSurface: AppColors.textPrimary,
-                              ),
-                            ),
-                            child: child!,
-                          );
-                        },
-                      );
-                      if (picked != null) {
-                        setModalState(() {
-                          selectedTargetDate = picked;
-                        });
-                      }
-                    },
-                    borderRadius: BorderRadius.circular(12),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.06),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Row(
-                        children: [
-                          const Icon(Icons.event_rounded, size: 16, color: AppColors.accentOrange),
-                          const SizedBox(width: 8),
-                          Text(
-                            '${monthNames[selectedTargetDate.month - 1]} ${selectedTargetDate.day}, ${selectedTargetDate.year}',
-                            style: const TextStyle(
-                              color: AppColors.textPrimary,
-                              fontWeight: FontWeight.w600,
-                              fontSize: 13,
-                            ),
-                          ),
-                          const Spacer(),
-                          const Text(
-                            'Change',
-                            style: TextStyle(
-                              color: AppColors.accentOrange,
-                              fontWeight: FontWeight.w700,
-                              fontSize: 12,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-
-                  const SizedBox(height: 12),
-
-                  // Pin to banner toggle
-                  Row(
-                    children: [
-                      const Icon(Icons.push_pin_rounded, size: 16, color: AppColors.accentOrange),
-                      const SizedBox(width: 8),
-                      const Expanded(
-                        child: Text(
-                          'Pin to Countdown Pill',
-                          style: TextStyle(
-                            color: AppColors.textPrimary,
-                            fontWeight: FontWeight.w600,
-                            fontSize: 13,
-                          ),
-                        ),
-                      ),
-                      Switch(
-                        value: isPinned,
-                        activeTrackColor: AppColors.accentOrange,
-                        activeThumbColor: Colors.white,
-                        onChanged: (val) {
-                          setModalState(() {
-                            isPinned = val;
-                          });
-                        },
-                      ),
-                    ],
-                  ),
-
                   const SizedBox(height: 16),
-
                   ElevatedButton(
-                    onPressed: () {
-                      final title = titleController.text.trim();
-                      if (title.isNotEmpty) {
-                        ref.read(calendarProvider.notifier).addMilestone(
-                              title,
-                              selectedTargetDate,
-                              isPinned: isPinned,
-                            );
-                        Navigator.pop(context);
-                      }
-                    },
+                    onPressed: saveMilestone,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppColors.accentOrange,
                       foregroundColor: Colors.white,
@@ -1250,7 +1225,8 @@ class CalendarCard extends ConsumerWidget {
                     ),
                     child: const Text(
                       'Save Milestone',
-                      style: TextStyle(fontWeight: FontWeight.w800, fontSize: 14),
+                      style:
+                          TextStyle(fontWeight: FontWeight.w800, fontSize: 14),
                     ),
                   ),
                 ],

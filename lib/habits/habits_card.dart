@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:wyrm_desk/core/core.dart';
 import 'package:wyrm_desk/home/card_layout_state.dart';
+import 'package:wyrm_desk/in_app_keyboard/in_app_keyboard.dart';
 import 'package:wyrm_desk/settings/settings_state.dart';
 
+import 'habit_form_content.dart';
 import 'habit_model.dart';
 import 'habits_state.dart';
 
@@ -33,31 +35,7 @@ class HabitsCard extends ConsumerWidget {
 
   /// Resolves an IconData glyph from an iconName token string.
   static IconData resolveIcon(String? name) {
-    switch (name) {
-      case 'water_drop':
-        return Icons.water_drop_rounded;
-      case 'fitness_center':
-        return Icons.fitness_center_rounded;
-      case 'menu_book':
-        return Icons.menu_book_rounded;
-      case 'directions_run':
-        return Icons.directions_run_rounded;
-      case 'bedtime':
-        return Icons.bedtime_rounded;
-      case 'wb_sunny':
-        return Icons.wb_sunny_rounded;
-      case 'code':
-        return Icons.code_rounded;
-      case 'local_cafe':
-        return Icons.local_cafe_rounded;
-      case 'check_circle':
-        return Icons.check_circle_rounded;
-      case 'favorite':
-        return Icons.favorite_rounded;
-      case 'bolt':
-      default:
-        return Icons.bolt_rounded;
-    }
+    return resolveHabitIcon(name);
   }
 
   /// Resolves start of the current week based on startWeekOnMonday setting.
@@ -983,32 +961,122 @@ class HabitsCard extends ConsumerWidget {
     );
   }
 
-  /// Bottom sheet dialog to create or edit a habit.
-  void _showHabitFormSheet(
+  /// Opens the full-screen two-pane virtual keyboard habit editor.
+  void _openHabitTwoPaneEditor(
     BuildContext context,
     WidgetRef ref, {
     HabitItem? habitToEdit,
   }) {
     final isEditing = habitToEdit != null;
-    final titleController = TextEditingController(text: habitToEdit?.title ?? '');
+    final titleController =
+        TextEditingController(text: habitToEdit?.title ?? '');
     final unitController = TextEditingController(text: habitToEdit?.unit ?? '');
     var habitType = habitToEdit?.type ?? HabitType.binary;
-    var targetCount = habitToEdit?.targetValue ?? (habitType == HabitType.numeric ? 8 : 1);
+    var targetCount =
+        habitToEdit?.targetValue ?? (habitType == HabitType.numeric ? 8 : 1);
     var selectedIcon = habitToEdit?.iconName ?? 'bolt';
 
-    final availableIcons = const [
-      'bolt',
-      'water_drop',
-      'fitness_center',
-      'menu_book',
-      'directions_run',
-      'bedtime',
-      'wb_sunny',
-      'code',
-      'local_cafe',
-      'check_circle',
-      'favorite',
-    ];
+    Navigator.of(context).push<void>(
+      MaterialPageRoute(
+        builder: (context) {
+          return StatefulBuilder(
+            builder: (context, setEditorState) {
+              void saveHabit() {
+                final text = titleController.text.trim();
+                if (text.isEmpty) return;
+
+                final unit = unitController.text.trim().isEmpty
+                    ? null
+                    : unitController.text.trim();
+
+                if (isEditing) {
+                  final updated = habitToEdit.copyWith(
+                    title: text,
+                    type: habitType,
+                    targetValue: targetCount,
+                    unit: unit,
+                    iconName: selectedIcon,
+                  );
+                  ref.read(habitsProvider.notifier).editHabit(updated);
+                } else {
+                  final newHabit = HabitItem(
+                    id: DateTime.now().millisecondsSinceEpoch.toString(),
+                    title: text,
+                    type: habitType,
+                    targetValue: targetCount,
+                    unit: unit,
+                    iconName: selectedIcon,
+                    colorHex: '#A0D2B4',
+                    createdAt: DateTime.now(),
+                  );
+                  ref.read(habitsProvider.notifier).addHabit(newHabit);
+                }
+                Navigator.of(context).pop();
+              }
+
+              return TwoPaneKeyboardScaffold(
+                title: isEditing ? 'Edit Habit' : 'New Habit',
+                saveLabel: isEditing ? 'Save Changes' : 'Create Habit',
+                saveButtonColor: AppColors.cardSage,
+                saveTextColor: AppColors.textOnLight,
+                onSave: saveHabit,
+                formBuilder: (context, keyboard) {
+                  return HabitFormContent(
+                    titleController: titleController,
+                    unitController: unitController,
+                    habitType: habitType,
+                    targetCount: targetCount,
+                    selectedIcon: selectedIcon,
+                    isEditing: isEditing,
+                    onTypeChanged: (type) =>
+                        setEditorState(() => habitType = type),
+                    onTargetCountChanged: (count) =>
+                        setEditorState(() => targetCount = count),
+                    onIconChanged: (icon) =>
+                        setEditorState(() => selectedIcon = icon),
+                    onChanged: () => setEditorState(() {}),
+                  );
+                },
+                previewBuilder: (context) {
+                  return HabitPreviewTile(
+                    title: titleController.text,
+                    type: habitType,
+                    targetCount: targetCount,
+                    unit: unitController.text.trim().isEmpty
+                        ? null
+                        : unitController.text.trim(),
+                    iconName: selectedIcon,
+                  );
+                },
+              );
+            },
+          );
+        },
+      ),
+    );
+  }
+
+  /// Opens the habit creation/edit flow, respecting user preference for
+  /// classic bottom sheet vs two-pane virtual keyboard editor.
+  void _showHabitFormSheet(
+    BuildContext context,
+    WidgetRef ref, {
+    HabitItem? habitToEdit,
+  }) {
+    final settings = ref.read(appSettingsProvider);
+    if (!settings.useClassicModalSheet) {
+      _openHabitTwoPaneEditor(context, ref, habitToEdit: habitToEdit);
+      return;
+    }
+
+    final isEditing = habitToEdit != null;
+    final titleController =
+        TextEditingController(text: habitToEdit?.title ?? '');
+    final unitController = TextEditingController(text: habitToEdit?.unit ?? '');
+    var habitType = habitToEdit?.type ?? HabitType.binary;
+    var targetCount =
+        habitToEdit?.targetValue ?? (habitType == HabitType.numeric ? 8 : 1);
+    var selectedIcon = habitToEdit?.iconName ?? 'bolt';
 
     showModalBottomSheet<void>(
       context: context,
@@ -1020,6 +1088,39 @@ class HabitsCard extends ConsumerWidget {
       builder: (context) {
         return StatefulBuilder(
           builder: (context, setModalState) {
+            void saveHabit() {
+              final text = titleController.text.trim();
+              if (text.isEmpty) return;
+
+              final unit = unitController.text.trim().isEmpty
+                  ? null
+                  : unitController.text.trim();
+
+              if (isEditing) {
+                final updated = habitToEdit.copyWith(
+                  title: text,
+                  type: habitType,
+                  targetValue: targetCount,
+                  unit: unit,
+                  iconName: selectedIcon,
+                );
+                ref.read(habitsProvider.notifier).editHabit(updated);
+              } else {
+                final newHabit = HabitItem(
+                  id: DateTime.now().millisecondsSinceEpoch.toString(),
+                  title: text,
+                  type: habitType,
+                  targetValue: targetCount,
+                  unit: unit,
+                  iconName: selectedIcon,
+                  colorHex: '#A0D2B4',
+                  createdAt: DateTime.now(),
+                );
+                ref.read(habitsProvider.notifier).addHabit(newHabit);
+              }
+              Navigator.pop(context);
+            }
+
             return Padding(
               padding: EdgeInsets.only(
                 left: 20,
@@ -1044,205 +1145,36 @@ class HabitsCard extends ConsumerWidget {
                         ),
                         const Spacer(),
                         IconButton(
-                          icon: const Icon(Icons.close_rounded, color: AppColors.textSecondary),
+                          icon: const Icon(Icons.close_rounded,
+                              color: AppColors.textSecondary),
                           onPressed: () => Navigator.pop(context),
                         ),
                       ],
                     ),
                     const SizedBox(height: 12),
-
-                    // Title input
-                    TextField(
-                      controller: titleController,
-                      autofocus: !isEditing,
-                      style: const TextStyle(color: AppColors.textPrimary, fontSize: 14),
-                      decoration: InputDecoration(
-                        hintText: 'Habit title (e.g. Morning Jog, Drink Water)',
-                        hintStyle: const TextStyle(color: AppColors.textSecondary),
-                        filled: true,
-                        fillColor: Colors.white.withValues(alpha: 0.06),
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          borderSide: BorderSide.none,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 14),
-
-                    // Type Segmented Selector: Binary vs Numeric
-                    Row(
-                      children: [
-                        Expanded(
-                          child: InkWell(
-                            onTap: () {
-                              setModalState(() {
-                                habitType = HabitType.binary;
-                                targetCount = 1;
-                              });
-                            },
-                            borderRadius: BorderRadius.circular(10),
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(vertical: 10),
-                              decoration: BoxDecoration(
-                                color: habitType == HabitType.binary
-                                    ? AppColors.cardSage
-                                    : Colors.white.withValues(alpha: 0.06),
-                                borderRadius: BorderRadius.circular(10),
-                              ),
-                              alignment: Alignment.center,
-                              child: Text(
-                                'Check-in (Done/Not Done)',
-                                style: TextStyle(
-                                  color: habitType == HabitType.binary
-                                      ? AppColors.textOnLight
-                                      : AppColors.textSecondary,
-                                  fontWeight: FontWeight.w700,
-                                  fontSize: 12,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: InkWell(
-                            onTap: () {
-                              setModalState(() {
-                                habitType = HabitType.numeric;
-                                if (targetCount <= 1) targetCount = 8;
-                              });
-                            },
-                            borderRadius: BorderRadius.circular(10),
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(vertical: 10),
-                              decoration: BoxDecoration(
-                                color: habitType == HabitType.numeric
-                                    ? AppColors.cardSage
-                                    : Colors.white.withValues(alpha: 0.06),
-                                borderRadius: BorderRadius.circular(10),
-                              ),
-                              alignment: Alignment.center,
-                              child: Text(
-                                'Target Count (e.g. 8 cups)',
-                                style: TextStyle(
-                                  color: habitType == HabitType.numeric
-                                      ? AppColors.textOnLight
-                                      : AppColors.textSecondary,
-                                  fontWeight: FontWeight.w700,
-                                  fontSize: 12,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 14),
-
-                    // Numeric parameters: Target count & Unit
-                    if (habitType == HabitType.numeric) ...[
-                      Row(
-                        children: [
-                          const Text(
-                            'Daily Target:',
-                            style: TextStyle(
-                              color: AppColors.textSecondary,
-                              fontSize: 12,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          IconButton(
-                            icon: const Icon(Icons.remove_circle_outline_rounded, color: AppColors.textSecondary),
-                            onPressed: () {
-                              if (targetCount > 1) {
-                                setModalState(() => targetCount--);
-                              }
-                            },
-                          ),
-                          Text(
-                            '$targetCount',
-                            style: const TextStyle(
-                              color: AppColors.textPrimary,
-                              fontWeight: FontWeight.w800,
-                              fontSize: 15,
-                            ),
-                          ),
-                          IconButton(
-                            icon: const Icon(Icons.add_circle_outline_rounded, color: AppColors.textSecondary),
-                            onPressed: () {
-                              setModalState(() => targetCount++);
-                            },
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: TextField(
-                              controller: unitController,
-                              style: const TextStyle(color: AppColors.textPrimary, fontSize: 13),
-                              decoration: InputDecoration(
-                                hintText: 'Unit (e.g. cups, mins)',
-                                hintStyle: const TextStyle(color: AppColors.textSecondary),
-                                filled: true,
-                                fillColor: Colors.white.withValues(alpha: 0.06),
-                                contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                                border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(8),
-                                  borderSide: BorderSide.none,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 14),
-                    ],
-
-                    // Icon selector
-                    const Text(
-                      'Choose Glyph:',
-                      style: TextStyle(
-                        color: AppColors.textSecondary,
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
-                      children: availableIcons.map((iconKey) {
-                        final isSelected = selectedIcon == iconKey;
-                        return InkWell(
-                          onTap: () => setModalState(() => selectedIcon = iconKey),
-                          borderRadius: BorderRadius.circular(10),
-                          child: Container(
-                            width: 36,
-                            height: 36,
-                            decoration: BoxDecoration(
-                              color: isSelected
-                                  ? AppColors.cardSage
-                                  : Colors.white.withValues(alpha: 0.06),
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                            child: Icon(
-                              resolveIcon(iconKey),
-                              size: 18,
-                              color: isSelected ? AppColors.textOnLight : AppColors.textPrimary,
-                            ),
-                          ),
-                        );
-                      }).toList(),
+                    HabitFormContent(
+                      titleController: titleController,
+                      unitController: unitController,
+                      habitType: habitType,
+                      targetCount: targetCount,
+                      selectedIcon: selectedIcon,
+                      isEditing: isEditing,
+                      onTypeChanged: (type) =>
+                          setModalState(() => habitType = type),
+                      onTargetCountChanged: (count) =>
+                          setModalState(() => targetCount = count),
+                      onIconChanged: (icon) =>
+                          setModalState(() => selectedIcon = icon),
                     ),
                     const SizedBox(height: 18),
-
-                    // Action buttons
                     Row(
                       children: [
                         Expanded(
                           child: TextButton(
                             onPressed: () => Navigator.pop(context),
-                            child: const Text('Cancel', style: TextStyle(color: AppColors.textSecondary)),
+                            child: const Text('Cancel',
+                                style:
+                                    TextStyle(color: AppColors.textSecondary)),
                           ),
                         ),
                         const SizedBox(width: 12),
@@ -1251,44 +1183,16 @@ class HabitsCard extends ConsumerWidget {
                             style: ElevatedButton.styleFrom(
                               backgroundColor: AppColors.cardSage,
                               foregroundColor: AppColors.textOnLight,
-                              padding: const EdgeInsets.symmetric(vertical: 12),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                              padding:
+                                  const EdgeInsets.symmetric(vertical: 12),
+                              shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12)),
                             ),
-                            onPressed: () {
-                              final text = titleController.text.trim();
-                              if (text.isEmpty) return;
-
-                              final unit = unitController.text.trim().isEmpty
-                                  ? null
-                                  : unitController.text.trim();
-
-                              if (isEditing) {
-                                final updated = habitToEdit.copyWith(
-                                  title: text,
-                                  type: habitType,
-                                  targetValue: targetCount,
-                                  unit: unit,
-                                  iconName: selectedIcon,
-                                );
-                                ref.read(habitsProvider.notifier).editHabit(updated);
-                              } else {
-                                final newHabit = HabitItem(
-                                  id: DateTime.now().millisecondsSinceEpoch.toString(),
-                                  title: text,
-                                  type: habitType,
-                                  targetValue: targetCount,
-                                  unit: unit,
-                                  iconName: selectedIcon,
-                                  createdAt: DateTime.now(),
-                                );
-                                ref.read(habitsProvider.notifier).addHabit(newHabit);
-                              }
-
-                              Navigator.pop(context);
-                            },
+                            onPressed: saveHabit,
                             child: Text(
                               isEditing ? 'Save Changes' : 'Create Habit',
-                              style: const TextStyle(fontWeight: FontWeight.w800),
+                              style: const TextStyle(
+                                  fontWeight: FontWeight.w800, fontSize: 13),
                             ),
                           ),
                         ),

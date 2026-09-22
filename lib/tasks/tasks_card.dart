@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:wyrm_desk/core/theme.dart';
 import 'package:wyrm_desk/home/card_layout_state.dart';
+import 'package:wyrm_desk/in_app_keyboard/in_app_keyboard.dart';
 import 'package:wyrm_desk/settings/settings_state.dart';
+import 'package:wyrm_desk/tasks/task_form_content.dart';
 import 'package:wyrm_desk/tasks/task_model.dart';
 import 'package:wyrm_desk/tasks/tasks_state.dart';
 import 'package:wyrm_desk/widgets/bento_box.dart';
@@ -296,8 +298,65 @@ class TasksCard extends ConsumerWidget {
     );
   }
 
-  /// Opens the minimalist modal bottom sheet to input a new task title and priority.
+  /// Opens the full-screen two-pane virtual keyboard task editor.
+  void _openTaskTwoPaneEditor(BuildContext context, WidgetRef ref) {
+    final titleController = TextEditingController();
+    String selectedPriority = 'normal';
+
+    Navigator.of(context).push<void>(
+      MaterialPageRoute(
+        builder: (context) {
+          return StatefulBuilder(
+            builder: (context, setEditorState) {
+              void saveTask() {
+                final text = titleController.text.trim();
+                if (text.isNotEmpty) {
+                  ref
+                      .read(tasksProvider.notifier)
+                      .addTask(text, priority: selectedPriority);
+                  Navigator.of(context).pop();
+                }
+              }
+
+              return TwoPaneKeyboardScaffold(
+                title: 'New Task',
+                saveLabel: 'Add Task',
+                saveButtonColor: AppColors.cardOrange,
+                saveTextColor: AppColors.textOnLight,
+                onSave: saveTask,
+                formBuilder: (context, keyboard) {
+                  return TaskFormContent(
+                    titleController: titleController,
+                    selectedPriority: selectedPriority,
+                    onPriorityChanged: (priority) =>
+                        setEditorState(() => selectedPriority = priority),
+                    onChanged: () => setEditorState(() {}),
+                    onSubmitted: (_) => saveTask(),
+                  );
+                },
+                previewBuilder: (context) {
+                  return TaskPreviewCard(
+                    title: titleController.text,
+                    priority: selectedPriority,
+                  );
+                },
+              );
+            },
+          );
+        },
+      ),
+    );
+  }
+
+  /// Opens the task input flow, respecting user preference for
+  /// classic bottom sheet vs two-pane virtual keyboard editor.
   void _showAddTaskSheet(BuildContext context, WidgetRef ref) {
+    final settings = ref.read(appSettingsProvider);
+    if (!settings.useClassicModalSheet) {
+      _openTaskTwoPaneEditor(context, ref);
+      return;
+    }
+
     final titleController = TextEditingController();
     String selectedPriority = 'normal';
 
@@ -311,6 +370,16 @@ class TasksCard extends ConsumerWidget {
       builder: (context) {
         return StatefulBuilder(
           builder: (context, setModalState) {
+            void saveTask() {
+              final text = titleController.text.trim();
+              if (text.isNotEmpty) {
+                ref
+                    .read(tasksProvider.notifier)
+                    .addTask(text, priority: selectedPriority);
+                Navigator.of(context).pop();
+              }
+            }
+
             return Padding(
               padding: EdgeInsets.only(
                 left: 20,
@@ -343,99 +412,14 @@ class TasksCard extends ConsumerWidget {
                     ],
                   ),
                   const SizedBox(height: 12),
-                  TextField(
-                    controller: titleController,
-                    autofocus: true,
-                    style: const TextStyle(color: AppColors.textPrimary),
-                    cursorColor: AppColors.accentOrange,
-                    decoration: InputDecoration(
-                      hintText: 'What needs to be done?',
-                      hintStyle:
-                          const TextStyle(color: AppColors.textSecondary),
-                      filled: true,
-                      fillColor: Colors.black.withValues(alpha: 0.3),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide.none,
-                      ),
-                      contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 14,
-                        vertical: 12,
-                      ),
-                    ),
-                    onSubmitted: (val) {
-                      if (val.trim().isNotEmpty) {
-                        ref
-                            .read(tasksProvider.notifier)
-                            .addTask(val, priority: selectedPriority);
-                        Navigator.of(context).pop();
-                      }
-                    },
-                  ),
-                  const SizedBox(height: 14),
-
-                  // Priority selection chips.
-                  Row(
-                    children: [
-                      const Text(
-                        'Priority:',
-                        style: TextStyle(
-                          color: AppColors.textSecondary,
-                          fontSize: 13,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      const SizedBox(width: 10),
-                      ChoiceChip(
-                        label: const Text('Normal'),
-                        selected: selectedPriority == 'normal',
-                        selectedColor:
-                            AppColors.accentOrange.withValues(alpha: 0.25),
-                        backgroundColor: Colors.black.withValues(alpha: 0.2),
-                        labelStyle: TextStyle(
-                          color: selectedPriority == 'normal'
-                              ? AppColors.accentOrange
-                              : AppColors.textSecondary,
-                          fontWeight: FontWeight.w700,
-                          fontSize: 12,
-                        ),
-                        side: BorderSide(
-                          color: selectedPriority == 'normal'
-                              ? AppColors.accentOrange
-                              : Colors.transparent,
-                        ),
-                        onSelected: (_) {
-                          setModalState(() => selectedPriority = 'normal');
-                        },
-                      ),
-                      const SizedBox(width: 8),
-                      ChoiceChip(
-                        label: const Text('High'),
-                        selected: selectedPriority == 'high',
-                        selectedColor:
-                            AppColors.accentOrange.withValues(alpha: 0.25),
-                        backgroundColor: Colors.black.withValues(alpha: 0.2),
-                        labelStyle: TextStyle(
-                          color: selectedPriority == 'high'
-                              ? AppColors.accentOrange
-                              : AppColors.textSecondary,
-                          fontWeight: FontWeight.w700,
-                          fontSize: 12,
-                        ),
-                        side: BorderSide(
-                          color: selectedPriority == 'high'
-                              ? AppColors.accentOrange
-                              : Colors.transparent,
-                        ),
-                        onSelected: (_) {
-                          setModalState(() => selectedPriority = 'high');
-                        },
-                      ),
-                    ],
+                  TaskFormContent(
+                    titleController: titleController,
+                    selectedPriority: selectedPriority,
+                    onPriorityChanged: (priority) =>
+                        setModalState(() => selectedPriority = priority),
+                    onSubmitted: (_) => saveTask(),
                   ),
                   const SizedBox(height: 18),
-
-                  // Submit button.
                   ElevatedButton(
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppColors.accentOrange,
@@ -446,15 +430,7 @@ class TasksCard extends ConsumerWidget {
                       ),
                       elevation: 0,
                     ),
-                    onPressed: () {
-                      final text = titleController.text.trim();
-                      if (text.isNotEmpty) {
-                        ref
-                            .read(tasksProvider.notifier)
-                            .addTask(text, priority: selectedPriority);
-                        Navigator.of(context).pop();
-                      }
-                    },
+                    onPressed: saveTask,
                     child: const Text(
                       'Add Task',
                       style: TextStyle(

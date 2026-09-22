@@ -36,12 +36,13 @@ class SettingsDialog extends ConsumerWidget {
       ),
       child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 400),
-        child: Padding(
-          padding: const EdgeInsets.all(22.0),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
+        child: SingleChildScrollView(
+          child: Padding(
+            padding: const EdgeInsets.all(22.0),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
               Row(
                 children: [
                   const Expanded(
@@ -329,6 +330,63 @@ class SettingsDialog extends ConsumerWidget {
               ),
               const SizedBox(height: 12),
 
+              // Classic modal bottom sheet toggle row.
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 14,
+                ),
+                decoration: BoxDecoration(
+                  color: AppColors.surfaceElevated,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: AppColors.borderDark, width: 1.0),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(
+                      Icons.vertical_align_bottom_rounded,
+                      size: 20,
+                      color: AppColors.accentOrange,
+                    ),
+                    const SizedBox(width: 12),
+                    const Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Classic Modal Sheet',
+                            style: TextStyle(
+                              color: AppColors.textPrimary,
+                              fontWeight: FontWeight.w700,
+                              fontSize: 14,
+                            ),
+                          ),
+                          SizedBox(height: 2),
+                          Text(
+                            'Use bottom sheet instead of 2-pane keyboard editor',
+                            style: TextStyle(
+                              color: AppColors.textSecondary,
+                              fontSize: 11,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Switch.adaptive(
+                      value: settings.useClassicModalSheet,
+                      activeThumbColor: AppColors.accentOrange,
+                      activeTrackColor: AppColors.accentOrange.withValues(
+                        alpha: 0.4,
+                      ),
+                      inactiveThumbColor: AppColors.textSecondary,
+                      inactiveTrackColor: AppColors.surface,
+                      onChanged: (val) => notifier.setUseClassicModalSheet(val),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 12),
+
               // Web Remote connection card.
               Container(
                 padding: const EdgeInsets.all(16),
@@ -463,6 +521,7 @@ class SettingsDialog extends ConsumerWidget {
           ),
         ),
       ),
-    );
+    ),
+  );
   }
 }
