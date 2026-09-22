@@ -607,6 +607,7 @@ void main() {
 
       final html = await htmlFile.readAsString();
       expect(html, contains('header-brand'));
+      expect(html, contains('card-all'));
       expect(html, contains('card-clock'));
       expect(html, contains('card-habits'));
       expect(html, contains('card-habits-tracker'));
@@ -634,6 +635,7 @@ void main() {
       expect(js, contains('WyrmStateStore'));
       expect(js, contains('WyrmWebSocketManager'));
       expect(js, contains('WyrmUiRenderer'));
+      expect(js, contains('setAllCardsSize'));
       expect(js, contains('toggleStartWeekOnMonday'));
       expect(js, contains('createMilestone'));
       expect(js, contains('deleteMilestone'));

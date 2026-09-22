@@ -257,6 +257,12 @@ body {
   border-color: rgba(255, 149, 0, 0.25);
 }
 
+.status-capsule.mixed {
+  color: var(--text-muted);
+  border: 1px dashed rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.02);
+}
+
 /* Segmented Size Bar */
 .segmented-bar {
   display: grid;

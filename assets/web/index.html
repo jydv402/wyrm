@@ -80,6 +80,26 @@
     <!-- Main Single Column Layout Cards Stream -->
     <main class="cards-stream">
 
+      <!-- All Cards Collective Size Controller (shown only in Layout view) -->
+      <article id="card-all" class="layout-card all-cards-controller" data-card="all">
+        <div class="card-header">
+          <div class="card-title-group">
+            <span class="card-glyph">🎛️</span>
+            <span class="card-name">All Cards</span>
+          </div>
+          <span id="allCardsStatusBadge" class="status-capsule">SMALL</span>
+        </div>
+
+        <div class="segmented-bar">
+          <button id="all-small" class="segment-btn"
+            onclick="window.wyrmRemote.setAllCardsSize('small')">Small</button>
+          <button id="all-medium" class="segment-btn"
+            onclick="window.wyrmRemote.setAllCardsSize('medium')">Medium</button>
+          <button id="all-fullscreen" class="segment-btn"
+            onclick="window.wyrmRemote.setAllCardsSize('fullscreen')">Full</button>
+        </div>
+      </article>
+
       <!-- Clock Card -->
       <article id="card-clock" class="layout-card" data-card="clock">
         <div class="card-header">

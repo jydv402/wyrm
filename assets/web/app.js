@@ -386,6 +386,14 @@ class WyrmUiRenderer {
     this.webCalViewDate = new Date();
     this.webCalSelectedDate = new Date();
 
+    this.cardAll = document.getElementById('card-all');
+    this.allCardsStatusBadge = document.getElementById('allCardsStatusBadge');
+    this.allCardsButtons = {
+      small: document.getElementById('all-small'),
+      medium: document.getElementById('all-medium'),
+      fullscreen: document.getElementById('all-fullscreen'),
+    };
+
     this.cardMap = {
       clock: document.getElementById('card-clock'),
       habits: document.getElementById('card-habits'),
@@ -419,7 +427,9 @@ class WyrmUiRenderer {
       }
 
       const cardCategory = cardEl.getAttribute('data-card');
-      if (cardCategory) {
+      if (cardCategory === 'all') {
+        this.scrollToCard('clock', cardEl);
+      } else if (cardCategory) {
         this.scrollToCard(cardCategory, cardEl);
       }
     });
@@ -453,6 +463,17 @@ class WyrmUiRenderer {
     this.store.setState({ layout: { [card]: size } });
     this.wsManager.sendLayoutMutation(card, size);
     this.scrollToCard(card, this.cardMap[card]);
+  }
+
+  setAllCardsSize(size) {
+    const cards = ['clock', 'habits', 'calendar', 'tasks'];
+    const updatedLayout = {};
+    cards.forEach((card) => {
+      updatedLayout[card] = size;
+      this.wsManager.sendLayoutMutation(card, size);
+    });
+    this.store.setState({ layout: updatedLayout });
+    this.scrollToCard('clock', this.cardAll);
   }
 
   toggleTimeFormat() {
@@ -701,6 +722,38 @@ class WyrmUiRenderer {
 
     if (this.cardClock) {
       this.cardClock.classList.toggle('nightstand-active', state.layout && state.layout.clock === 'nightstand');
+    }
+
+    // Update All Cards collective controller badge and buttons
+    if (this.allCardsStatusBadge) {
+      const clockSize = (layout.clock || 'small').toLowerCase();
+      const habitsSize = (layout.habits || 'small').toLowerCase();
+      const calSize = (layout.calendar || 'small').toLowerCase();
+      const tasksSize = (layout.tasks || 'small').toLowerCase();
+
+      const allMatch =
+        clockSize === habitsSize &&
+        habitsSize === calSize &&
+        calSize === tasksSize &&
+        (clockSize === 'small' || clockSize === 'medium' || clockSize === 'fullscreen');
+
+      if (allMatch) {
+        this.allCardsStatusBadge.textContent = clockSize.toUpperCase();
+        this.allCardsStatusBadge.className = 'status-capsule';
+        if (this.allCardsButtons) {
+          Object.entries(this.allCardsButtons).forEach(([btnSize, btn]) => {
+            if (btn) btn.classList.toggle('active', btnSize === clockSize);
+          });
+        }
+      } else {
+        this.allCardsStatusBadge.textContent = 'MIXED';
+        this.allCardsStatusBadge.className = 'status-capsule mixed';
+        if (this.allCardsButtons) {
+          Object.values(this.allCardsButtons).forEach((btn) => {
+            if (btn) btn.classList.remove('active');
+          });
+        }
+      }
     }
   }
 
@@ -1007,6 +1060,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Global interface for inline triggers
   window.wyrmRemote = {
     setCardSize: (card, size) => renderer.setCardSize(card, size),
+    setAllCardsSize: (size) => renderer.setAllCardsSize(size),
     toggleTimeFormat: () => renderer.toggleTimeFormat(),
     incrementFontSize: () => renderer.incrementFontSize(),
     decrementFontSize: () => renderer.decrementFontSize(),
