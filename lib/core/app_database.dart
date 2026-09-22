@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:path_provider/path_provider.dart';
 import 'package:wyrm_desk/calendar/calendar_model.dart';
+import 'package:wyrm_desk/habits/habit_model.dart';
 import 'package:wyrm_desk/home/card_layout_state.dart';
 import 'package:wyrm_desk/settings/settings_state.dart';
 import 'package:wyrm_desk/tasks/task_model.dart';
@@ -114,6 +115,26 @@ class AppDatabase {
   static Future<void> saveCalendarMilestones(List<CalendarMilestone> milestones) async {
     final db = await readDatabase();
     db['calendar'] = milestones.map((m) => m.toJson()).toList();
+    await writeDatabase(db);
+  }
+
+  /// Hydrates all stored habits from the database.
+  static Future<List<HabitItem>> loadHabits() async {
+    final db = await readDatabase();
+    final rawHabits = db['habits'];
+    if (rawHabits is List) {
+      return rawHabits
+          .whereType<Map<String, dynamic>>()
+          .map(HabitItem.fromJson)
+          .toList();
+    }
+    return [];
+  }
+
+  /// Persists updated habits to the database.
+  static Future<void> saveHabits(List<HabitItem> habits) async {
+    final db = await readDatabase();
+    db['habits'] = habits.map((h) => h.toJson()).toList();
     await writeDatabase(db);
   }
 

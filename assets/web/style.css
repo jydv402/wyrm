@@ -893,6 +893,129 @@ body[data-active-page="all"] .card-detail-section {
   white-space: nowrap;
 }
 
+/* Habits Tracker Section */
+.habit-manager-section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.habit-input-bar {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.glyph-picker-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 4px 0 8px;
+}
+
+.glyph-chip {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 15px;
+  cursor: pointer;
+  transition: var(--transition-fast);
+}
+
+.glyph-chip:hover {
+  background: rgba(255, 255, 255, 0.14);
+  transform: translateY(-1px);
+}
+
+.glyph-chip.selected {
+  background: rgba(160, 210, 180, 0.25);
+  border-color: #a0d2b4;
+  box-shadow: 0 0 8px rgba(160, 210, 180, 0.3);
+}
+
+.habits-checklist {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.habit-item-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 12px;
+  background: var(--bg-card-subtle);
+  border: var(--border-subtle);
+  border-radius: 12px;
+  gap: 10px;
+}
+
+.habit-title-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  min-width: 0;
+}
+
+.habit-glyph {
+  font-size: 14px;
+}
+
+.habit-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.habit-action-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.habit-toggle-btn {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 8px;
+  padding: 5px 10px;
+  color: var(--text-secondary);
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: var(--transition-fast);
+}
+
+.habit-toggle-btn.done {
+  background: rgba(160, 210, 180, 0.2);
+  border-color: #a0d2b4;
+  color: #a0d2b4;
+}
+
+.habit-stepper-control {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.habit-stepper-val {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-primary);
+  min-width: 50px;
+  text-align: center;
+}
+
 /* Mobile Responsiveness */
 @media (max-width: 540px) {
   .app-container {

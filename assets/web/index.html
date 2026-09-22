@@ -7,7 +7,7 @@
   <meta name="theme-color" content="#121212">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <title>WYRM Desk — Remote Companion</title>
+  <title>WYRM Desk - Remote Companion</title>
 
   <!-- Favicon -->
   <link rel="icon" type="image/png" href="/assets/icons/icon_flat.png">
@@ -141,6 +141,59 @@
         </div>
       </article>
 
+      <!-- Habits Tracker Section (shown only in Habits view) -->
+      <article id="card-habits-tracker" class="layout-card detail-card card-detail-section" data-card="habits">
+        <div class="card-header">
+          <div class="card-title-group">
+            <span class="card-glyph">⚡</span>
+            <span class="card-name">Daily Habits & Streaks</span>
+            <span id="habitsCounter" class="task-counter-capsule">0/0</span>
+          </div>
+        </div>
+
+        <div class="habit-manager-section">
+          <div class="habit-input-bar">
+            <input type="text" id="habitTitleInput" class="task-text-input" placeholder="New habit title..."
+              onkeydown="if(event.key==='Enter')window.wyrmRemote.addHabit()">
+            <select id="habitTypeSelect" class="task-priority-select"
+              onchange="window.wyrmRemote.onHabitTypeChange(this.value)">
+              <option value="binary">Check-in</option>
+              <option value="numeric">Numeric Goal</option>
+            </select>
+            <input type="number" id="habitTargetInput" class="milestone-date-input" style="width: 65px; display: none;"
+              value="8" min="1" placeholder="Target">
+            <input type="text" id="habitUnitInput" class="milestone-date-input" style="width: 75px; display: none;"
+              placeholder="Unit (cups)">
+            <button class="task-add-btn" onclick="window.wyrmRemote.addHabit()">Add</button>
+          </div>
+          <div class="glyph-picker-container" id="habitGlyphPicker">
+            <button type="button" class="glyph-chip selected" data-glyph="bolt"
+              onclick="window.wyrmRemote.selectHabitGlyph('bolt')" title="Energy">⚡</button>
+            <button type="button" class="glyph-chip" data-glyph="water_drop"
+              onclick="window.wyrmRemote.selectHabitGlyph('water_drop')" title="Hydration">💧</button>
+            <button type="button" class="glyph-chip" data-glyph="fitness_center"
+              onclick="window.wyrmRemote.selectHabitGlyph('fitness_center')" title="Workout">🏋️</button>
+            <button type="button" class="glyph-chip" data-glyph="menu_book"
+              onclick="window.wyrmRemote.selectHabitGlyph('menu_book')" title="Reading">📖</button>
+            <button type="button" class="glyph-chip" data-glyph="directions_run"
+              onclick="window.wyrmRemote.selectHabitGlyph('directions_run')" title="Running">🏃</button>
+            <button type="button" class="glyph-chip" data-glyph="bedtime"
+              onclick="window.wyrmRemote.selectHabitGlyph('bedtime')" title="Sleep">🌙</button>
+            <button type="button" class="glyph-chip" data-glyph="wb_sunny"
+              onclick="window.wyrmRemote.selectHabitGlyph('wb_sunny')" title="Morning">☀️</button>
+            <button type="button" class="glyph-chip" data-glyph="code"
+              onclick="window.wyrmRemote.selectHabitGlyph('code')" title="Coding">💻</button>
+            <button type="button" class="glyph-chip" data-glyph="local_cafe"
+              onclick="window.wyrmRemote.selectHabitGlyph('local_cafe')" title="Coffee">☕</button>
+            <button type="button" class="glyph-chip" data-glyph="check_circle"
+              onclick="window.wyrmRemote.selectHabitGlyph('check_circle')" title="Check">✅</button>
+            <button type="button" class="glyph-chip" data-glyph="favorite"
+              onclick="window.wyrmRemote.selectHabitGlyph('favorite')" title="Health">❤️</button>
+          </div>
+          <div id="habitsList" class="habits-checklist"></div>
+        </div>
+      </article>
+
       <!-- Calendar Card -->
       <article id="card-calendar" class="layout-card" data-card="calendar">
         <div class="card-header">
@@ -217,10 +270,13 @@
           </div>
           <div class="cal-nav-buttons">
             <button class="cal-nav-btn" onclick="window.wyrmRemote.prevWebMonth()" title="Previous month">‹</button>
-            <button id="webCalTodayBtn" class="cal-nav-btn" onclick="window.wyrmRemote.todayWebMonth()" title="Jump to today">Today</button>
-            <button class="cal-nav-btn" onclick="window.wyrmRemote.promptTravelDate()" title="Travel to date">Travel</button>
+            <button id="webCalTodayBtn" class="cal-nav-btn" onclick="window.wyrmRemote.todayWebMonth()"
+              title="Jump to today">Today</button>
+            <button class="cal-nav-btn" onclick="window.wyrmRemote.promptTravelDate()"
+              title="Travel to date">Travel</button>
             <button class="cal-nav-btn" onclick="window.wyrmRemote.nextWebMonth()" title="Next month">›</button>
-            <input type="date" id="webCalTravelInput" style="display:none;" onchange="window.wyrmRemote.travelWebDate(this.value)">
+            <input type="date" id="webCalTravelInput" style="display:none;"
+              onchange="window.wyrmRemote.travelWebDate(this.value)">
           </div>
         </div>
         <div class="web-calendar-container">

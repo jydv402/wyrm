@@ -251,11 +251,11 @@ void main() {
 
     testWidgets('renders Medium dual-pane layout with temporal inspector and progress bars',
         (WidgetTester tester) async {
-      final initialDate = DateTime(2026, 9, 19);
+      final initialDate = CalendarState.todayMidnight;
       final milestone = CalendarMilestone(
         id: 'ms_test',
         title: 'Demo Milestone',
-        targetDate: DateTime(2026, 9, 25),
+        targetDate: initialDate.add(const Duration(days: 6)),
         isPinned: true,
         createdAt: DateTime.now(),
       );
@@ -263,7 +263,7 @@ void main() {
       final notifier = _TestCalendarNotifier(
         CalendarState(
           selectedDate: initialDate,
-          viewMonth: DateTime(2026, 9, 1),
+          viewMonth: DateTime(initialDate.year, initialDate.month, 1),
           milestones: [milestone],
         ),
       );
@@ -286,12 +286,13 @@ void main() {
       );
 
       expect(find.text('Calendar'), findsOneWidget);
-      expect(find.text('September 2026'), findsOneWidget);
+      final monthName = CalendarCard.monthNames[initialDate.month - 1];
+      expect(find.text('$monthName ${initialDate.year}'), findsOneWidget);
       // Today button is hidden near chevrons when marker is already on the current date
       expect(find.widgetWithText(InkWell, 'Today'), findsNothing);
       expect(find.text('Travel'), findsOneWidget);
-      expect(find.textContaining('2026'), findsWidgets);
-      expect(find.textContaining('19'), findsWidgets);
+      expect(find.textContaining('${initialDate.year}'), findsWidgets);
+      expect(find.textContaining('${initialDate.day}'), findsWidgets);
       expect(find.text('Milestones & Countdowns'), findsOneWidget);
       expect(find.text('Demo Milestone'), findsOneWidget);
 
@@ -307,11 +308,12 @@ void main() {
 
     testWidgets('Today button appears when navigated away and disappears after reset',
         (WidgetTester tester) async {
-      final initialDate = DateTime(2026, 9, 19);
+      final initialDate = CalendarState.todayMidnight;
+      final awayYear = initialDate.year + 1;
       final notifier = _TestCalendarNotifier(
         CalendarState(
           selectedDate: initialDate,
-          viewMonth: DateTime(2026, 11, 1),
+          viewMonth: DateTime(awayYear, 1, 1),
         ),
       );
 
@@ -332,8 +334,8 @@ void main() {
         ),
       );
 
-      expect(find.text('November 2026'), findsOneWidget);
-      // Today button is visible because we are viewing November
+      expect(find.text('January $awayYear'), findsOneWidget);
+      // Today button is visible because we are viewing January of next year
       expect(find.widgetWithText(InkWell, 'Today'), findsOneWidget);
 
       // Tap the navigation Today button

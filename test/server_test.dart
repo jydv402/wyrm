@@ -5,6 +5,7 @@ import 'package:http/http.dart' as http;
 import 'package:web_socket_channel/io.dart';
 import 'package:wyrm_desk/calendar/calendar_model.dart';
 import 'package:wyrm_desk/calendar/calendar_state.dart';
+import 'package:wyrm_desk/habits/habits.dart';
 import 'package:wyrm_desk/home/card_layout_state.dart';
 import 'package:wyrm_desk/server/server.dart';
 import 'package:wyrm_desk/settings/settings_state.dart';
@@ -17,12 +18,24 @@ void main() {
     late AppSettingsConfig activeSettings;
     late List<TaskItem> activeTasks;
     late List<CalendarMilestone> activeMilestones;
+    late List<HabitItem> activeHabits;
     DashboardCardType? lastScrolledCard;
 
     setUp(() async {
       activeLayout = const CardLayoutConfig();
       activeSettings = const AppSettingsConfig();
       lastScrolledCard = null;
+      activeHabits = [
+        HabitItem(
+          id: 'h_1',
+          title: 'Initial Habit',
+          type: HabitType.numeric,
+          targetValue: 8,
+          unit: 'cups',
+          completions: {'2026-09-20': 4},
+          createdAt: DateTime.now(),
+        ),
+      ];
       activeTasks = [
         TaskItem(
           id: '1',
@@ -51,6 +64,7 @@ void main() {
           viewMonth: DateTime(2026, 9, 1),
           milestones: activeMilestones,
         ),
+        getHabitsConfig: () => HabitsState(habits: activeHabits),
         onSetCardSize: (type, size) {
           activeLayout = activeLayout.withSize(type, size);
         },
@@ -103,6 +117,49 @@ void main() {
             if (m.id == id) return m.copyWith(isPinned: !m.isPinned);
             return m;
           }).toList();
+        },
+        onAddHabit: (title, type, targetValue, {unit, iconName}) {
+          activeHabits = [
+            ...activeHabits,
+            HabitItem(
+              id: (activeHabits.length + 1).toString(),
+              title: title,
+              type: type,
+              targetValue: targetValue,
+              unit: unit,
+              iconName: iconName ?? 'bolt',
+              createdAt: DateTime.now(),
+            ),
+          ];
+        },
+        onToggleHabit: (id, [date]) {
+          final d = date ?? DateTime.now();
+          final k = HabitItem.dateKey(d);
+          activeHabits = activeHabits.map((h) {
+            if (h.id != id) return h;
+            final count = h.completionCountOn(d);
+            final newCompletions = Map<String, int>.from(h.completions);
+            if (count >= h.targetValue) {
+              newCompletions.remove(k);
+            } else {
+              newCompletions[k] = h.targetValue;
+            }
+            return h.copyWith(completions: newCompletions);
+          }).toList();
+        },
+        onStepHabit: (id, delta, [date]) {
+          final d = date ?? DateTime.now();
+          final k = HabitItem.dateKey(d);
+          activeHabits = activeHabits.map((h) {
+            if (h.id != id) return h;
+            final count = h.completionCountOn(d);
+            final newCompletions = Map<String, int>.from(h.completions);
+            newCompletions[k] = count + delta;
+            return h.copyWith(completions: newCompletions);
+          }).toList();
+        },
+        onDeleteHabit: (id) {
+          activeHabits = activeHabits.where((h) => h.id != id).toList();
         },
         onScrollToCard: (card) {
           lastScrolledCard = card;
@@ -435,6 +492,109 @@ void main() {
       expect(ip.split('.').length, 4);
     });
 
+    test('GET /api/habits returns active habit list', () async {
+      final response =
+          await http.get(Uri.parse('http://127.0.0.1:${server.port}/api/habits'));
+      expect(response.statusCode, 200);
+
+      final List decoded = jsonDecode(response.body);
+      expect(decoded.length, 1);
+      expect(decoded.first['title'], 'Initial Habit');
+      expect(decoded.first['target_value'], 8);
+    });
+
+    test('POST /api/habits adds a new habit', () async {
+      final response = await http.post(
+        Uri.parse('http://127.0.0.1:${server.port}/api/habits'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'title': 'Read 10 Pages',
+          'type': 'numeric',
+          'target_value': 10,
+          'unit': 'pages',
+          'icon_name': 'menu_book',
+        }),
+      );
+      expect(response.statusCode, 200);
+      expect(activeHabits.length, 2);
+      expect(activeHabits.last.title, 'Read 10 Pages');
+      expect(activeHabits.last.unit, 'pages');
+    });
+
+    test('POST /api/habits supports habit_type and glyph aliases', () async {
+      final response = await http.post(
+        Uri.parse('http://127.0.0.1:${server.port}/api/habits'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'title': 'Sprint Practice',
+          'habit_type': 'binary',
+          'glyph': 'run',
+        }),
+      );
+      expect(response.statusCode, 200);
+      expect(activeHabits.last.title, 'Sprint Practice');
+      expect(activeHabits.last.type, HabitType.binary);
+      expect(activeHabits.last.iconName, 'run');
+    });
+
+    test('WebSocket create_habit creates habit with custom glyph', () async {
+      final channel = IOWebSocketChannel.connect(
+        Uri.parse('ws://127.0.0.1:${server.port}/ws'),
+      );
+
+      await channel.stream.first;
+
+      channel.sink.add(jsonEncode({
+        'type': 'create_habit',
+        'title': 'Evening Journal',
+        'habit_type': 'binary',
+        'icon_name': 'book',
+      }));
+
+      await Future<void>.delayed(const Duration(milliseconds: 50));
+      expect(activeHabits.any((h) => h.title == 'Evening Journal'), isTrue);
+      expect(activeHabits.firstWhere((h) => h.title == 'Evening Journal').iconName, 'book');
+
+      await channel.sink.close();
+    });
+
+    test('POST /api/habits/toggle toggles habit completion', () async {
+      final response = await http.post(
+        Uri.parse('http://127.0.0.1:${server.port}/api/habits/toggle'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'id': 'h_1',
+          'date': '2026-09-20',
+        }),
+      );
+      expect(response.statusCode, 200);
+      expect(activeHabits.first.isCompletedOn(DateTime(2026, 9, 20)), isTrue);
+    });
+
+    test('POST /api/habits/step increments habit count', () async {
+      final response = await http.post(
+        Uri.parse('http://127.0.0.1:${server.port}/api/habits/step'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'id': 'h_1',
+          'delta': 2,
+          'date': '2026-09-20',
+        }),
+      );
+      expect(response.statusCode, 200);
+      expect(activeHabits.first.completionCountOn(DateTime(2026, 9, 20)), 6);
+    });
+
+    test('POST /api/habits/delete removes a habit', () async {
+      final response = await http.post(
+        Uri.parse('http://127.0.0.1:${server.port}/api/habits/delete'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'id': 'h_1'}),
+      );
+      expect(response.statusCode, 200);
+      expect(activeHabits.where((h) => h.id == 'h_1'), isEmpty);
+    });
+
     test('Redesigned assets/web files contain required components and styling',
         () async {
       final htmlFile = File('assets/web/index.html');
@@ -449,6 +609,9 @@ void main() {
       expect(html, contains('header-brand'));
       expect(html, contains('card-clock'));
       expect(html, contains('card-habits'));
+      expect(html, contains('card-habits-tracker'));
+      expect(html, contains('habitGlyphPicker'));
+      expect(html, contains('glyph-chip'));
       expect(html, contains('card-calendar'));
       expect(html, contains('card-tasks'));
       expect(html, contains('card-calendar-weekstart'));
@@ -459,6 +622,9 @@ void main() {
       final css = await cssFile.readAsString();
       expect(css, contains('--accent-amber: #ff9500'));
       expect(css, contains('.task-manager-section'));
+      expect(css, contains('.habit-manager-section'));
+      expect(css, contains('.glyph-picker-container'));
+      expect(css, contains('.glyph-chip'));
       expect(css, contains('.progress-section'));
       expect(css, contains('.web-calendar-container'));
       expect(css, contains('.milestone-manager-section'));
@@ -472,6 +638,12 @@ void main() {
       expect(js, contains('createMilestone'));
       expect(js, contains('deleteMilestone'));
       expect(js, contains('togglePinMilestone'));
+      expect(js, contains('createHabit'));
+      expect(js, contains('selectHabitGlyph'));
+      expect(js, contains('selectedHabitGlyph'));
+      expect(js, contains('toggleHabit'));
+      expect(js, contains('stepHabit'));
+      expect(js, contains('deleteHabit'));
       expect(js, contains('scrollToCard'));
     });
   });

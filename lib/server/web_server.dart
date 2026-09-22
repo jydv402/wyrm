@@ -8,6 +8,7 @@ import 'package:shelf_router/shelf_router.dart';
 import 'package:shelf_web_socket/shelf_web_socket.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 import 'package:wyrm_desk/calendar/calendar_state.dart';
+import 'package:wyrm_desk/habits/habits.dart';
 import 'package:wyrm_desk/home/card_layout_state.dart';
 import 'package:wyrm_desk/settings/settings_state.dart';
 import 'package:wyrm_desk/tasks/task_model.dart';
@@ -21,6 +22,7 @@ class ShelfWebServer {
   final AppSettingsConfig Function() getSettingsConfig;
   final List<TaskItem> Function()? getTasksConfig;
   final CalendarState Function()? getCalendarConfig;
+  final HabitsState Function()? getHabitsConfig;
   final void Function(DashboardCardType type, CardSize size) onSetCardSize;
   final void Function(bool is24Hour) onSet24HourFormat;
   final void Function(double fontSize)? onSetCardFontSize;
@@ -31,6 +33,10 @@ class ShelfWebServer {
   final void Function(String title, DateTime targetDate, {bool isPinned})? onAddMilestone;
   final void Function(String id)? onDeleteMilestone;
   final void Function(String id)? onTogglePinMilestone;
+  final void Function(String title, HabitType type, int targetValue, {String? unit, String? iconName})? onAddHabit;
+  final void Function(String id, [DateTime? date])? onToggleHabit;
+  final void Function(String id, int delta, [DateTime? date])? onStepHabit;
+  final void Function(String id)? onDeleteHabit;
   final void Function(DashboardCardType card)? onScrollToCard;
 
   /// Optional asset content overrides for headless testing environments.
@@ -47,6 +53,7 @@ class ShelfWebServer {
     required this.getSettingsConfig,
     this.getTasksConfig,
     this.getCalendarConfig,
+    this.getHabitsConfig,
     required this.onSetCardSize,
     required this.onSet24HourFormat,
     this.onSetCardFontSize,
@@ -57,6 +64,10 @@ class ShelfWebServer {
     this.onAddMilestone,
     this.onDeleteMilestone,
     this.onTogglePinMilestone,
+    this.onAddHabit,
+    this.onToggleHabit,
+    this.onStepHabit,
+    this.onDeleteHabit,
     this.onScrollToCard,
     this.htmlOverride,
     this.cssOverride,
@@ -90,6 +101,11 @@ class ShelfWebServer {
     router.post('/api/calendar/milestones', _handlePostAddMilestone);
     router.post('/api/calendar/milestones/delete', _handlePostDeleteMilestone);
     router.post('/api/calendar/milestones/pin', _handlePostPinMilestone);
+    router.get('/api/habits', _handleGetHabits);
+    router.post('/api/habits', _handlePostAddHabit);
+    router.post('/api/habits/toggle', _handlePostToggleHabit);
+    router.post('/api/habits/step', _handlePostStepHabit);
+    router.post('/api/habits/delete', _handlePostDeleteHabit);
 
     // WebSocket real-time channel.
     router.get(
@@ -136,12 +152,13 @@ class ShelfWebServer {
   /// Number of active WebSocket clients connected to the server.
   int get connectedClientsCount => _activeClients.length;
 
-  /// Broadcasts updated layout, settings, task, and calendar state to all connected WebSocket clients.
+  /// Broadcasts updated layout, settings, task, calendar, and habit state to all connected WebSocket clients.
   void broadcastState({
     CardLayoutConfig? layout,
     AppSettingsConfig? settings,
     List<TaskItem>? tasks,
     CalendarState? calendar,
+    HabitsState? habits,
   }) {
     final activeLayout = layout ?? getLayoutConfig();
     final activeSettings = settings ?? getSettingsConfig();
@@ -149,6 +166,8 @@ class ShelfWebServer {
         tasks ?? (getTasksConfig != null ? getTasksConfig!() : <TaskItem>[]);
     final activeCalendar =
         calendar ?? (getCalendarConfig != null ? getCalendarConfig!() : null);
+    final activeHabits =
+        habits ?? (getHabitsConfig != null ? getHabitsConfig!() : const HabitsState());
 
     final payload = jsonEncode({
       'type': 'state_update',
@@ -160,6 +179,7 @@ class ShelfWebServer {
       },
       'tasks': activeTasks.map((t) => t.toJson()).toList(),
       'calendar': _serializeCalendarState(activeCalendar, activeSettings.startWeekOnMonday),
+      'habits': activeHabits.habits.map((h) => h.toJson()).toList(),
     });
 
     for (final client in _activeClients.toList()) {
@@ -179,6 +199,8 @@ class ShelfWebServer {
         getTasksConfig != null ? getTasksConfig!() : <TaskItem>[];
     final activeCalendar =
         getCalendarConfig != null ? getCalendarConfig!() : null;
+    final activeHabits =
+        getHabitsConfig != null ? getHabitsConfig!() : const HabitsState();
 
     // Send immediate state snapshot upon connection.
     final initialSnapshot = jsonEncode({
@@ -191,6 +213,7 @@ class ShelfWebServer {
       },
       'tasks': activeTasks.map((t) => t.toJson()).toList(),
       'calendar': _serializeCalendarState(activeCalendar, getSettingsConfig().startWeekOnMonday),
+      'habits': activeHabits.habits.map((h) => h.toJson()).toList(),
     });
 
     try {
@@ -257,6 +280,45 @@ class ShelfWebServer {
             final id = data['id']?.toString();
             if (id != null && onTogglePinMilestone != null) {
               onTogglePinMilestone!(id);
+            }
+          } else if (type == 'create_habit') {
+            final title = (data['title'] ?? data['name']) as String?;
+            final typeStr = (data['habit_type'] ?? data['type']) as String?;
+            final targetValue = data['target_value'] is num
+                ? (data['target_value'] as num).toInt()
+                : (int.tryParse(data['target_value']?.toString() ?? '1') ?? 1);
+            final unit = data['unit'] as String?;
+            final iconName = (data['icon_name'] ?? data['iconName'] ?? data['glyph'] ?? 'bolt').toString();
+            if (title != null && title.trim().isNotEmpty && onAddHabit != null) {
+              onAddHabit!(
+                title.trim(),
+                HabitType.fromString(typeStr),
+                targetValue,
+                unit: unit?.trim().isEmpty == true ? null : unit?.trim(),
+                iconName: iconName,
+              );
+            }
+          } else if (type == 'toggle_habit') {
+            final id = data['id']?.toString();
+            final dateStr = data['date']?.toString();
+            final date = dateStr != null ? DateTime.tryParse(dateStr) : null;
+            if (id != null && onToggleHabit != null) {
+              onToggleHabit!(id, date);
+            }
+          } else if (type == 'step_habit') {
+            final id = data['id']?.toString();
+            final delta = data['delta'] is num
+                ? (data['delta'] as num).toInt()
+                : (int.tryParse(data['delta']?.toString() ?? '1') ?? 1);
+            final dateStr = data['date']?.toString();
+            final date = dateStr != null ? DateTime.tryParse(dateStr) : null;
+            if (id != null && onStepHabit != null) {
+              onStepHabit!(id, delta, date);
+            }
+          } else if (type == 'delete_habit') {
+            final id = data['id']?.toString();
+            if (id != null && onDeleteHabit != null) {
+              onDeleteHabit!(id);
             }
           } else if (type == 'scroll_to_card') {
             final cardName = data['card'] as String?;
@@ -565,6 +627,124 @@ class ShelfWebServer {
 
     return Response.badRequest(
       body: jsonEncode({'error': 'Invalid pin milestone payload'}),
+      headers: {'Content-Type': 'application/json'},
+    );
+  }
+
+  /// Returns full habit registry via REST GET call.
+  Future<Response> _handleGetHabits(Request request) async {
+    final activeHabits =
+        getHabitsConfig != null ? getHabitsConfig!().habits : <HabitItem>[];
+    return Response.ok(
+      jsonEncode(activeHabits.map((h) => h.toJson()).toList()),
+      headers: {'Content-Type': 'application/json'},
+    );
+  }
+
+  /// Creates a new habit via REST POST call.
+  Future<Response> _handlePostAddHabit(Request request) async {
+    try {
+      final body = await request.readAsString();
+      final data = jsonDecode(body) as Map<String, dynamic>;
+      final title = (data['title'] ?? data['name']) as String?;
+      final typeStr = (data['habit_type'] ?? data['type']) as String?;
+      final rawTarget = data['target_value'] ?? data['targetValue'] ?? data['target'];
+      final targetValue = rawTarget is num
+          ? rawTarget.toInt()
+          : (int.tryParse(rawTarget?.toString() ?? '1') ?? 1);
+      final unit = data['unit'] as String?;
+      final iconName = (data['icon_name'] ?? data['iconName'] ?? data['glyph'] ?? 'bolt').toString();
+
+      if (title != null && title.trim().isNotEmpty && onAddHabit != null) {
+        onAddHabit!(
+          title.trim(),
+          HabitType.fromString(typeStr),
+          targetValue,
+          unit: unit?.trim().isEmpty == true ? null : unit?.trim(),
+          iconName: iconName,
+        );
+        return Response.ok(
+          jsonEncode({'success': true}),
+          headers: {'Content-Type': 'application/json'},
+        );
+      }
+    } catch (_) {}
+
+    return Response.badRequest(
+      body: jsonEncode({'error': 'Invalid habit payload'}),
+      headers: {'Content-Type': 'application/json'},
+    );
+  }
+
+  /// Toggles habit completion via REST POST call.
+  Future<Response> _handlePostToggleHabit(Request request) async {
+    try {
+      final body = await request.readAsString();
+      final data = jsonDecode(body) as Map<String, dynamic>;
+      final id = data['id']?.toString();
+      final dateStr = (data['date'] ?? data['target_date']) as String?;
+      final date = dateStr != null ? DateTime.tryParse(dateStr) : null;
+
+      if (id != null && onToggleHabit != null) {
+        onToggleHabit!(id, date);
+        return Response.ok(
+          jsonEncode({'success': true}),
+          headers: {'Content-Type': 'application/json'},
+        );
+      }
+    } catch (_) {}
+
+    return Response.badRequest(
+      body: jsonEncode({'error': 'Invalid toggle habit payload'}),
+      headers: {'Content-Type': 'application/json'},
+    );
+  }
+
+  /// Increments or decrements habit progress count via REST POST call.
+  Future<Response> _handlePostStepHabit(Request request) async {
+    try {
+      final body = await request.readAsString();
+      final data = jsonDecode(body) as Map<String, dynamic>;
+      final id = data['id']?.toString();
+      final delta = data['delta'] is num
+          ? (data['delta'] as num).toInt()
+          : (int.tryParse(data['delta']?.toString() ?? '1') ?? 1);
+      final dateStr = (data['date'] ?? data['target_date']) as String?;
+      final date = dateStr != null ? DateTime.tryParse(dateStr) : null;
+
+      if (id != null && onStepHabit != null) {
+        onStepHabit!(id, delta, date);
+        return Response.ok(
+          jsonEncode({'success': true}),
+          headers: {'Content-Type': 'application/json'},
+        );
+      }
+    } catch (_) {}
+
+    return Response.badRequest(
+      body: jsonEncode({'error': 'Invalid step habit payload'}),
+      headers: {'Content-Type': 'application/json'},
+    );
+  }
+
+  /// Deletes a habit via REST POST call.
+  Future<Response> _handlePostDeleteHabit(Request request) async {
+    try {
+      final body = await request.readAsString();
+      final data = jsonDecode(body) as Map<String, dynamic>;
+      final id = data['id']?.toString();
+
+      if (id != null && onDeleteHabit != null) {
+        onDeleteHabit!(id);
+        return Response.ok(
+          jsonEncode({'success': true}),
+          headers: {'Content-Type': 'application/json'},
+        );
+      }
+    } catch (_) {}
+
+    return Response.badRequest(
+      body: jsonEncode({'error': 'Invalid delete habit payload'}),
       headers: {'Content-Type': 'application/json'},
     );
   }

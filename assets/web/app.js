@@ -21,6 +21,7 @@ class WyrmStateStore {
         startWeekOnMonday: false,
       },
       tasks: [],
+      habits: [],
       calendar: {
         today: new Date().toISOString(),
         selectedDate: new Date().toISOString(),
@@ -52,6 +53,7 @@ class WyrmStateStore {
       layout: { ...this.state.layout, ...(partialState.layout || {}) },
       settings: { ...this.state.settings, ...(partialState.settings || {}) },
       tasks: partialState.tasks !== undefined ? partialState.tasks : this.state.tasks,
+      habits: partialState.habits !== undefined ? partialState.habits : this.state.habits,
       calendar: partialState.calendar !== undefined ? { ...this.state.calendar, ...partialState.calendar } : this.state.calendar,
     };
     for (const listener of this.listeners) {
@@ -242,6 +244,75 @@ class WyrmWebSocketManager {
     }
   }
 
+  createHabit(title, habitType = 'binary', targetValue = 1, unit = null, iconName = 'bolt') {
+    const message = JSON.stringify({
+      type: 'create_habit',
+      title,
+      habit_type: habitType,
+      target_value: targetValue,
+      unit,
+      icon_name: iconName,
+    });
+
+    if (this.socket && this.socket.readyState === WebSocket.OPEN) {
+      this.socket.send(message);
+    } else {
+      fetch('/api/habits', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title,
+          habit_type: habitType,
+          target_value: targetValue,
+          unit,
+          icon_name: iconName,
+        }),
+      }).catch(() => {});
+    }
+  }
+
+  toggleHabit(id, date = null) {
+    const message = JSON.stringify({ type: 'toggle_habit', id, date });
+
+    if (this.socket && this.socket.readyState === WebSocket.OPEN) {
+      this.socket.send(message);
+    } else {
+      fetch('/api/habits/toggle', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, date }),
+      }).catch(() => {});
+    }
+  }
+
+  stepHabit(id, delta = 1, date = null) {
+    const message = JSON.stringify({ type: 'step_habit', id, delta, date });
+
+    if (this.socket && this.socket.readyState === WebSocket.OPEN) {
+      this.socket.send(message);
+    } else {
+      fetch('/api/habits/step', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, delta, date }),
+      }).catch(() => {});
+    }
+  }
+
+  deleteHabit(id) {
+    const message = JSON.stringify({ type: 'delete_habit', id });
+
+    if (this.socket && this.socket.readyState === WebSocket.OPEN) {
+      this.socket.send(message);
+    } else {
+      fetch('/api/habits/delete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id }),
+      }).catch(() => {});
+    }
+  }
+
   _handleIncomingMessage(rawMessage) {
     try {
       const payload = JSON.parse(rawMessage);
@@ -250,6 +321,7 @@ class WyrmWebSocketManager {
           layout: payload.layout || {},
           settings: payload.settings || {},
           tasks: payload.tasks !== undefined ? payload.tasks : this.store.getState().tasks,
+          habits: payload.habits !== undefined ? payload.habits : this.store.getState().habits,
           calendar: payload.calendar !== undefined ? payload.calendar : this.store.getState().calendar,
         });
       }
@@ -302,6 +374,15 @@ class WyrmUiRenderer {
     this.milestonePinCheckbox = document.getElementById('milestonePinCheckbox');
     this.milestonesList = document.getElementById('milestonesList');
 
+    // Habits DOM elements
+    this.habitsCounter = document.getElementById('habitsCounter');
+    this.habitTitleInput = document.getElementById('habitTitleInput');
+    this.habitTypeSelect = document.getElementById('habitTypeSelect');
+    this.habitTargetInput = document.getElementById('habitTargetInput');
+    this.habitUnitInput = document.getElementById('habitUnitInput');
+    this.habitsList = document.getElementById('habitsList');
+    this.selectedHabitGlyph = 'bolt';
+
     this.webCalViewDate = new Date();
     this.webCalSelectedDate = new Date();
 
@@ -327,7 +408,7 @@ class WyrmUiRenderer {
       if (!cardEl) return;
 
       // Ignore clicks originating from interactive input/action controls
-      const ignoredSelector = 'input, select, textarea, .task-checkbox, .task-delete-btn, .task-add-btn, .milestone-del-btn, .milestone-pin-btn, .switch-pill, .stepper-control, .web-cal-day-cell, .cal-nav-btn';
+      const ignoredSelector = 'input, select, textarea, .task-checkbox, .task-delete-btn, .task-add-btn, .milestone-del-btn, .milestone-pin-btn, .switch-pill, .stepper-control, .web-cal-day-cell, .cal-nav-btn, .habit-toggle-btn, .habit-del-btn, .glyph-chip';
       if (event.target.closest(ignoredSelector)) {
         return;
       }
@@ -488,6 +569,51 @@ class WyrmUiRenderer {
     this.wsManager.deleteTask(id);
   }
 
+  onHabitTypeChange(value) {
+    const isNumeric = value === 'numeric';
+    if (this.habitTargetInput) this.habitTargetInput.style.display = isNumeric ? 'inline-block' : 'none';
+    if (this.habitUnitInput) this.habitUnitInput.style.display = isNumeric ? 'inline-block' : 'none';
+  }
+
+  selectHabitGlyph(glyph) {
+    this.selectedHabitGlyph = glyph || 'bolt';
+    const chips = document.querySelectorAll('#habitGlyphPicker .glyph-chip');
+    chips.forEach((c) => {
+      if (c.getAttribute('data-glyph') === this.selectedHabitGlyph) {
+        c.classList.add('selected');
+      } else {
+        c.classList.remove('selected');
+      }
+    });
+  }
+
+  addHabit() {
+    if (!this.habitTitleInput) return;
+    const title = this.habitTitleInput.value.trim();
+    if (!title) return;
+
+    const type = this.habitTypeSelect ? this.habitTypeSelect.value : 'binary';
+    const targetValue = this.habitTargetInput ? parseInt(this.habitTargetInput.value, 10) || 1 : 1;
+    const unit = this.habitUnitInput && this.habitUnitInput.value.trim() ? this.habitUnitInput.value.trim() : null;
+    const iconName = this.selectedHabitGlyph || 'bolt';
+
+    this.wsManager.createHabit(title, type, targetValue, unit, iconName);
+    this.habitTitleInput.value = '';
+    if (this.habitUnitInput) this.habitUnitInput.value = '';
+  }
+
+  toggleHabit(id) {
+    this.wsManager.toggleHabit(id);
+  }
+
+  stepHabit(id, delta) {
+    this.wsManager.stepHabit(id, delta);
+  }
+
+  deleteHabit(id) {
+    this.wsManager.deleteHabit(id);
+  }
+
   render(state) {
     this._renderNetworkStatus(state);
     this._renderPageSwitcher(state);
@@ -496,6 +622,7 @@ class WyrmUiRenderer {
     this._renderFontSize(state);
     this._renderTasks(state);
     this._renderCalendar(state);
+    this._renderHabits(state);
   }
 
   _renderNetworkStatus(state) {
@@ -793,6 +920,77 @@ class WyrmUiRenderer {
     }).join('');
   }
 
+  _renderHabits(state) {
+    if (!this.habitsList) return;
+
+    const habits = state.habits || [];
+    const todayStr = new Date().toISOString().split('T')[0];
+
+    const completedToday = habits.filter((h) => {
+      const completions = h.completions || {};
+      const count = completions[todayStr] || 0;
+      const target = h.target_value || 1;
+      return count >= target;
+    }).length;
+
+    if (this.habitsCounter) {
+      this.habitsCounter.textContent = `${completedToday}/${habits.length}`;
+    }
+
+    if (habits.length === 0) {
+      this.habitsList.innerHTML = '<div class="tasks-empty-msg">No habits tracked yet. Add one above!</div>';
+      return;
+    }
+
+    this.habitsList.innerHTML = habits.map((habit) => {
+      const completions = habit.completions || {};
+      const count = completions[todayStr] || 0;
+      const target = habit.target_value || 1;
+      const isDone = count >= target;
+      const isNumeric = (habit.type || '').toLowerCase() === 'numeric';
+
+      return `
+        <div class="habit-item-row" data-habit-id="${habit.id}">
+          <div class="habit-title-group">
+            <span class="habit-glyph">${this._resolveGlyphEmoji(habit.icon_name || habit.iconName)}</span>
+            <span class="habit-title">${this._escapeHtml(habit.title || '')}</span>
+          </div>
+          <div class="habit-action-group">
+            ${isNumeric ? `
+              <div class="habit-stepper-control">
+                <button class="stepper-control" onclick="window.wyrmRemote.stepHabit('${habit.id}', -1)" title="Decrement">−</button>
+                <span class="habit-stepper-val">${count}/${target} ${habit.unit ? this._escapeHtml(habit.unit) : ''}</span>
+                <button class="stepper-control" onclick="window.wyrmRemote.stepHabit('${habit.id}', 1)" title="Increment">+</button>
+              </div>
+            ` : `
+              <button class="habit-toggle-btn ${isDone ? 'done' : ''}" onclick="window.wyrmRemote.toggleHabit('${habit.id}')">
+                <span>${isDone ? '✓ Done' : '○ Today'}</span>
+              </button>
+            `}
+            <button class="task-delete-btn" onclick="window.wyrmRemote.deleteHabit('${habit.id}')" title="Delete habit">×</button>
+          </div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  _resolveGlyphEmoji(iconName) {
+    const glyphMap = {
+      bolt: '⚡',
+      water_drop: '💧',
+      fitness_center: '🏋️',
+      menu_book: '📖',
+      directions_run: '🏃',
+      bedtime: '🌙',
+      wb_sunny: '☀️',
+      code: '💻',
+      local_cafe: '☕',
+      check_circle: '✅',
+      favorite: '❤️',
+    };
+    return glyphMap[iconName] || '⚡';
+  }
+
   _escapeHtml(text) {
     const div = document.createElement('div');
     div.textContent = text;
@@ -826,6 +1024,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     addMilestone: () => renderer.addMilestone(),
     deleteMilestone: (id) => renderer.deleteMilestone(id),
     togglePinMilestone: (id) => renderer.togglePinMilestone(id),
+    onHabitTypeChange: (val) => renderer.onHabitTypeChange(val),
+    selectHabitGlyph: (glyph) => renderer.selectHabitGlyph(glyph),
+    addHabit: () => renderer.addHabit(),
+    toggleHabit: (id) => renderer.toggleHabit(id),
+    stepHabit: (id, delta) => renderer.stepHabit(id, delta),
+    deleteHabit: (id) => renderer.deleteHabit(id),
     scrollToCard: (card) => renderer.scrollToCard(card),
   };
 
@@ -841,6 +1045,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         layout: initialSnapshot.layout || {},
         settings: initialSnapshot.settings || {},
         tasks: initialSnapshot.tasks || [],
+        habits: initialSnapshot.habits || [],
         calendar: initialSnapshot.calendar || {},
       });
     }
