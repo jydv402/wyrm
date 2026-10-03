@@ -3,33 +3,35 @@
 
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <meta name="theme-color" content="#121212">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="theme-color" content="#0a0b0e" media="(prefers-color-scheme: dark)">
+  <meta name="theme-color" content="#f2f2f7" media="(prefers-color-scheme: light)">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <title>WYRM Desk - Remote Companion</title>
+  <meta name="apple-mobile-web-app-title" content="Wyrm Remote">
+  <title>WYRM Desk — Remote Companion</title>
 
-  <!-- Favicon -->
+  <!-- Favicon & Web Clip Icons -->
   <link rel="icon" type="image/png" href="/assets/icons/icon_flat.png">
   <link rel="apple-touch-icon" href="/assets/icons/icon_flat.png">
 
-  <!-- Modular Stylesheet -->
-  <link rel="stylesheet" href="/style.css">
+  <!-- Modular Apple HIG & Liquid Glass Stylesheet -->
+  <link rel="stylesheet" href="/style.css?v=2">
 
   <!-- Core Controller JavaScript Engine -->
-  <script src="/app.js" defer></script>
+  <script src="/app.js?v=2" defer></script>
 </head>
 
 <body>
-  <!-- Centered Application Viewport -->
+  <!-- Application Shell -->
   <div class="app-container">
 
-    <!-- Top Navigation Header with Authentic Brand Wordmark, Center Page Switcher, and Network Pill -->
-    <header class="app-header">
-      <!-- Left: Authentic WYRM Wordmark from assets/icons/header_text.svg -->
-      <div class="header-brand" title="WYRM Desk">
-        <svg class="header-logo" width="112" height="32" viewBox="0 0 416 118" fill="none"
-          xmlns="http://www.w3.org/2000/svg">
+    <!-- Floating Liquid Glass Header: Authentic Wordmark, Adaptive Page Switcher, Status Telemetry -->
+    <header class="app-header glass-panel" role="banner">
+      <!-- Authentic WYRM Wordmark -->
+      <div class="header-brand" title="WYRM Desk Ambient Companion">
+        <svg class="header-logo" width="108" height="30" viewBox="0 0 416 118" fill="none"
+          xmlns="http://www.w3.org/2000/svg" aria-label="WYRM Wordmark">
           <path
             d="M339.332 15.0511C343.871 20.0749 350.971 29.9697 355.352 35.6796C360.14 28.991 365.84 21.5331 370.97 15.0969L398.804 15.0885L398.822 102.155H371.051L371.049 89.6041C370.992 80.0229 371.022 70.4416 371.138 60.8611C365.75 67.3622 360.67 74.6083 355.295 81.2496C349.953 74.6057 344.616 67.353 339.442 60.5366C339.137 74.0442 339.384 88.5789 339.379 102.157L311.579 102.159C311.689 73.3332 311.176 43.7971 311.655 15.0508L339.332 15.0511Z"
             fill="currentColor" />
@@ -58,39 +60,80 @@
         </svg>
       </div>
 
-      <!-- Center: Center-Aligned Capsule Page Switcher -->
-      <nav class="page-switcher" aria-label="Card Switcher">
-        <button id="tab-all" class="switcher-pill active"
-          onclick="window.wyrmRemote.setCardFilter('all')">Layout</button>
-        <button id="tab-clock" class="switcher-pill" onclick="window.wyrmRemote.setCardFilter('clock')">Clock</button>
-        <button id="tab-habits" class="switcher-pill"
-          onclick="window.wyrmRemote.setCardFilter('habits')">Habits</button>
-        <button id="tab-calendar" class="switcher-pill"
-          onclick="window.wyrmRemote.setCardFilter('calendar')">Calendar</button>
-        <button id="tab-tasks" class="switcher-pill" onclick="window.wyrmRemote.setCardFilter('tasks')">Tasks</button>
+      <!-- Center: Segmented Navigation Bar (Desktop & Tablet) -->
+      <nav class="page-switcher" role="tablist" aria-label="Companion Sections">
+        <button id="tab-all" class="switcher-pill active" role="tab" aria-selected="true"
+          onclick="window.wyrmRemote.setCardFilter('all')">
+          <span>Layout</span>
+        </button>
+        <button id="tab-clock" class="switcher-pill" role="tab" aria-selected="false"
+          onclick="window.wyrmRemote.setCardFilter('clock')">
+          <span>Clock</span>
+        </button>
+        <button id="tab-habits" class="switcher-pill" role="tab" aria-selected="false"
+          onclick="window.wyrmRemote.setCardFilter('habits')">
+          <span>Habits</span>
+        </button>
+        <button id="tab-calendar" class="switcher-pill" role="tab" aria-selected="false"
+          onclick="window.wyrmRemote.setCardFilter('calendar')">
+          <span>Calendar</span>
+        </button>
+        <button id="tab-tasks" class="switcher-pill" role="tab" aria-selected="false"
+          onclick="window.wyrmRemote.setCardFilter('tasks')">
+          <span>Tasks</span>
+        </button>
       </nav>
 
-      <!-- Right: Live Connection Telemetry Badge -->
-      <div id="networkBadge" class="network-badge" title="Connection Telemetry">
-        <span class="pulse-dot"></span>
-        <span id="networkLabel">Connecting...</span>
+      <!-- Right: Appearance Theme Switcher & Connection Telemetry -->
+      <div class="header-actions">
+        <!-- Appearance Mode Toggle (System / Dark / Light) -->
+        <button id="themeToggleBtn" class="theme-toggle-btn" onclick="window.wyrmRemote.cycleTheme()"
+          title="Switch appearance mode" aria-label="Switch appearance mode">
+          <svg class="theme-icon theme-icon-dark" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+          </svg>
+          <svg class="theme-icon theme-icon-light" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="5"></circle>
+            <line x1="12" y1="1" x2="12" y2="3"></line>
+            <line x1="12" y1="21" x2="12" y2="23"></line>
+            <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+            <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+            <line x1="1" y1="12" x2="3" y2="12"></line>
+            <line x1="21" y1="12" x2="23" y2="12"></line>
+            <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+            <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+          </svg>
+        </button>
+
+        <!-- Live Connection Telemetry Badge -->
+        <div id="networkBadge" class="network-badge" title="Connection Telemetry" role="status" aria-live="polite">
+          <span class="pulse-dot"></span>
+          <span id="networkLabel">CONNECTING...</span>
+        </div>
       </div>
     </header>
 
     <!-- Main Single Column Layout Cards Stream -->
-    <main class="cards-stream">
+    <main class="cards-stream" id="mainContent" role="main">
 
       <!-- All Cards Collective Size Controller (shown only in Layout view) -->
       <article id="card-all" class="layout-card all-cards-controller" data-card="all">
         <div class="card-header">
           <div class="card-title-group">
-            <span class="card-glyph">🎛️</span>
-            <span class="card-name">All Cards</span>
+            <span class="card-glyph" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3" y="3" width="7" height="7" rx="1.5"></rect>
+                <rect x="14" y="3" width="7" height="7" rx="1.5"></rect>
+                <rect x="14" y="14" width="7" height="7" rx="1.5"></rect>
+                <rect x="3" y="14" width="7" height="7" rx="1.5"></rect>
+              </svg>
+            </span>
+            <span class="card-name">All Cards Layout</span>
           </div>
           <span id="allCardsStatusBadge" class="status-capsule">SMALL</span>
         </div>
 
-        <div class="segmented-bar">
+        <div class="segmented-bar" role="group" aria-label="Global Card Size">
           <button id="all-small" class="segment-btn"
             onclick="window.wyrmRemote.setAllCardsSize('small')">Small</button>
           <button id="all-medium" class="segment-btn"
@@ -104,14 +147,19 @@
       <article id="card-clock" class="layout-card" data-card="clock">
         <div class="card-header">
           <div class="card-title-group clickable" onclick="window.wyrmRemote.setCardFilter('clock')"
-            title="Switch to Clock view">
-            <span class="card-glyph">⏱</span>
-            <span class="card-name">Clock Card</span>
+            title="Switch to Clock view" tabindex="0" role="button">
+            <span class="card-glyph" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"></circle>
+                <polyline points="12 6 12 12 16 14"></polyline>
+              </svg>
+            </span>
+            <span class="card-name">Clock</span>
           </div>
           <span id="clockStatusBadge" class="status-capsule">SMALL</span>
         </div>
 
-        <div class="segmented-bar four-segment">
+        <div class="segmented-bar four-segment" role="group" aria-label="Clock Card Size">
           <button id="clock-small" class="segment-btn"
             onclick="window.wyrmRemote.setCardSize('clock', 'small')">Small</button>
           <button id="clock-medium" class="segment-btn"
@@ -119,7 +167,12 @@
           <button id="clock-fullscreen" class="segment-btn"
             onclick="window.wyrmRemote.setCardSize('clock', 'fullscreen')">Full</button>
           <button id="clock-nightstand" class="segment-btn amber"
-            onclick="window.wyrmRemote.setCardSize('clock', 'nightstand')">🌙 Night</button>
+            onclick="window.wyrmRemote.setCardSize('clock', 'nightstand')" title="OLED Ambient Night Mode">
+            <svg class="btn-inline-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+            </svg>
+            <span>Night</span>
+          </button>
         </div>
       </article>
 
@@ -127,16 +180,23 @@
       <article id="card-clock-format" class="layout-card detail-card card-detail-section" data-card="clock">
         <div class="card-header">
           <div class="card-title-group">
-            <span class="card-glyph">⚙️</span>
+            <span class="card-glyph" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="3"></circle>
+                <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+              </svg>
+            </span>
             <span class="card-name">24-Hour Format</span>
           </div>
-          <div id="timeFormatToggle" class="switch-pill" role="switch" aria-checked="false"
-            onclick="window.wyrmRemote.toggleTimeFormat()" title="Toggle 24-hour time">
+          <div id="timeFormatToggle" class="switch-pill" role="switch" aria-checked="false" tabindex="0"
+            onclick="window.wyrmRemote.toggleTimeFormat()"
+            onkeydown="if(event.key==='Enter'||event.key===' ') { event.preventDefault(); window.wyrmRemote.toggleTimeFormat(); }"
+            title="Toggle 24-hour time">
             <div class="switch-thumb"></div>
           </div>
         </div>
         <div class="card-description-text">
-          Toggle ambient digital clock display between 12-hour (AM/PM) and 24-hour notation.
+          Toggle ambient digital clock display between 12-hour (AM/PM) and 24-hour international notation.
         </div>
       </article>
 
@@ -144,14 +204,18 @@
       <article id="card-habits" class="layout-card" data-card="habits">
         <div class="card-header">
           <div class="card-title-group clickable" onclick="window.wyrmRemote.setCardFilter('habits')"
-            title="Switch to Habits view">
-            <span class="card-glyph">⚡</span>
-            <span class="card-name">Habits Card</span>
+            title="Switch to Habits view" tabindex="0" role="button">
+            <span class="card-glyph" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+              </svg>
+            </span>
+            <span class="card-name">Habits</span>
           </div>
           <span id="habitsStatusBadge" class="status-capsule">SMALL</span>
         </div>
 
-        <div class="segmented-bar">
+        <div class="segmented-bar" role="group" aria-label="Habits Card Size">
           <button id="habits-small" class="segment-btn"
             onclick="window.wyrmRemote.setCardSize('habits', 'small')">Small</button>
           <button id="habits-medium" class="segment-btn"
@@ -165,52 +229,121 @@
       <article id="card-habits-tracker" class="layout-card detail-card card-detail-section" data-card="habits">
         <div class="card-header">
           <div class="card-title-group">
-            <span class="card-glyph">⚡</span>
+            <span class="card-glyph" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                <polyline points="22 4 12 14.01 9 11.01"></polyline>
+              </svg>
+            </span>
             <span class="card-name">Daily Habits & Streaks</span>
             <span id="habitsCounter" class="task-counter-capsule">0/0</span>
           </div>
         </div>
 
         <div class="habit-manager-section">
+          <!-- Habit Creation Bar -->
           <div class="habit-input-bar">
             <input type="text" id="habitTitleInput" class="task-text-input" placeholder="New habit title..."
-              onkeydown="if(event.key==='Enter')window.wyrmRemote.addHabit()">
+              onkeydown="if(event.key==='Enter')window.wyrmRemote.addHabit()" aria-label="New habit title">
             <select id="habitTypeSelect" class="task-priority-select"
-              onchange="window.wyrmRemote.onHabitTypeChange(this.value)">
+              onchange="window.wyrmRemote.onHabitTypeChange(this.value)" aria-label="Habit type">
               <option value="binary">Check-in</option>
               <option value="numeric">Numeric Goal</option>
             </select>
-            <input type="number" id="habitTargetInput" class="milestone-date-input" style="width: 65px; display: none;"
-              value="8" min="1" placeholder="Target">
-            <input type="text" id="habitUnitInput" class="milestone-date-input" style="width: 75px; display: none;"
-              placeholder="Unit (cups)">
-            <button class="task-add-btn" onclick="window.wyrmRemote.addHabit()">Add</button>
+            <input type="number" id="habitTargetInput" class="milestone-date-input" style="width: 72px; display: none;"
+              value="8" min="1" placeholder="Target" aria-label="Target count">
+            <input type="text" id="habitUnitInput" class="milestone-date-input" style="width: 86px; display: none;"
+              placeholder="Unit (cups)" aria-label="Unit name">
+            <button class="task-add-btn" onclick="window.wyrmRemote.addHabit()" aria-label="Add habit">Add</button>
           </div>
-          <div class="glyph-picker-container" id="habitGlyphPicker">
+
+          <!-- SF-Inspired Vector Icon Selector Chips -->
+          <div class="glyph-picker-container" id="habitGlyphPicker" role="radiogroup" aria-label="Select Habit Symbol">
             <button type="button" class="glyph-chip selected" data-glyph="bolt"
-              onclick="window.wyrmRemote.selectHabitGlyph('bolt')" title="Energy">⚡</button>
+              onclick="window.wyrmRemote.selectHabitGlyph('bolt')" title="Energy" aria-label="Energy" role="radio" aria-checked="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+              </svg>
+            </button>
             <button type="button" class="glyph-chip" data-glyph="water_drop"
-              onclick="window.wyrmRemote.selectHabitGlyph('water_drop')" title="Hydration">💧</button>
+              onclick="window.wyrmRemote.selectHabitGlyph('water_drop')" title="Hydration" aria-label="Hydration" role="radio" aria-checked="false">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"></path>
+              </svg>
+            </button>
             <button type="button" class="glyph-chip" data-glyph="fitness_center"
-              onclick="window.wyrmRemote.selectHabitGlyph('fitness_center')" title="Workout">🏋️</button>
+              onclick="window.wyrmRemote.selectHabitGlyph('fitness_center')" title="Workout" aria-label="Workout" role="radio" aria-checked="false">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M6 5v14M18 5v14M2 9v6M22 9v6M6 12h12"></path>
+              </svg>
+            </button>
             <button type="button" class="glyph-chip" data-glyph="menu_book"
-              onclick="window.wyrmRemote.selectHabitGlyph('menu_book')" title="Reading">📖</button>
+              onclick="window.wyrmRemote.selectHabitGlyph('menu_book')" title="Reading" aria-label="Reading" role="radio" aria-checked="false">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
+                <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
+              </svg>
+            </button>
             <button type="button" class="glyph-chip" data-glyph="directions_run"
-              onclick="window.wyrmRemote.selectHabitGlyph('directions_run')" title="Running">🏃</button>
+              onclick="window.wyrmRemote.selectHabitGlyph('directions_run')" title="Running" aria-label="Running" role="radio" aria-checked="false">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="5" r="2"></circle>
+                <path d="M10 22l3-7 3-3-2-4-4 2"></path>
+                <path d="M6 14l4-2 3 3"></path>
+              </svg>
+            </button>
             <button type="button" class="glyph-chip" data-glyph="bedtime"
-              onclick="window.wyrmRemote.selectHabitGlyph('bedtime')" title="Sleep">🌙</button>
+              onclick="window.wyrmRemote.selectHabitGlyph('bedtime')" title="Sleep" aria-label="Sleep" role="radio" aria-checked="false">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+              </svg>
+            </button>
             <button type="button" class="glyph-chip" data-glyph="wb_sunny"
-              onclick="window.wyrmRemote.selectHabitGlyph('wb_sunny')" title="Morning">☀️</button>
+              onclick="window.wyrmRemote.selectHabitGlyph('wb_sunny')" title="Morning" aria-label="Morning" role="radio" aria-checked="false">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="5"></circle>
+                <line x1="12" y1="1" x2="12" y2="3"></line>
+                <line x1="12" y1="21" x2="12" y2="23"></line>
+                <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+                <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+                <line x1="1" y1="12" x2="3" y2="12"></line>
+                <line x1="21" y1="12" x2="23" y2="12"></line>
+              </svg>
+            </button>
             <button type="button" class="glyph-chip" data-glyph="code"
-              onclick="window.wyrmRemote.selectHabitGlyph('code')" title="Coding">💻</button>
+              onclick="window.wyrmRemote.selectHabitGlyph('code')" title="Coding" aria-label="Coding" role="radio" aria-checked="false">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="16 18 22 12 16 6"></polyline>
+                <polyline points="8 6 2 12 8 18"></polyline>
+              </svg>
+            </button>
             <button type="button" class="glyph-chip" data-glyph="local_cafe"
-              onclick="window.wyrmRemote.selectHabitGlyph('local_cafe')" title="Coffee">☕</button>
+              onclick="window.wyrmRemote.selectHabitGlyph('local_cafe')" title="Coffee" aria-label="Coffee" role="radio" aria-checked="false">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M18 8h1a4 4 0 0 1 0 8h-1"></path>
+                <path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"></path>
+                <line x1="6" y1="1" x2="6" y2="4"></line>
+                <line x1="10" y1="1" x2="10" y2="4"></line>
+                <line x1="14" y1="1" x2="14" y2="4"></line>
+              </svg>
+            </button>
             <button type="button" class="glyph-chip" data-glyph="check_circle"
-              onclick="window.wyrmRemote.selectHabitGlyph('check_circle')" title="Check">✅</button>
+              onclick="window.wyrmRemote.selectHabitGlyph('check_circle')" title="Checkmark" aria-label="Checkmark" role="radio" aria-checked="false">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"></circle>
+                <polyline points="16 9 12 15 8 11"></polyline>
+              </svg>
+            </button>
             <button type="button" class="glyph-chip" data-glyph="favorite"
-              onclick="window.wyrmRemote.selectHabitGlyph('favorite')" title="Health">❤️</button>
+              onclick="window.wyrmRemote.selectHabitGlyph('favorite')" title="Health" aria-label="Health" role="radio" aria-checked="false">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
+              </svg>
+            </button>
           </div>
-          <div id="habitsList" class="habits-checklist"></div>
+
+          <!-- Habit Checklist List -->
+          <div id="habitsList" class="habits-checklist" role="list"></div>
         </div>
       </article>
 
@@ -218,14 +351,21 @@
       <article id="card-calendar" class="layout-card" data-card="calendar">
         <div class="card-header">
           <div class="card-title-group clickable" onclick="window.wyrmRemote.setCardFilter('calendar')"
-            title="Switch to Calendar view">
-            <span class="card-glyph">📅</span>
-            <span class="card-name">Calendar Card</span>
+            title="Switch to Calendar view" tabindex="0" role="button">
+            <span class="card-glyph" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                <line x1="16" y1="2" x2="16" y2="6"></line>
+                <line x1="8" y1="2" x2="8" y2="6"></line>
+                <line x1="3" y1="10" x2="21" y2="10"></line>
+              </svg>
+            </span>
+            <span class="card-name">Calendar</span>
           </div>
           <span id="calendarStatusBadge" class="status-capsule">SMALL</span>
         </div>
 
-        <div class="segmented-bar">
+        <div class="segmented-bar" role="group" aria-label="Calendar Card Size">
           <button id="calendar-small" class="segment-btn"
             onclick="window.wyrmRemote.setCardSize('calendar', 'small')">Small</button>
           <button id="calendar-medium" class="segment-btn"
@@ -239,16 +379,25 @@
       <article id="card-calendar-weekstart" class="layout-card detail-card card-detail-section" data-card="calendar">
         <div class="card-header">
           <div class="card-title-group">
-            <span class="card-glyph">🗓️</span>
+            <span class="card-glyph" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                <line x1="16" y1="2" x2="16" y2="6"></line>
+                <line x1="8" y1="2" x2="8" y2="6"></line>
+                <polyline points="9 14 12 17 15 14"></polyline>
+              </svg>
+            </span>
             <span class="card-name">Start Week on Monday</span>
           </div>
-          <div id="startWeekToggle" class="switch-pill" onclick="window.wyrmRemote.toggleStartWeekOnMonday()"
+          <div id="startWeekToggle" class="switch-pill" role="switch" aria-checked="false" tabindex="0"
+            onclick="window.wyrmRemote.toggleStartWeekOnMonday()"
+            onkeydown="if(event.key==='Enter'||event.key===' ') { event.preventDefault(); window.wyrmRemote.toggleStartWeekOnMonday(); }"
             title="Toggle start of week between Sunday and Monday">
             <div class="switch-thumb"></div>
           </div>
         </div>
         <div class="card-description-text">
-          Display weeks starting on Monday instead of Sunday across all devices.
+          Display weeks starting on Monday instead of Sunday across all companion devices and ambient views.
         </div>
       </article>
 
@@ -256,7 +405,12 @@
       <article id="card-calendar-progress" class="layout-card detail-card card-detail-section" data-card="calendar">
         <div class="card-header">
           <div class="card-title-group">
-            <span class="card-glyph">⏳</span>
+            <span class="card-glyph" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"></circle>
+                <polyline points="12 6 12 12 14 14"></polyline>
+              </svg>
+            </span>
             <span class="card-name">Year & Quarter Progress</span>
           </div>
           <span id="dayOfYearBadge" class="status-capsule">DAY 1/365</span>
@@ -266,7 +420,7 @@
             <div class="progress-label-row">
               <span id="yearProgressLabel" class="progress-subtext">Year Progress: 0%</span>
             </div>
-            <div class="progress-track">
+            <div class="progress-track" role="progressbar" aria-valuemin="0" aria-valuemax="100">
               <div id="yearProgressFill" class="progress-fill" style="width: 0%"></div>
             </div>
           </div>
@@ -274,7 +428,7 @@
             <div class="progress-label-row">
               <span id="quarterProgressLabel" class="progress-subtext">Quarter Progress: 0%</span>
             </div>
-            <div class="progress-track">
+            <div class="progress-track" role="progressbar" aria-valuemin="0" aria-valuemax="100">
               <div id="quarterProgressFill" class="progress-fill" style="width: 0%"></div>
             </div>
           </div>
@@ -285,18 +439,33 @@
       <article id="card-calendar-grid" class="layout-card detail-card card-detail-section" data-card="calendar">
         <div class="card-header">
           <div class="card-title-group">
-            <span class="card-glyph">📆</span>
+            <span class="card-glyph" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                <line x1="16" y1="2" x2="16" y2="6"></line>
+                <line x1="8" y1="2" x2="8" y2="6"></line>
+                <line x1="3" y1="10" x2="21" y2="10"></line>
+              </svg>
+            </span>
             <span id="webCalMonthYear" class="card-name">September 2026</span>
           </div>
           <div class="cal-nav-buttons">
-            <button class="cal-nav-btn" onclick="window.wyrmRemote.prevWebMonth()" title="Previous month">‹</button>
+            <button class="cal-nav-btn" onclick="window.wyrmRemote.prevWebMonth()" title="Previous month" aria-label="Previous month">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="15 18 9 12 15 6"></polyline>
+              </svg>
+            </button>
             <button id="webCalTodayBtn" class="cal-nav-btn" onclick="window.wyrmRemote.todayWebMonth()"
-              title="Jump to today">Today</button>
+              title="Jump to today" aria-label="Jump to today">Today</button>
             <button class="cal-nav-btn" onclick="window.wyrmRemote.promptTravelDate()"
-              title="Travel to date">Travel</button>
-            <button class="cal-nav-btn" onclick="window.wyrmRemote.nextWebMonth()" title="Next month">›</button>
+              title="Travel to date" aria-label="Travel to specific date">Travel</button>
+            <button class="cal-nav-btn" onclick="window.wyrmRemote.nextWebMonth()" title="Next month" aria-label="Next month">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="9 18 15 12 9 6"></polyline>
+              </svg>
+            </button>
             <input type="date" id="webCalTravelInput" style="display:none;"
-              onchange="window.wyrmRemote.travelWebDate(this.value)">
+              onchange="window.wyrmRemote.travelWebDate(this.value)" aria-label="Select date travel">
           </div>
         </div>
         <div class="web-calendar-container">
@@ -312,7 +481,13 @@
       <article id="card-calendar-milestones" class="layout-card detail-card card-detail-section" data-card="calendar">
         <div class="card-header">
           <div class="card-title-group">
-            <span class="card-glyph">🎯</span>
+            <span class="card-glyph" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"></circle>
+                <circle cx="12" cy="12" r="6"></circle>
+                <circle cx="12" cy="12" r="2"></circle>
+              </svg>
+            </span>
             <span class="card-name">Milestones & Countdowns</span>
             <span id="milestonesCounter" class="task-counter-capsule">0</span>
           </div>
@@ -321,15 +496,27 @@
         <div class="milestone-manager-section">
           <div class="milestone-input-bar">
             <input type="text" id="milestoneTitleInput" class="milestone-text-input" placeholder="Milestone title..."
-              onkeydown="if(event.key==='Enter')window.wyrmRemote.addMilestone()">
-            <input type="date" id="milestoneDateInput" class="milestone-date-input">
+              onkeydown="if(event.key==='Enter')window.wyrmRemote.addMilestone()" aria-label="Milestone title">
+            <div class="milestone-date-container">
+              <input type="text" id="milestoneDateInput" class="milestone-date-input" placeholder="dd/mm/yyyy" maxlength="10"
+                aria-label="Target date (dd/mm/yyyy)" onkeydown="if(event.key==='Enter')window.wyrmRemote.addMilestone()">
+              <button type="button" class="milestone-picker-trigger" onclick="window.wyrmRemote.pickMilestoneDate()" title="Pick date from calendar" aria-label="Open date picker">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                  <line x1="16" y1="2" x2="16" y2="6"></line>
+                  <line x1="8" y1="2" x2="8" y2="6"></line>
+                  <line x1="3" y1="10" x2="21" y2="10"></line>
+                </svg>
+              </button>
+              <input type="date" id="milestoneNativePicker" style="position: absolute; opacity: 0; pointer-events: none; width: 0; height: 0;" tabindex="-1" onchange="window.wyrmRemote.onMilestonePickerChange(this.value)">
+            </div>
             <label class="milestone-pin-label" title="Pin to prominent countdown banner">
               <input type="checkbox" id="milestonePinCheckbox">
               <span>Pin</span>
             </label>
-            <button class="task-add-btn" onclick="window.wyrmRemote.addMilestone()">Add</button>
+            <button class="task-add-btn" onclick="window.wyrmRemote.addMilestone()" aria-label="Add milestone">Add</button>
           </div>
-          <div id="milestonesList" class="milestones-checklist"></div>
+          <div id="milestonesList" class="milestones-checklist" role="list"></div>
         </div>
       </article>
 
@@ -337,14 +524,19 @@
       <article id="card-tasks" class="layout-card" data-card="tasks">
         <div class="card-header">
           <div class="card-title-group clickable" onclick="window.wyrmRemote.setCardFilter('tasks')"
-            title="Switch to Tasks view">
-            <span class="card-glyph">☑️</span>
-            <span class="card-name">Tasks Card</span>
+            title="Switch to Tasks view" tabindex="0" role="button">
+            <span class="card-glyph" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="9 11 12 14 22 4"></polyline>
+                <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path>
+              </svg>
+            </span>
+            <span class="card-name">Tasks</span>
           </div>
           <span id="tasksStatusBadge" class="status-capsule">SMALL</span>
         </div>
 
-        <div class="segmented-bar">
+        <div class="segmented-bar" role="group" aria-label="Tasks Card Size">
           <button id="tasks-small" class="segment-btn"
             onclick="window.wyrmRemote.setCardSize('tasks', 'small')">Small</button>
           <button id="tasks-medium" class="segment-btn"
@@ -358,19 +550,34 @@
       <article id="card-tasks-font" class="layout-card detail-card card-detail-section" data-card="tasks">
         <div class="card-header">
           <div class="card-title-group">
-            <span class="card-glyph">🔤</span>
+            <span class="card-glyph" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="4 7 4 4 20 4 20 7"></polyline>
+                <line x1="9" y1="20" x2="15" y2="20"></line>
+                <line x1="12" y1="4" x2="12" y2="20"></line>
+              </svg>
+            </span>
             <span class="card-name">Card Font Size</span>
           </div>
-          <div class="stepper-control">
+          <div class="stepper-control" role="group" aria-label="Scale font size">
             <button class="stepper-btn" onclick="window.wyrmRemote.decrementFontSize()"
-              title="Decrease font size">−</button>
+              title="Decrease font size" aria-label="Decrease font size">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="5" y1="12" x2="19" y2="12"></line>
+              </svg>
+            </button>
             <span id="fontSizeDisplay" class="stepper-value">14 pt</span>
             <button class="stepper-btn" onclick="window.wyrmRemote.incrementFontSize()"
-              title="Increase font size">+</button>
+              title="Increase font size" aria-label="Increase font size">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="12" y1="5" x2="12" y2="19"></line>
+                <line x1="5" y1="12" x2="19" y2="12"></line>
+              </svg>
+            </button>
           </div>
         </div>
         <div class="card-description-text">
-          Scale text size in task and habit cards dynamically across the dashboard.
+          Scale typography dynamically in task and habit cards across the desk companion display.
         </div>
       </article>
 
@@ -378,28 +585,79 @@
       <article id="card-tasks-checklist" class="layout-card detail-card card-detail-section" data-card="tasks">
         <div class="card-header">
           <div class="card-title-group">
-            <span class="card-glyph">📋</span>
+            <span class="card-glyph" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="8" y1="6" x2="21" y2="6"></line>
+                <line x1="8" y1="12" x2="21" y2="12"></line>
+                <line x1="8" y1="18" x2="21" y2="18"></line>
+                <line x1="3" y1="6" x2="3.01" y2="6"></line>
+                <line x1="3" y1="12" x2="3.01" y2="12"></line>
+                <line x1="3" y1="18" x2="3.01" y2="18"></line>
+              </svg>
+            </span>
             <span class="card-name">Tasks Checklist</span>
             <span id="tasksCounter" class="task-counter-capsule">0/0</span>
           </div>
         </div>
 
-        <!-- Interactive Notion-style Tasks Checklist & Quick Add -->
+        <!-- Interactive Tasks Checklist & Quick Add -->
         <div class="task-manager-section">
           <div class="task-input-bar">
             <input type="text" id="taskInput" class="task-text-input" placeholder="Add task or priority..."
-              onkeydown="if(event.key==='Enter')window.wyrmRemote.addTask()">
-            <select id="taskPriority" class="task-priority-select">
+              onkeydown="if(event.key==='Enter')window.wyrmRemote.addTask()" aria-label="New task title">
+            <select id="taskPriority" class="task-priority-select" aria-label="Task priority">
               <option value="normal">Normal</option>
               <option value="high">High</option>
             </select>
-            <button class="task-add-btn" onclick="window.wyrmRemote.addTask()">Add</button>
+            <button class="task-add-btn" onclick="window.wyrmRemote.addTask()" aria-label="Add task">Add</button>
           </div>
-          <div id="tasksList" class="tasks-checklist"></div>
+          <div id="tasksList" class="tasks-checklist" role="list"></div>
         </div>
       </article>
 
     </main>
+
+    <!-- Floating Liquid Glass Mobile Tab Bar (Apple iOS Ergonomics: bottom thumb zone) -->
+    <nav class="mobile-tab-bar glass-panel" aria-label="Bottom Navigation">
+      <button class="mobile-tab-item active" data-tab="all" onclick="window.wyrmRemote.setCardFilter('all')" aria-label="Layout">
+        <svg class="mobile-tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3" y="3" width="7" height="7" rx="1.5"></rect>
+          <rect x="14" y="3" width="7" height="7" rx="1.5"></rect>
+          <rect x="14" y="14" width="7" height="7" rx="1.5"></rect>
+          <rect x="3" y="14" width="7" height="7" rx="1.5"></rect>
+        </svg>
+        <span class="mobile-tab-label">Layout</span>
+      </button>
+      <button class="mobile-tab-item" data-tab="clock" onclick="window.wyrmRemote.setCardFilter('clock')" aria-label="Clock">
+        <svg class="mobile-tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="10"></circle>
+          <polyline points="12 6 12 12 16 14"></polyline>
+        </svg>
+        <span class="mobile-tab-label">Clock</span>
+      </button>
+      <button class="mobile-tab-item" data-tab="habits" onclick="window.wyrmRemote.setCardFilter('habits')" aria-label="Habits">
+        <svg class="mobile-tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+        </svg>
+        <span class="mobile-tab-label">Habits</span>
+      </button>
+      <button class="mobile-tab-item" data-tab="calendar" onclick="window.wyrmRemote.setCardFilter('calendar')" aria-label="Calendar">
+        <svg class="mobile-tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+          <line x1="16" y1="2" x2="16" y2="6"></line>
+          <line x1="8" y1="2" x2="8" y2="6"></line>
+          <line x1="3" y1="10" x2="21" y2="10"></line>
+        </svg>
+        <span class="mobile-tab-label">Calendar</span>
+      </button>
+      <button class="mobile-tab-item" data-tab="tasks" onclick="window.wyrmRemote.setCardFilter('tasks')" aria-label="Tasks">
+        <svg class="mobile-tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="9 11 12 14 22 4"></polyline>
+          <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path>
+        </svg>
+        <span class="mobile-tab-label">Tasks</span>
+      </button>
+    </nav>
 
   </div>
 </body>

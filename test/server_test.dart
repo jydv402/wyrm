@@ -619,6 +619,9 @@ void main() {
       expect(html, contains('card-calendar-progress'));
       expect(html, contains('card-calendar-grid'));
       expect(html, contains('card-calendar-milestones'));
+      expect(html, contains('milestone-date-container'));
+      expect(html, contains('placeholder="dd/mm/yyyy"'));
+      expect(html, contains('milestone-picker-trigger'));
 
       final css = await cssFile.readAsString();
       expect(css, contains('--accent-amber: #ff9500'));
@@ -629,6 +632,8 @@ void main() {
       expect(css, contains('.progress-section'));
       expect(css, contains('.web-calendar-container'));
       expect(css, contains('.milestone-manager-section'));
+      expect(css, contains('.milestone-date-container'));
+      expect(css, contains('.milestone-picker-trigger'));
       expect(css, contains('.card-tapped'));
 
       final js = await jsFile.readAsString();
@@ -640,6 +645,8 @@ void main() {
       expect(js, contains('createMilestone'));
       expect(js, contains('deleteMilestone'));
       expect(js, contains('togglePinMilestone'));
+      expect(js, contains('pickMilestoneDate'));
+      expect(js, contains('onMilestonePickerChange'));
       expect(js, contains('createHabit'));
       expect(js, contains('selectHabitGlyph'));
       expect(js, contains('selectedHabitGlyph'));
@@ -647,6 +654,25 @@ void main() {
       expect(js, contains('stepHabit'));
       expect(js, contains('deleteHabit'));
       expect(js, contains('scrollToCard'));
+      expect(js, contains(r'${day}/${month}/${year}'));
+    });
+
+    test('POST /api/calendar/milestones accepts dd/mm/yyyy date format', () async {
+      final response = await http.post(
+        Uri.parse('http://127.0.0.1:${server.port}/api/calendar/milestones'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'title': 'Christmas Launch',
+          'target_date': '25/12/2026',
+          'is_pinned': true,
+        }),
+      );
+      expect(response.statusCode, 200);
+      final created = activeMilestones.firstWhere((m) => m.title == 'Christmas Launch');
+      expect(created.targetDate.year, 2026);
+      expect(created.targetDate.month, 12);
+      expect(created.targetDate.day, 25);
+      expect(created.isPinned, isTrue);
     });
   });
 }

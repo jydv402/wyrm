@@ -266,9 +266,7 @@ class ShelfWebServer {
             final dateStr = (data['target_date'] ?? data['targetDate'] ?? data['date']) as String?;
             final isPinned = (data['is_pinned'] ?? data['isPinned'] ?? false) as bool;
             if (title != null && title.trim().isNotEmpty && onAddMilestone != null) {
-              final targetDate = dateStr != null
-                  ? (DateTime.tryParse(dateStr) ?? DateTime.now())
-                  : DateTime.now();
+              final targetDate = _parseMilestoneDate(dateStr);
               onAddMilestone!(title.trim(), targetDate, isPinned: isPinned);
             }
           } else if (type == 'delete_milestone') {
@@ -365,7 +363,9 @@ class ShelfWebServer {
         css,
         headers: {
           'Content-Type': 'text/css; charset=utf-8',
-          'Cache-Control': 'no-cache',
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache',
+          'Expires': '0',
         },
       );
     } catch (_) {
@@ -383,7 +383,9 @@ class ShelfWebServer {
         js,
         headers: {
           'Content-Type': 'application/javascript; charset=utf-8',
-          'Cache-Control': 'no-cache',
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache',
+          'Expires': '0',
         },
       );
     } catch (_) {
@@ -570,9 +572,7 @@ class ShelfWebServer {
       final isPinned = (data['is_pinned'] ?? data['isPinned'] ?? false) as bool;
 
       if (title != null && title.trim().isNotEmpty && onAddMilestone != null) {
-        final targetDate = dateStr != null
-            ? (DateTime.tryParse(dateStr) ?? DateTime.now())
-            : DateTime.now();
+        final targetDate = _parseMilestoneDate(dateStr);
         onAddMilestone!(title.trim(), targetDate, isPinned: isPinned);
         return Response.ok(
           jsonEncode({'success': true}),
@@ -857,5 +857,31 @@ class ShelfWebServer {
         onScrollToCard!(targetCard);
       }
     }
+  }
+
+  /// Tolerantly parses milestone date strings formatted in ISO-8601 (yyyy-mm-dd) or dd/mm/yyyy.
+  static DateTime _parseMilestoneDate(String? dateStr) {
+    if (dateStr == null || dateStr.trim().isEmpty) {
+      return DateTime.now();
+    }
+    final trimmed = dateStr.trim();
+    final isoParsed = DateTime.tryParse(trimmed);
+    if (isoParsed != null) return isoParsed;
+
+    final delimiter = trimmed.contains('/') ? '/' : (trimmed.contains('-') ? '-' : null);
+    if (delimiter != null) {
+      final parts = trimmed.split(delimiter);
+      if (parts.length == 3) {
+        if (parts[2].length == 4) {
+          final day = int.tryParse(parts[0]);
+          final month = int.tryParse(parts[1]);
+          final year = int.tryParse(parts[2]);
+          if (day != null && month != null && year != null) {
+            return DateTime(year, month, day);
+          }
+        }
+      }
+    }
+    return DateTime.now();
   }
 }

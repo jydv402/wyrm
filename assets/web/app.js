@@ -1,7 +1,34 @@
 /**
- * Wyrm Desk — Simplified Remote Companion Engine
- * Architecture: ES6 Reactive Store, WebSocket & REST Transport, Streamlined DOM View Controller
+ * Wyrm Desk — Remote Companion Engine
+ * Grounded in Apple Human Interface Guidelines & Dieter Rams Functionalism
+ * Architecture: ES6 Reactive Store, Persistent WebSocket Transport, REST Fallback, Tactile Haptics
  */
+
+/**
+ * Tactile Haptic Feedback Utility (Safari & WebKit Vibration API)
+ */
+const WyrmHaptics = {
+  tap() {
+    try {
+      if ('vibrate' in navigator) navigator.vibrate(10);
+    } catch (_) {}
+  },
+  selection() {
+    try {
+      if ('vibrate' in navigator) navigator.vibrate(15);
+    } catch (_) {}
+  },
+  success() {
+    try {
+      if ('vibrate' in navigator) navigator.vibrate([12, 40, 18]);
+    } catch (_) {}
+  },
+  impact() {
+    try {
+      if ('vibrate' in navigator) navigator.vibrate(22);
+    } catch (_) {}
+  },
+};
 
 /**
  * Manages local reactive state and notifies registered listeners upon mutations.
@@ -36,6 +63,7 @@ class WyrmStateStore {
       },
       activeFilter: 'all',
       isConnected: false,
+      theme: localStorage.getItem('wyrm_theme') || 'auto',
     };
     this.listeners = new Set();
   }
@@ -90,6 +118,7 @@ class WyrmWebSocketManager {
 
       this.socket.onopen = () => {
         this.store.setState({ isConnected: true });
+        WyrmHaptics.success();
         if (this.reconnectTimer) {
           clearInterval(this.reconnectTimer);
           this.reconnectTimer = null;
@@ -116,6 +145,7 @@ class WyrmWebSocketManager {
   }
 
   sendLayoutMutation(card, size) {
+    WyrmHaptics.selection();
     const message = JSON.stringify({ type: 'set_layout', card, size });
 
     if (this.socket && this.socket.readyState === WebSocket.OPEN) {
@@ -144,6 +174,7 @@ class WyrmWebSocketManager {
   }
 
   sendSettingsMutation(settingsPayload) {
+    WyrmHaptics.selection();
     const message = JSON.stringify({
       type: 'set_settings',
       ...settingsPayload,
@@ -161,6 +192,7 @@ class WyrmWebSocketManager {
   }
 
   createTask(title, priority = 'normal') {
+    WyrmHaptics.success();
     const message = JSON.stringify({ type: 'create_task', title, priority });
 
     if (this.socket && this.socket.readyState === WebSocket.OPEN) {
@@ -175,6 +207,7 @@ class WyrmWebSocketManager {
   }
 
   toggleTask(id) {
+    WyrmHaptics.tap();
     const message = JSON.stringify({ type: 'toggle_task', id });
 
     if (this.socket && this.socket.readyState === WebSocket.OPEN) {
@@ -189,6 +222,7 @@ class WyrmWebSocketManager {
   }
 
   deleteTask(id) {
+    WyrmHaptics.impact();
     const message = JSON.stringify({ type: 'delete_task', id });
 
     if (this.socket && this.socket.readyState === WebSocket.OPEN) {
@@ -203,6 +237,7 @@ class WyrmWebSocketManager {
   }
 
   createMilestone(title, targetDate, isPinned = false) {
+    WyrmHaptics.success();
     const message = JSON.stringify({ type: 'create_milestone', title, targetDate, isPinned });
 
     if (this.socket && this.socket.readyState === WebSocket.OPEN) {
@@ -217,6 +252,7 @@ class WyrmWebSocketManager {
   }
 
   deleteMilestone(id) {
+    WyrmHaptics.impact();
     const message = JSON.stringify({ type: 'delete_milestone', id });
 
     if (this.socket && this.socket.readyState === WebSocket.OPEN) {
@@ -231,6 +267,7 @@ class WyrmWebSocketManager {
   }
 
   togglePinMilestone(id) {
+    WyrmHaptics.selection();
     const message = JSON.stringify({ type: 'toggle_pin_milestone', id });
 
     if (this.socket && this.socket.readyState === WebSocket.OPEN) {
@@ -245,6 +282,7 @@ class WyrmWebSocketManager {
   }
 
   createHabit(title, habitType = 'binary', targetValue = 1, unit = null, iconName = 'bolt') {
+    WyrmHaptics.success();
     const message = JSON.stringify({
       type: 'create_habit',
       title,
@@ -272,6 +310,7 @@ class WyrmWebSocketManager {
   }
 
   toggleHabit(id, date = null) {
+    WyrmHaptics.tap();
     const message = JSON.stringify({ type: 'toggle_habit', id, date });
 
     if (this.socket && this.socket.readyState === WebSocket.OPEN) {
@@ -286,6 +325,7 @@ class WyrmWebSocketManager {
   }
 
   stepHabit(id, delta = 1, date = null) {
+    WyrmHaptics.selection();
     const message = JSON.stringify({ type: 'step_habit', id, delta, date });
 
     if (this.socket && this.socket.readyState === WebSocket.OPEN) {
@@ -300,6 +340,7 @@ class WyrmWebSocketManager {
   }
 
   deleteHabit(id) {
+    WyrmHaptics.impact();
     const message = JSON.stringify({ type: 'delete_habit', id });
 
     if (this.socket && this.socket.readyState === WebSocket.OPEN) {
@@ -344,11 +385,14 @@ class WyrmUiRenderer {
     this.wsManager = wsManager;
     this._cacheDomElements();
     this._setupCardClickListeners();
+    this._initMilestoneDateInput();
+    this._applyTheme(this.store.getState().theme || 'auto');
   }
 
   _cacheDomElements() {
     this.networkBadge = document.getElementById('networkBadge');
     this.networkLabel = document.getElementById('networkLabel');
+    this.themeToggleBtn = document.getElementById('themeToggleBtn');
     this.timeFormatToggle = document.getElementById('timeFormatToggle');
     this.fontSizeDisplay = document.getElementById('fontSizeDisplay');
     this.cardClock = document.getElementById('card-clock');
@@ -371,6 +415,7 @@ class WyrmUiRenderer {
     this.milestonesCounter = document.getElementById('milestonesCounter');
     this.milestoneTitleInput = document.getElementById('milestoneTitleInput');
     this.milestoneDateInput = document.getElementById('milestoneDateInput');
+    this.milestoneNativePicker = document.getElementById('milestoneNativePicker');
     this.milestonePinCheckbox = document.getElementById('milestonePinCheckbox');
     this.milestonesList = document.getElementById('milestonesList');
 
@@ -408,6 +453,8 @@ class WyrmUiRenderer {
       calendar: document.getElementById('tab-calendar'),
       tasks: document.getElementById('tab-tasks'),
     };
+
+    this.mobileTabItems = document.querySelectorAll('.mobile-tab-item');
   }
 
   _setupCardClickListeners() {
@@ -435,6 +482,46 @@ class WyrmUiRenderer {
     });
   }
 
+  _initMilestoneDateInput() {
+    if (!this.milestoneDateInput) return;
+
+    // Default to today's date formatted as dd/mm/yyyy
+    const today = new Date();
+    const day = String(today.getDate()).padStart(2, '0');
+    const month = String(today.getMonth() + 1).padStart(2, '0');
+    const year = today.getFullYear();
+    this.milestoneDateInput.value = `${day}/${month}/${year}`;
+
+    // Auto-format typing to enforce dd/mm/yyyy with slashes
+    this.milestoneDateInput.addEventListener('input', (e) => {
+      let val = e.target.value.replace(/\D/g, '');
+      if (val.length > 8) val = val.substring(0, 8);
+
+      let formatted = '';
+      if (val.length > 4) {
+        formatted = `${val.substring(0, 2)}/${val.substring(2, 4)}/${val.substring(4)}`;
+      } else if (val.length > 2) {
+        formatted = `${val.substring(0, 2)}/${val.substring(2)}`;
+      } else {
+        formatted = val;
+      }
+      e.target.value = formatted;
+    });
+
+    this.milestoneDateInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Backspace') {
+        const val = this.milestoneDateInput.value;
+        const selStart = this.milestoneDateInput.selectionStart;
+        const selEnd = this.milestoneDateInput.selectionEnd;
+        if (selStart === selEnd && (selStart === 3 || selStart === 6) && val[selStart - 1] === '/') {
+          e.preventDefault();
+          this.milestoneDateInput.value = val.substring(0, selStart - 2) + val.substring(selStart);
+          this.milestoneDateInput.setSelectionRange(selStart - 2, selStart - 2);
+        }
+      }
+    });
+  }
+
   scrollToCard(cardName, visualTargetEl = null) {
     if (!cardName) return;
     this.wsManager.scrollToCard(cardName);
@@ -443,7 +530,6 @@ class WyrmUiRenderer {
     const target = visualTargetEl || this.cardMap[cardName] || document.querySelector(`.layout-card[data-card="${cardName}"]`);
     if (target) {
       target.classList.remove('card-tapped');
-      // Trigger reflow to restart CSS animation if clicked repeatedly
       void target.offsetWidth;
       target.classList.add('card-tapped');
       setTimeout(() => {
@@ -453,6 +539,7 @@ class WyrmUiRenderer {
   }
 
   setCardFilter(filterName) {
+    WyrmHaptics.selection();
     this.store.setState({ activeFilter: filterName });
     if (filterName && filterName !== 'all') {
       this.scrollToCard(filterName, this.cardMap[filterName]);
@@ -503,23 +590,48 @@ class WyrmUiRenderer {
     this.wsManager.sendSettingsMutation({ cardFontSize: updated });
   }
 
+  cycleTheme() {
+    WyrmHaptics.selection();
+    const current = this.store.getState().theme || 'auto';
+    let next = 'dark';
+    if (current === 'dark') next = 'light';
+    else if (current === 'light') next = 'dark'; // cycles dark <-> light smoothly
+    this.store.setState({ theme: next });
+    localStorage.setItem('wyrm_theme', next);
+    this._applyTheme(next);
+  }
+
+  _applyTheme(theme) {
+    if (theme === 'light') {
+      document.documentElement.setAttribute('data-theme', 'light');
+    } else if (theme === 'dark') {
+      document.documentElement.setAttribute('data-theme', 'dark');
+    } else {
+      document.documentElement.removeAttribute('data-theme');
+    }
+  }
+
   prevWebMonth() {
+    WyrmHaptics.tap();
     this.webCalViewDate.setMonth(this.webCalViewDate.getMonth() - 1);
     this._renderWebCalendarWidget(this.store.getState());
   }
 
   nextWebMonth() {
+    WyrmHaptics.tap();
     this.webCalViewDate.setMonth(this.webCalViewDate.getMonth() + 1);
     this._renderWebCalendarWidget(this.store.getState());
   }
 
   todayWebMonth() {
+    WyrmHaptics.selection();
     this.webCalViewDate = new Date();
     this.webCalSelectedDate = new Date();
     this._renderWebCalendarWidget(this.store.getState());
   }
 
   promptTravelDate() {
+    WyrmHaptics.tap();
     const input = document.getElementById('webCalTravelInput');
     if (input) {
       if (typeof input.showPicker === 'function') {
@@ -547,22 +659,83 @@ class WyrmUiRenderer {
   }
 
   selectWebDate(year, month, day) {
+    WyrmHaptics.tap();
     this.webCalSelectedDate = new Date(year, month, day);
     this._renderWebCalendarWidget(this.store.getState());
+  }
+
+  pickMilestoneDate() {
+    WyrmHaptics.tap();
+    const picker = this.milestoneNativePicker || document.getElementById('milestoneNativePicker');
+    if (picker) {
+      if (this.milestoneDateInput && this.milestoneDateInput.value) {
+        const parts = this.milestoneDateInput.value.trim().split('/');
+        if (parts.length === 3 && parts[2].length === 4) {
+          const d = parts[0].padStart(2, '0');
+          const m = parts[1].padStart(2, '0');
+          const y = parts[2];
+          picker.value = `${y}-${m}-${d}`;
+        }
+      }
+      if (typeof picker.showPicker === 'function') {
+        try {
+          picker.showPicker();
+          return;
+        } catch (_) {}
+      }
+      picker.focus();
+      picker.click();
+    }
+  }
+
+  onMilestonePickerChange(isoVal) {
+    if (!isoVal || !this.milestoneDateInput) return;
+    const parts = isoVal.split('-');
+    if (parts.length === 3) {
+      const year = parts[0];
+      const month = parts[1].padStart(2, '0');
+      const day = parts[2].padStart(2, '0');
+      this.milestoneDateInput.value = `${day}/${month}/${year}`;
+      WyrmHaptics.selection();
+    }
   }
 
   addMilestone() {
     if (!this.milestoneTitleInput) return;
     const title = this.milestoneTitleInput.value.trim();
     if (!title) return;
-    const dateValue = this.milestoneDateInput && this.milestoneDateInput.value
-        ? this.milestoneDateInput.value
-        : new Date().toISOString().split('T')[0];
+
+    let targetDateIso = new Date().toISOString().split('T')[0];
+    const rawVal = this.milestoneDateInput ? this.milestoneDateInput.value.trim() : '';
+
+    if (rawVal) {
+      if (rawVal.includes('/')) {
+        const parts = rawVal.split('/');
+        if (parts.length === 3) {
+          const day = parts[0].padStart(2, '0');
+          const month = parts[1].padStart(2, '0');
+          const year = parts[2].length === 2 ? `20${parts[2]}` : parts[2];
+          targetDateIso = `${year}-${month}-${day}`;
+        }
+      } else if (rawVal.includes('-')) {
+        targetDateIso = rawVal;
+      }
+    }
+
     const isPinned = this.milestonePinCheckbox ? this.milestonePinCheckbox.checked : false;
 
-    this.wsManager.createMilestone(title, dateValue, isPinned);
+    this.wsManager.createMilestone(title, targetDateIso, isPinned);
     this.milestoneTitleInput.value = '';
     if (this.milestonePinCheckbox) this.milestonePinCheckbox.checked = false;
+
+    // Reset date input to today in dd/mm/yyyy format
+    const today = new Date();
+    const day = String(today.getDate()).padStart(2, '0');
+    const month = String(today.getMonth() + 1).padStart(2, '0');
+    const year = today.getFullYear();
+    if (this.milestoneDateInput) {
+      this.milestoneDateInput.value = `${day}/${month}/${year}`;
+    }
   }
 
   deleteMilestone(id) {
@@ -597,14 +770,13 @@ class WyrmUiRenderer {
   }
 
   selectHabitGlyph(glyph) {
+    WyrmHaptics.tap();
     this.selectedHabitGlyph = glyph || 'bolt';
     const chips = document.querySelectorAll('#habitGlyphPicker .glyph-chip');
     chips.forEach((c) => {
-      if (c.getAttribute('data-glyph') === this.selectedHabitGlyph) {
-        c.classList.add('selected');
-      } else {
-        c.classList.remove('selected');
-      }
+      const isSelected = c.getAttribute('data-glyph') === this.selectedHabitGlyph;
+      c.classList.toggle('selected', isSelected);
+      c.setAttribute('aria-checked', isSelected ? 'true' : 'false');
     });
   }
 
@@ -664,13 +836,25 @@ class WyrmUiRenderer {
     // Synchronize page data attribute on body for scoped CSS rules
     document.body.setAttribute('data-active-page', activeFilter);
 
-    // Update capsule tabs
+    // Update desktop capsule tabs
     Object.keys(this.tabButtons).forEach((key) => {
       const btn = this.tabButtons[key];
       if (btn) {
-        btn.classList.toggle('active', key === activeFilter);
+        const isActive = key === activeFilter;
+        btn.classList.toggle('active', isActive);
+        btn.setAttribute('aria-selected', isActive ? 'true' : 'false');
       }
     });
+
+    // Update mobile bottom tab bar items
+    if (this.mobileTabItems) {
+      this.mobileTabItems.forEach((tabItem) => {
+        const tabKey = tabItem.getAttribute('data-tab');
+        const isActive = tabKey === activeFilter;
+        tabItem.classList.toggle('active', isActive);
+        tabItem.setAttribute('aria-selected', isActive ? 'true' : 'false');
+      });
+    }
 
     // Update card stream visibility across all cards
     const allCards = document.querySelectorAll('.layout-card');
@@ -782,7 +966,7 @@ class WyrmUiRenderer {
     }
 
     if (tasks.length === 0) {
-      this.tasksList.innerHTML = '<div class="tasks-empty-msg">No tasks yet. Add one above!</div>';
+      this.tasksList.innerHTML = '<div class="tasks-empty-msg">No tasks pending. Tap Add to create one.</div>';
       return;
     }
 
@@ -799,13 +983,18 @@ class WyrmUiRenderer {
         : '';
 
       return `
-        <div class="task-item-row ${isCompleted ? 'completed' : ''}" data-task-id="${task.id}">
-          <button class="task-checkbox ${isCompleted ? 'checked' : ''}" onclick="window.wyrmRemote.toggleTask('${task.id}')" title="Toggle completion">
+        <div class="task-item-row ${isCompleted ? 'completed' : ''}" data-task-id="${task.id}" role="listitem">
+          <button class="task-checkbox ${isCompleted ? 'checked' : ''}" onclick="window.wyrmRemote.toggleTask('${task.id}')" title="Toggle completion" aria-label="Toggle task completion">
             ${checkIcon}
           </button>
           <span class="task-title-text" style="font-size: ${cardFontSize}px" onclick="window.wyrmRemote.toggleTask('${task.id}')">${this._escapeHtml(task.title || task.text || '')}</span>
           ${priorityBadge}
-          <button class="task-delete-btn" onclick="window.wyrmRemote.deleteTask('${task.id}')" title="Delete task">×</button>
+          <button class="task-delete-btn" onclick="window.wyrmRemote.deleteTask('${task.id}')" title="Delete task" aria-label="Delete task">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="18" y1="6" x2="6" y2="18"></line>
+              <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+          </button>
         </div>
       `;
     }).join('');
@@ -816,7 +1005,9 @@ class WyrmUiRenderer {
     const settings = state.settings || {};
 
     if (this.startWeekToggle) {
-      this.startWeekToggle.classList.toggle('active', !!settings.startWeekOnMonday);
+      const startMon = !!settings.startWeekOnMonday;
+      this.startWeekToggle.classList.toggle('active', startMon);
+      this.startWeekToggle.setAttribute('aria-checked', startMon ? 'true' : 'false');
     }
 
     if (this.dayOfYearBadge) {
@@ -885,8 +1076,23 @@ class WyrmUiRenderer {
     const milestones = cal.milestones || [];
     const milestoneDays = new Set(
       milestones
-        .map(m => new Date(m.target_date || m.targetDate || m.date))
-        .filter(d => !isNaN(d.getTime()) && d.getFullYear() === viewYear && d.getMonth() === viewMonth)
+        .map(m => {
+          const raw = m.target_date || m.targetDate || m.date;
+          if (typeof raw === 'string' && raw.includes('-')) {
+            const datePart = raw.split('T')[0];
+            const parts = datePart.split('-');
+            if (parts.length === 3) {
+              return new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
+            }
+          } else if (typeof raw === 'string' && raw.includes('/')) {
+            const parts = raw.split('/');
+            if (parts.length === 3) {
+              return new Date(parseInt(parts[2], 10), parseInt(parts[1], 10) - 1, parseInt(parts[0], 10));
+            }
+          }
+          return new Date(raw);
+        })
+        .filter(d => d && !isNaN(d.getTime()) && d.getFullYear() === viewYear && d.getMonth() === viewMonth)
         .map(d => d.getDate())
     );
 
@@ -905,7 +1111,7 @@ class WyrmUiRenderer {
       if (isSelected) classes.push('selected');
       if (hasMilestone) classes.push('has-milestone');
 
-      html += `<div class="${classes.join(' ')}" onclick="window.wyrmRemote.selectWebDate(${viewYear}, ${viewMonth}, ${day})">${day}</div>`;
+      html += `<div class="${classes.join(' ')}" onclick="window.wyrmRemote.selectWebDate(${viewYear}, ${viewMonth}, ${day})" role="button" tabindex="0">${day}</div>`;
     }
 
     this.webCalDays.innerHTML = html;
@@ -922,8 +1128,11 @@ class WyrmUiRenderer {
       else if (diffDays > 0) relativeText = `+${diffDays} days from now`;
       else if (diffDays < 0) relativeText = `${Math.abs(diffDays)} days ago`;
 
-      const formatted = `${monthNames[sel.getMonth()]} ${sel.getDate()}, ${sel.getFullYear()}`;
-      this.webCalSelectedStatus.textContent = `${formatted} • ${relativeText}`;
+      const day = String(sel.getDate()).padStart(2, '0');
+      const month = String(sel.getMonth() + 1).padStart(2, '0');
+      const year = sel.getFullYear();
+      const dateFormatted = `${day}/${month}/${year}`;
+      this.webCalSelectedStatus.textContent = `${dateFormatted} • ${relativeText}`;
     }
   }
 
@@ -945,7 +1154,23 @@ class WyrmUiRenderer {
     const todayMid = new Date(today.getFullYear(), today.getMonth(), today.getDate());
 
     this.milestonesList.innerHTML = milestones.map((m) => {
-      const target = new Date(m.target_date || m.targetDate || m.date || Date.now());
+      let target;
+      const rawDate = m.target_date || m.targetDate || m.date;
+      if (typeof rawDate === 'string' && rawDate.includes('-')) {
+        const datePart = rawDate.split('T')[0];
+        const parts = datePart.split('-');
+        if (parts.length === 3) {
+          target = new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
+        }
+      } else if (typeof rawDate === 'string' && rawDate.includes('/')) {
+        const parts = rawDate.split('/');
+        if (parts.length === 3) {
+          target = new Date(parseInt(parts[2], 10), parseInt(parts[1], 10) - 1, parseInt(parts[0], 10));
+        }
+      }
+      if (!target || isNaN(target.getTime())) {
+        target = new Date(rawDate || Date.now());
+      }
       const targetMid = new Date(target.getFullYear(), target.getMonth(), target.getDate());
       const diffDays = Math.round((targetMid - todayMid) / (1000 * 60 * 60 * 24));
 
@@ -956,18 +1181,31 @@ class WyrmUiRenderer {
       else badge = `${Math.abs(diffDays)}d AGO`;
 
       const isPinned = !!(m.is_pinned || m.pinned);
-      const pinIcon = isPinned ? '📌' : '📍';
-      const dateStr = target.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+      const pinSvg = isPinned
+        ? '<svg viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="1.5"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>'
+        : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>';
+      
+      const day = String(target.getDate()).padStart(2, '0');
+      const month = String(target.getMonth() + 1).padStart(2, '0');
+      const year = target.getFullYear();
+      const dateStr = `${day}/${month}/${year}`;
 
       return `
-        <div class="milestone-item-row" data-milestone-id="${m.id}">
-          <button class="milestone-pin-btn ${isPinned ? 'pinned' : ''}" onclick="window.wyrmRemote.togglePinMilestone('${m.id}')" title="Pin to countdown">${pinIcon}</button>
+        <div class="milestone-item-row" data-milestone-id="${m.id}" role="listitem">
+          <button class="milestone-pin-btn ${isPinned ? 'pinned' : ''}" onclick="window.wyrmRemote.togglePinMilestone('${m.id}')" title="Pin to countdown" aria-label="Pin milestone">
+            ${pinSvg}
+          </button>
           <div class="milestone-title-group">
             <span class="milestone-title">${this._escapeHtml(m.title || m.text || '')}</span>
             <span class="milestone-date-subtext">${dateStr}</span>
           </div>
           <span class="milestone-days-capsule">${badge}</span>
-          <button class="task-delete-btn" onclick="window.wyrmRemote.deleteMilestone('${m.id}')" title="Delete milestone">×</button>
+          <button class="task-delete-btn" onclick="window.wyrmRemote.deleteMilestone('${m.id}')" title="Delete milestone" aria-label="Delete milestone">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="18" y1="6" x2="6" y2="18"></line>
+              <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+          </button>
         </div>
       `;
     }).join('');
@@ -1003,24 +1241,38 @@ class WyrmUiRenderer {
       const isNumeric = (habit.type || '').toLowerCase() === 'numeric';
 
       return `
-        <div class="habit-item-row" data-habit-id="${habit.id}">
+        <div class="habit-item-row" data-habit-id="${habit.id}" role="listitem">
           <div class="habit-title-group">
             <span class="habit-glyph">${this._resolveGlyphEmoji(habit.icon_name || habit.iconName)}</span>
             <span class="habit-title">${this._escapeHtml(habit.title || '')}</span>
           </div>
           <div class="habit-action-group">
             ${isNumeric ? `
-              <div class="habit-stepper-control">
-                <button class="stepper-control" onclick="window.wyrmRemote.stepHabit('${habit.id}', -1)" title="Decrement">−</button>
+              <div class="habit-stepper-control" role="group" aria-label="Step habit count">
+                <button class="stepper-btn" onclick="window.wyrmRemote.stepHabit('${habit.id}', -1)" title="Decrement" aria-label="Decrement count">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                </button>
                 <span class="habit-stepper-val">${count}/${target} ${habit.unit ? this._escapeHtml(habit.unit) : ''}</span>
-                <button class="stepper-control" onclick="window.wyrmRemote.stepHabit('${habit.id}', 1)" title="Increment">+</button>
+                <button class="stepper-btn" onclick="window.wyrmRemote.stepHabit('${habit.id}', 1)" title="Increment" aria-label="Increment count">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                </button>
               </div>
             ` : `
-              <button class="habit-toggle-btn ${isDone ? 'done' : ''}" onclick="window.wyrmRemote.toggleHabit('${habit.id}')">
-                <span>${isDone ? '✓ Done' : '○ Today'}</span>
+              <button class="habit-toggle-btn ${isDone ? 'done' : ''}" onclick="window.wyrmRemote.toggleHabit('${habit.id}')" aria-label="Toggle habit completion">
+                ${isDone ? `
+                  <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                  <span>Done</span>
+                ` : `
+                  <span>Today</span>
+                `}
               </button>
             `}
-            <button class="task-delete-btn" onclick="window.wyrmRemote.deleteHabit('${habit.id}')" title="Delete habit">×</button>
+            <button class="task-delete-btn" onclick="window.wyrmRemote.deleteHabit('${habit.id}')" title="Delete habit" aria-label="Delete habit">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="18" y1="6" x2="6" y2="18"></line>
+                <line x1="6" y1="6" x2="18" y2="18"></line>
+              </svg>
+            </button>
           </div>
         </div>
       `;
@@ -1029,19 +1281,19 @@ class WyrmUiRenderer {
 
   _resolveGlyphEmoji(iconName) {
     const glyphMap = {
-      bolt: '⚡',
-      water_drop: '💧',
-      fitness_center: '🏋️',
-      menu_book: '📖',
-      directions_run: '🏃',
-      bedtime: '🌙',
-      wb_sunny: '☀️',
-      code: '💻',
-      local_cafe: '☕',
-      check_circle: '✅',
-      favorite: '❤️',
+      bolt: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>',
+      water_drop: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"></path></svg>',
+      fitness_center: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 5v14M18 5v14M2 9v6M22 9v6M6 12h12"></path></svg>',
+      menu_book: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg>',
+      directions_run: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="5" r="2"></circle><path d="M10 22l3-7 3-3-2-4-4 2"></path><path d="M6 14l4-2 3 3"></path></svg>',
+      bedtime: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>',
+      wb_sunny: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line></svg>',
+      code: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"></polyline><polyline points="8 6 2 12 8 18"></polyline></svg>',
+      local_cafe: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8h1a4 4 0 0 1 0 8h-1"></path><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"></path><line x1="6" y1="1" x2="6" y2="4"></line><line x1="10" y1="1" x2="10" y2="4"></line><line x1="14" y1="1" x2="14" y2="4"></line></svg>',
+      check_circle: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="16 9 12 15 8 11"></polyline></svg>',
+      favorite: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>',
     };
-    return glyphMap[iconName] || '⚡';
+    return glyphMap[iconName] || glyphMap.bolt;
   }
 
   _escapeHtml(text) {
@@ -1057,7 +1309,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   const wsManager = new WyrmWebSocketManager(store);
   const renderer = new WyrmUiRenderer(store, wsManager);
 
-  // Global interface for inline triggers
+  // Global interface for inline triggers & cross-window controller
   window.wyrmRemote = {
     setCardSize: (card, size) => renderer.setCardSize(card, size),
     setAllCardsSize: (size) => renderer.setAllCardsSize(size),
@@ -1065,6 +1317,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     incrementFontSize: () => renderer.incrementFontSize(),
     decrementFontSize: () => renderer.decrementFontSize(),
     setCardFilter: (filter) => renderer.setCardFilter(filter),
+    cycleTheme: () => renderer.cycleTheme(),
     addTask: () => renderer.addTask(),
     toggleTask: (id) => renderer.toggleTask(id),
     deleteTask: (id) => renderer.deleteTask(id),
@@ -1076,8 +1329,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     travelWebDate: (dateStr) => renderer.travelWebDate(dateStr),
     selectWebDate: (year, month, day) => renderer.selectWebDate(year, month, day),
     addMilestone: () => renderer.addMilestone(),
+    createMilestone: (title, date, isPinned) => renderer.wsManager.createMilestone(title, date, isPinned),
     deleteMilestone: (id) => renderer.deleteMilestone(id),
     togglePinMilestone: (id) => renderer.togglePinMilestone(id),
+    pickMilestoneDate: () => renderer.pickMilestoneDate(),
+    onMilestonePickerChange: (val) => renderer.onMilestonePickerChange(val),
     onHabitTypeChange: (val) => renderer.onHabitTypeChange(val),
     selectHabitGlyph: (glyph) => renderer.selectHabitGlyph(glyph),
     addHabit: () => renderer.addHabit(),
