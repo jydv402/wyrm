@@ -1,0 +1,29 @@
+package_rename_config:
+  android:
+    app_name: "WYRM_Dev" # Display name
+    package_name: "com.jdmakes.wyrm_dev" # Package name
+
+  ios:
+    app_name: "WYRM_Dev" # Display name
+    bundle_name: "WYRM_Dev" # Bundle name
+    package_name: "com.jdmakes.wyrm_dev" # Product Bundle Identifier
+
+  linux:
+    app_name: "WYRM_Dev" # Window title
+    package_name: "com.jdmakes.wyrm_dev" # Application ID
+    exe_name: "my_app" # Executable name (binary)
+
+  macos:
+    app_name: "WYRM_Dev" # Product name
+    package_name: "com.jdmakes.wyrm_dev" # Product Bundle Identifier
+    copyright_notice: "Copyright © 2024" # Copyright notice
+
+  web:
+    app_name: "WYRM_Dev" # App title & PWA name
+    short_app_name: "WYRM_Dev" # PWA short name (defaults to app_name)
+    description: "Desktop Companion App" # Web app description
+
+  windows:
+    app_name: "WYRM_Dev" # Window title & Software name
+    organization: "jdmakes" # Organization/Company name
+    exe_name: "WYRM_Dev" # Executable name (binary)

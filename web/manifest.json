@@ -1,6 +1,6 @@
 {
-    "name": "WYRM",
-    "short_name": "WYRM",
+    "name": "WYRM_Dev",
+    "short_name": "WYRM_Dev",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#hexcode",
