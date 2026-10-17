@@ -155,39 +155,43 @@ class _HomePageState extends ConsumerState<HomePage>
 
     return Scaffold(
       backgroundColor: AppColors.background,
-      body: SafeArea(
-        child: AnimatedPadding(
-          duration: const Duration(milliseconds: 380),
-          curve: Curves.easeInOutCubic,
-          padding: isNightstand ? EdgeInsets.zero : widget.padding,
-          child: Column(
-            spacing: isNightstand ? 0.0 : widget.spacing,
-            children: [
-              // Pinned top navigation and status pill bar, smoothly hidden in nightstand mode.
-              AnimatedContainer(
-                duration: const Duration(milliseconds: 380),
-                curve: Curves.easeInOutCubic,
-                height: isNightstand ? 0.0 : 54.0,
-                clipBehavior: Clip.hardEdge,
-                decoration: const BoxDecoration(),
-                child: widget.topBar ?? const TopPillBar(),
-              ),
+      body: Stack(
+        children: [
+          SafeArea(
+            child: AnimatedPadding(
+              duration: const Duration(milliseconds: 380),
+              curve: Curves.easeInOutCubic,
+              padding: isNightstand ? EdgeInsets.zero : widget.padding,
+              child: Column(
+                spacing: isNightstand ? 0.0 : widget.spacing,
+                children: [
+                  // Pinned top navigation and status pill bar, smoothly hidden in nightstand mode.
+                  AnimatedContainer(
+                    duration: const Duration(milliseconds: 380),
+                    curve: Curves.easeInOutCubic,
+                    height: isNightstand ? 0.0 : 54.0,
+                    clipBehavior: Clip.hardEdge,
+                    decoration: const BoxDecoration(),
+                    child: widget.topBar ?? const TopPillBar(),
+                  ),
 
-              // Horizontally scrollable card deck with dynamic animated widths.
-              Expanded(
-                child: LayoutBuilder(
-                  builder: (context, constraints) {
-                    return _buildScrollableDeck(
-                      context: context,
-                      constraints: constraints,
-                      config: layoutConfig,
-                    );
-                  },
-                ),
+                  // Horizontally scrollable card deck with dynamic animated widths.
+                  Expanded(
+                    child: LayoutBuilder(
+                      builder: (context, constraints) {
+                        return _buildScrollableDeck(
+                          context: context,
+                          constraints: constraints,
+                          config: layoutConfig,
+                        );
+                      },
+                    ),
+                  ),
+                ],
               ),
-            ],
+            ),
           ),
-        ),
+        ],
       ),
     );
   }

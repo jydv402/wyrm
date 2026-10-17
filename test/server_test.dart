@@ -5,6 +5,7 @@ import 'package:http/http.dart' as http;
 import 'package:web_socket_channel/io.dart';
 import 'package:wyrm_desk/calendar/calendar_model.dart';
 import 'package:wyrm_desk/calendar/calendar_state.dart';
+import 'package:wyrm_desk/display/display.dart';
 import 'package:wyrm_desk/habits/habits.dart';
 import 'package:wyrm_desk/home/card_layout_state.dart';
 import 'package:wyrm_desk/server/server.dart';
@@ -19,11 +20,13 @@ void main() {
     late List<TaskItem> activeTasks;
     late List<CalendarMilestone> activeMilestones;
     late List<HabitItem> activeHabits;
+    late DisplayState activeDisplay;
     DashboardCardType? lastScrolledCard;
 
     setUp(() async {
       activeLayout = const CardLayoutConfig();
       activeSettings = const AppSettingsConfig();
+      activeDisplay = const DisplayState();
       lastScrolledCard = null;
       activeHabits = [
         HabitItem(
@@ -65,11 +68,15 @@ void main() {
           milestones: activeMilestones,
         ),
         getHabitsConfig: () => HabitsState(habits: activeHabits),
+        getDisplayConfig: () => activeDisplay,
         onSetCardSize: (type, size) {
           activeLayout = activeLayout.withSize(type, size);
         },
         onSet24HourFormat: (is24Hour) {
           activeSettings = activeSettings.copyWith(is24HourFormat: is24Hour);
+        },
+        onSetBrightness: (brightness) {
+          activeDisplay = activeDisplay.copyWith(brightness: brightness);
         },
         onSetCardFontSize: (fontSize) {
           activeSettings = activeSettings.copyWith(cardFontSize: fontSize);
@@ -358,6 +365,51 @@ void main() {
       expect(activeSettings.startWeekOnMonday, true);
     });
 
+    test('GET /api/status includes display state and habits', () async {
+      final response = await http
+          .get(Uri.parse('http://127.0.0.1:${server.port}/api/status'));
+      expect(response.statusCode, 200);
+
+      final data = jsonDecode(response.body) as Map<String, dynamic>;
+      expect(data['display'], isMap);
+      expect(data['display']['brightness'], 1.0);
+      expect(data['habits'], isList);
+      expect((data['habits'] as List).length, 1);
+    });
+
+    test('GET /api/display returns the active display state', () async {
+      final response = await http
+          .get(Uri.parse('http://127.0.0.1:${server.port}/api/display'));
+      expect(response.statusCode, 200);
+      expect(response.headers['content-type'], contains('application/json'));
+
+      final data = jsonDecode(response.body) as Map<String, dynamic>;
+      expect(data['brightness'], 1.0);
+    });
+
+    test('POST /api/display updates brightness', () async {
+      final response = await http.post(
+        Uri.parse('http://127.0.0.1:${server.port}/api/display'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'brightness': 0.4}),
+      );
+
+      expect(response.statusCode, 200);
+      final data = jsonDecode(response.body) as Map<String, dynamic>;
+      expect(data['success'], true);
+      expect(activeDisplay.brightness, closeTo(0.4, 0.0001));
+    });
+
+    test('POST /api/display returns 400 for empty payload', () async {
+      final response = await http.post(
+        Uri.parse('http://127.0.0.1:${server.port}/api/display'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({}),
+      );
+
+      expect(response.statusCode, 400);
+    });
+
     test('GET /api/calendar returns active milestones and metrics', () async {
       final response =
           await http.get(Uri.parse('http://127.0.0.1:${server.port}/api/calendar'));
@@ -430,6 +482,7 @@ void main() {
       expect(snapshot['type'], 'snapshot');
       expect(snapshot['layout']['clock'], 'small');
       expect(snapshot['settings']['cardFontSize'], 14.0);
+      expect(snapshot['display']['brightness'], 1.0);
       expect(snapshot['tasks'], isList);
       expect(snapshot['calendar'], isMap);
 
@@ -452,6 +505,15 @@ void main() {
 
       await Future<void>.delayed(const Duration(milliseconds: 50));
       expect(activeSettings.cardFontSize, 20.0);
+
+      // Send set_display message over WebSocket.
+      channel.sink.add(jsonEncode({
+        'type': 'set_display',
+        'brightness': 0.35,
+      }));
+
+      await Future<void>.delayed(const Duration(milliseconds: 50));
+      expect(activeDisplay.brightness, closeTo(0.35, 0.0001));
 
       // Send create_task message over WebSocket.
       channel.sink.add(jsonEncode({
@@ -622,6 +684,8 @@ void main() {
       expect(html, contains('milestone-date-container'));
       expect(html, contains('placeholder="dd/mm/yyyy"'));
       expect(html, contains('milestone-picker-trigger'));
+      expect(html, contains('card-display-brightness'));
+      expect(html, contains('brightnessSlider'));
 
       final css = await cssFile.readAsString();
       expect(css, contains('--accent-amber: #ff9500'));
@@ -635,6 +699,7 @@ void main() {
       expect(css, contains('.milestone-date-container'));
       expect(css, contains('.milestone-picker-trigger'));
       expect(css, contains('.card-tapped'));
+      expect(css, contains('.brightness-slider'));
 
       final js = await jsFile.readAsString();
       expect(js, contains('WyrmStateStore'));
@@ -654,6 +719,7 @@ void main() {
       expect(js, contains('stepHabit'));
       expect(js, contains('deleteHabit'));
       expect(js, contains('scrollToCard'));
+      expect(js, contains('setBrightness'));
       expect(js, contains(r'${day}/${month}/${year}'));
     });
 

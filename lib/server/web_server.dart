@@ -8,6 +8,7 @@ import 'package:shelf_router/shelf_router.dart';
 import 'package:shelf_web_socket/shelf_web_socket.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 import 'package:wyrm_desk/calendar/calendar_state.dart';
+import 'package:wyrm_desk/display/display_state.dart';
 import 'package:wyrm_desk/habits/habits.dart';
 import 'package:wyrm_desk/home/card_layout_state.dart';
 import 'package:wyrm_desk/settings/settings_state.dart';
@@ -23,10 +24,12 @@ class ShelfWebServer {
   final List<TaskItem> Function()? getTasksConfig;
   final CalendarState Function()? getCalendarConfig;
   final HabitsState Function()? getHabitsConfig;
+  final DisplayState Function()? getDisplayConfig;
   final void Function(DashboardCardType type, CardSize size) onSetCardSize;
   final void Function(bool is24Hour) onSet24HourFormat;
   final void Function(double fontSize)? onSetCardFontSize;
   final void Function(bool startWeekOnMonday)? onSetStartWeekOnMonday;
+  final void Function(double brightness)? onSetBrightness;
   final void Function(String title, String priority)? onAddTask;
   final void Function(String id)? onToggleTask;
   final void Function(String id)? onDeleteTask;
@@ -54,10 +57,12 @@ class ShelfWebServer {
     this.getTasksConfig,
     this.getCalendarConfig,
     this.getHabitsConfig,
+    this.getDisplayConfig,
     required this.onSetCardSize,
     required this.onSet24HourFormat,
     this.onSetCardFontSize,
     this.onSetStartWeekOnMonday,
+    this.onSetBrightness,
     this.onAddTask,
     this.onToggleTask,
     this.onDeleteTask,
@@ -93,6 +98,8 @@ class ShelfWebServer {
     router.post('/api/layout', _handlePostLayout);
     router.post('/api/scroll', _handlePostScroll);
     router.post('/api/settings', _handlePostSettings);
+    router.get('/api/display', _handleGetDisplay);
+    router.post('/api/display', _handlePostDisplay);
     router.get('/api/tasks', _handleGetTasks);
     router.post('/api/tasks', _handlePostTask);
     router.post('/api/tasks/toggle', _handlePostToggleTask);
@@ -159,6 +166,7 @@ class ShelfWebServer {
     List<TaskItem>? tasks,
     CalendarState? calendar,
     HabitsState? habits,
+    DisplayState? display,
   }) {
     final activeLayout = layout ?? getLayoutConfig();
     final activeSettings = settings ?? getSettingsConfig();
@@ -168,6 +176,8 @@ class ShelfWebServer {
         calendar ?? (getCalendarConfig != null ? getCalendarConfig!() : null);
     final activeHabits =
         habits ?? (getHabitsConfig != null ? getHabitsConfig!() : const HabitsState());
+    final activeDisplay =
+        display ?? (getDisplayConfig != null ? getDisplayConfig!() : const DisplayState());
 
     final payload = jsonEncode({
       'type': 'state_update',
@@ -177,6 +187,7 @@ class ShelfWebServer {
         'cardFontSize': activeSettings.cardFontSize,
         'startWeekOnMonday': activeSettings.startWeekOnMonday,
       },
+      'display': activeDisplay.toWireJson(),
       'tasks': activeTasks.map((t) => t.toJson()).toList(),
       'calendar': _serializeCalendarState(activeCalendar, activeSettings.startWeekOnMonday),
       'habits': activeHabits.habits.map((h) => h.toJson()).toList(),
@@ -211,6 +222,7 @@ class ShelfWebServer {
         'cardFontSize': getSettingsConfig().cardFontSize,
         'startWeekOnMonday': getSettingsConfig().startWeekOnMonday,
       },
+      'display': (getDisplayConfig != null ? getDisplayConfig!() : const DisplayState()).toWireJson(),
       'tasks': activeTasks.map((t) => t.toJson()).toList(),
       'calendar': _serializeCalendarState(activeCalendar, getSettingsConfig().startWeekOnMonday),
       'habits': activeHabits.habits.map((h) => h.toJson()).toList(),
@@ -244,6 +256,15 @@ class ShelfWebServer {
             if (data.containsKey('startWeekOnMonday') && onSetStartWeekOnMonday != null) {
               final startMon = data['startWeekOnMonday'] as bool;
               onSetStartWeekOnMonday!(startMon);
+            }
+          } else if (type == 'set_display') {
+            if (data.containsKey('brightness') && onSetBrightness != null) {
+              final raw = data['brightness'];
+              final brightness =
+                  raw is num ? raw.toDouble() : double.tryParse(raw?.toString() ?? '');
+              if (brightness != null) {
+                onSetBrightness!(brightness);
+              }
             }
           } else if (type == 'create_task') {
             final title = data['title'] as String?;
@@ -426,6 +447,10 @@ class ShelfWebServer {
         getTasksConfig != null ? getTasksConfig!() : <TaskItem>[];
     final calendar =
         getCalendarConfig != null ? getCalendarConfig!() : null;
+    final habits =
+        getHabitsConfig != null ? getHabitsConfig!().habits : <HabitItem>[];
+    final display =
+        getDisplayConfig != null ? getDisplayConfig!() : const DisplayState();
 
     return Response.ok(
       jsonEncode({
@@ -436,9 +461,52 @@ class ShelfWebServer {
           'cardFontSize': settings.cardFontSize,
           'startWeekOnMonday': settings.startWeekOnMonday,
         },
+        'display': display.toWireJson(),
         'tasks': tasks.map((t) => t.toJson()).toList(),
+        'habits': habits.map((h) => h.toJson()).toList(),
         'calendar': _serializeCalendarState(calendar, settings.startWeekOnMonday),
       }),
+      headers: {'Content-Type': 'application/json'},
+    );
+  }
+
+  /// Returns the current tablet display state (panel power and brightness) in JSON.
+  Response _handleGetDisplay(Request request) {
+    final display =
+        getDisplayConfig != null ? getDisplayConfig!() : const DisplayState();
+    return Response.ok(
+      jsonEncode(display.toWireJson()),
+      headers: {'Content-Type': 'application/json'},
+    );
+  }
+
+  /// Mutates the tablet display brightness via REST POST call.
+  Future<Response> _handlePostDisplay(Request request) async {
+    try {
+      final body = await request.readAsString();
+      final data = jsonDecode(body) as Map<String, dynamic>;
+
+      bool updated = false;
+      if (data.containsKey('brightness') && onSetBrightness != null) {
+        final raw = data['brightness'];
+        final brightness =
+            raw is num ? raw.toDouble() : double.tryParse(raw?.toString() ?? '');
+        if (brightness != null) {
+          onSetBrightness!(brightness);
+          updated = true;
+        }
+      }
+
+      if (updated) {
+        return Response.ok(
+          jsonEncode({'success': true}),
+          headers: {'Content-Type': 'application/json'},
+        );
+      }
+    } catch (_) {}
+
+    return Response.badRequest(
+      body: jsonEncode({'error': 'Invalid display payload'}),
       headers: {'Content-Type': 'application/json'},
     );
   }

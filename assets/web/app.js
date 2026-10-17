@@ -47,6 +47,9 @@ class WyrmStateStore {
         cardFontSize: 14.0,
         startWeekOnMonday: false,
       },
+      display: {
+        brightness: 1.0,
+      },
       tasks: [],
       habits: [],
       calendar: {
@@ -80,6 +83,7 @@ class WyrmStateStore {
       ...partialState,
       layout: { ...this.state.layout, ...(partialState.layout || {}) },
       settings: { ...this.state.settings, ...(partialState.settings || {}) },
+      display: { ...this.state.display, ...(partialState.display || {}) },
       tasks: partialState.tasks !== undefined ? partialState.tasks : this.state.tasks,
       habits: partialState.habits !== undefined ? partialState.habits : this.state.habits,
       calendar: partialState.calendar !== undefined ? { ...this.state.calendar, ...partialState.calendar } : this.state.calendar,
@@ -187,6 +191,23 @@ class WyrmWebSocketManager {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(settingsPayload),
+      }).catch(() => {});
+    }
+  }
+
+  setDisplay(displayPayload) {
+    const message = JSON.stringify({
+      type: 'set_display',
+      ...displayPayload,
+    });
+
+    if (this.socket && this.socket.readyState === WebSocket.OPEN) {
+      this.socket.send(message);
+    } else {
+      fetch('/api/display', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(displayPayload),
       }).catch(() => {});
     }
   }
@@ -361,6 +382,7 @@ class WyrmWebSocketManager {
         this.store.setState({
           layout: payload.layout || {},
           settings: payload.settings || {},
+          display: payload.display !== undefined ? payload.display : this.store.getState().display,
           tasks: payload.tasks !== undefined ? payload.tasks : this.store.getState().tasks,
           habits: payload.habits !== undefined ? payload.habits : this.store.getState().habits,
           calendar: payload.calendar !== undefined ? payload.calendar : this.store.getState().calendar,
@@ -427,6 +449,10 @@ class WyrmUiRenderer {
     this.habitUnitInput = document.getElementById('habitUnitInput');
     this.habitsList = document.getElementById('habitsList');
     this.selectedHabitGlyph = 'bolt';
+
+    // Display DOM elements
+    this.brightnessSlider = document.getElementById('brightnessSlider');
+    this.brightnessValueBadge = document.getElementById('brightnessValueBadge');
 
     this.webCalViewDate = new Date();
     this.webCalSelectedDate = new Date();
@@ -588,6 +614,35 @@ class WyrmUiRenderer {
     const updated = Math.max(11.0, Math.round(current - 1.0));
     this.store.setState({ settings: { cardFontSize: updated } });
     this.wsManager.sendSettingsMutation({ cardFontSize: updated });
+  }
+
+  previewBrightness(value) {
+    const pct = parseInt(value, 10);
+    if (isNaN(pct)) return;
+    if (this.brightnessValueBadge) this.brightnessValueBadge.textContent = `${pct}%`;
+    this._paintBrightnessSlider(pct);
+  }
+
+  setBrightness(value) {
+    const pct = parseInt(value, 10);
+    if (isNaN(pct)) return;
+    const clamped = Math.max(5, Math.min(100, pct));
+    const brightness = clamped / 100;
+    this.store.setState({ display: { brightness } });
+    this.wsManager.setDisplay({ brightness });
+    WyrmHaptics.selection();
+  }
+
+  _paintBrightnessSlider(pct) {
+    if (!this.brightnessSlider) return;
+    // The native thumb slides across the (min..max) range, so scale the amber fill
+    // by the same fraction. This makes it terminate under the thumb centre, hidden
+    // behind the circle, instead of showing past the circle at the right end.
+    const min = Number(this.brightnessSlider.min) || 0;
+    const max = Number(this.brightnessSlider.max) || 100;
+    const span = max - min || 1;
+    const fraction = Math.max(0, Math.min(1, (pct - min) / span));
+    this.brightnessSlider.style.setProperty('--fill', `${fraction * 100}%`);
   }
 
   cycleTheme() {
@@ -813,6 +868,7 @@ class WyrmUiRenderer {
     this._renderCards(state);
     this._render24HourToggle(state);
     this._renderFontSize(state);
+    this._renderDisplay(state);
     this._renderTasks(state);
     this._renderCalendar(state);
     this._renderHabits(state);
@@ -953,6 +1009,24 @@ class WyrmUiRenderer {
     if (!this.fontSizeDisplay) return;
     const fontSize = (state.settings && state.settings.cardFontSize) || 14.0;
     this.fontSizeDisplay.textContent = `${Math.round(fontSize)} pt`;
+  }
+
+  _renderDisplay(state) {
+    const display = state.display || {};
+    const rawBrightness = typeof display.brightness === 'number' ? display.brightness : 1.0;
+    const pct = Math.round(Math.max(0.05, Math.min(1.0, rawBrightness)) * 100);
+
+    if (this.brightnessValueBadge) {
+      this.brightnessValueBadge.textContent = `${pct}%`;
+    }
+
+    if (this.brightnessSlider) {
+      // Avoid fighting the user's thumb while they are actively dragging.
+      if (document.activeElement !== this.brightnessSlider) {
+        this.brightnessSlider.value = String(pct);
+      }
+      this._paintBrightnessSlider(pct);
+    }
   }
 
   _renderTasks(state) {
@@ -1316,6 +1390,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     toggleTimeFormat: () => renderer.toggleTimeFormat(),
     incrementFontSize: () => renderer.incrementFontSize(),
     decrementFontSize: () => renderer.decrementFontSize(),
+    previewBrightness: (value) => renderer.previewBrightness(value),
+    setBrightness: (value) => renderer.setBrightness(value),
     setCardFilter: (filter) => renderer.setCardFilter(filter),
     cycleTheme: () => renderer.cycleTheme(),
     addTask: () => renderer.addTask(),
@@ -1354,6 +1430,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       store.setState({
         layout: initialSnapshot.layout || {},
         settings: initialSnapshot.settings || {},
+        display: initialSnapshot.display || {},
         tasks: initialSnapshot.tasks || [],
         habits: initialSnapshot.habits || [],
         calendar: initialSnapshot.calendar || {},

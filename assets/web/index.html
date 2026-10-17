@@ -3,7 +3,8 @@
 
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="viewport"
+    content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <meta name="theme-color" content="#0a0b0e" media="(prefers-color-scheme: dark)">
   <meta name="theme-color" content="#f2f2f7" media="(prefers-color-scheme: light)">
   <meta name="apple-mobile-web-app-capable" content="yes">
@@ -16,10 +17,10 @@
   <link rel="apple-touch-icon" href="/assets/icons/icon_flat.png">
 
   <!-- Modular Apple HIG & Liquid Glass Stylesheet -->
-  <link rel="stylesheet" href="/style.css?v=2">
+  <link rel="stylesheet" href="/style.css?v=10">
 
   <!-- Core Controller JavaScript Engine -->
-  <script src="/app.js?v=2" defer></script>
+  <script src="/app.js?v=10" defer></script>
 </head>
 
 <body>
@@ -89,10 +90,12 @@
         <!-- Appearance Mode Toggle (System / Dark / Light) -->
         <button id="themeToggleBtn" class="theme-toggle-btn" onclick="window.wyrmRemote.cycleTheme()"
           title="Switch appearance mode" aria-label="Switch appearance mode">
-          <svg class="theme-icon theme-icon-dark" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <svg class="theme-icon theme-icon-dark" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+            stroke-linecap="round" stroke-linejoin="round">
             <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
           </svg>
-          <svg class="theme-icon theme-icon-light" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <svg class="theme-icon theme-icon-light" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+            stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <circle cx="12" cy="12" r="5"></circle>
             <line x1="12" y1="1" x2="12" y2="3"></line>
             <line x1="12" y1="21" x2="12" y2="23"></line>
@@ -121,7 +124,8 @@
         <div class="card-header">
           <div class="card-title-group">
             <span class="card-glyph" aria-hidden="true">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                stroke-linejoin="round">
                 <rect x="3" y="3" width="7" height="7" rx="1.5"></rect>
                 <rect x="14" y="3" width="7" height="7" rx="1.5"></rect>
                 <rect x="14" y="14" width="7" height="7" rx="1.5"></rect>
@@ -134,8 +138,7 @@
         </div>
 
         <div class="segmented-bar" role="group" aria-label="Global Card Size">
-          <button id="all-small" class="segment-btn"
-            onclick="window.wyrmRemote.setAllCardsSize('small')">Small</button>
+          <button id="all-small" class="segment-btn" onclick="window.wyrmRemote.setAllCardsSize('small')">Small</button>
           <button id="all-medium" class="segment-btn"
             onclick="window.wyrmRemote.setAllCardsSize('medium')">Medium</button>
           <button id="all-fullscreen" class="segment-btn"
@@ -149,7 +152,8 @@
           <div class="card-title-group clickable" onclick="window.wyrmRemote.setCardFilter('clock')"
             title="Switch to Clock view" tabindex="0" role="button">
             <span class="card-glyph" aria-hidden="true">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                stroke-linejoin="round">
                 <circle cx="12" cy="12" r="10"></circle>
                 <polyline points="12 6 12 12 16 14"></polyline>
               </svg>
@@ -168,7 +172,8 @@
             onclick="window.wyrmRemote.setCardSize('clock', 'fullscreen')">Full</button>
           <button id="clock-nightstand" class="segment-btn amber"
             onclick="window.wyrmRemote.setCardSize('clock', 'nightstand')" title="OLED Ambient Night Mode">
-            <svg class="btn-inline-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <svg class="btn-inline-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+              stroke-linecap="round" stroke-linejoin="round">
               <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
             </svg>
             <span>Night</span>
@@ -181,9 +186,12 @@
         <div class="card-header">
           <div class="card-title-group">
             <span class="card-glyph" aria-hidden="true">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                stroke-linejoin="round">
                 <circle cx="12" cy="12" r="3"></circle>
-                <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+                <path
+                  d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z">
+                </path>
               </svg>
             </span>
             <span class="card-name">24-Hour Format</span>
@@ -206,7 +214,8 @@
           <div class="card-title-group clickable" onclick="window.wyrmRemote.setCardFilter('habits')"
             title="Switch to Habits view" tabindex="0" role="button">
             <span class="card-glyph" aria-hidden="true">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                stroke-linejoin="round">
                 <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
               </svg>
             </span>
@@ -230,7 +239,8 @@
         <div class="card-header">
           <div class="card-title-group">
             <span class="card-glyph" aria-hidden="true">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                stroke-linejoin="round">
                 <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
                 <polyline points="22 4 12 14.01 9 11.01"></polyline>
               </svg>
@@ -260,47 +270,61 @@
           <!-- SF-Inspired Vector Icon Selector Chips -->
           <div class="glyph-picker-container" id="habitGlyphPicker" role="radiogroup" aria-label="Select Habit Symbol">
             <button type="button" class="glyph-chip selected" data-glyph="bolt"
-              onclick="window.wyrmRemote.selectHabitGlyph('bolt')" title="Energy" aria-label="Energy" role="radio" aria-checked="true">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              onclick="window.wyrmRemote.selectHabitGlyph('bolt')" title="Energy" aria-label="Energy" role="radio"
+              aria-checked="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                stroke-linejoin="round">
                 <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
               </svg>
             </button>
             <button type="button" class="glyph-chip" data-glyph="water_drop"
-              onclick="window.wyrmRemote.selectHabitGlyph('water_drop')" title="Hydration" aria-label="Hydration" role="radio" aria-checked="false">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              onclick="window.wyrmRemote.selectHabitGlyph('water_drop')" title="Hydration" aria-label="Hydration"
+              role="radio" aria-checked="false">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                stroke-linejoin="round">
                 <path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"></path>
               </svg>
             </button>
             <button type="button" class="glyph-chip" data-glyph="fitness_center"
-              onclick="window.wyrmRemote.selectHabitGlyph('fitness_center')" title="Workout" aria-label="Workout" role="radio" aria-checked="false">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              onclick="window.wyrmRemote.selectHabitGlyph('fitness_center')" title="Workout" aria-label="Workout"
+              role="radio" aria-checked="false">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                stroke-linejoin="round">
                 <path d="M6 5v14M18 5v14M2 9v6M22 9v6M6 12h12"></path>
               </svg>
             </button>
             <button type="button" class="glyph-chip" data-glyph="menu_book"
-              onclick="window.wyrmRemote.selectHabitGlyph('menu_book')" title="Reading" aria-label="Reading" role="radio" aria-checked="false">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              onclick="window.wyrmRemote.selectHabitGlyph('menu_book')" title="Reading" aria-label="Reading"
+              role="radio" aria-checked="false">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                stroke-linejoin="round">
                 <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
                 <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
               </svg>
             </button>
             <button type="button" class="glyph-chip" data-glyph="directions_run"
-              onclick="window.wyrmRemote.selectHabitGlyph('directions_run')" title="Running" aria-label="Running" role="radio" aria-checked="false">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              onclick="window.wyrmRemote.selectHabitGlyph('directions_run')" title="Running" aria-label="Running"
+              role="radio" aria-checked="false">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                stroke-linejoin="round">
                 <circle cx="12" cy="5" r="2"></circle>
                 <path d="M10 22l3-7 3-3-2-4-4 2"></path>
                 <path d="M6 14l4-2 3 3"></path>
               </svg>
             </button>
             <button type="button" class="glyph-chip" data-glyph="bedtime"
-              onclick="window.wyrmRemote.selectHabitGlyph('bedtime')" title="Sleep" aria-label="Sleep" role="radio" aria-checked="false">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              onclick="window.wyrmRemote.selectHabitGlyph('bedtime')" title="Sleep" aria-label="Sleep" role="radio"
+              aria-checked="false">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                stroke-linejoin="round">
                 <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
               </svg>
             </button>
             <button type="button" class="glyph-chip" data-glyph="wb_sunny"
-              onclick="window.wyrmRemote.selectHabitGlyph('wb_sunny')" title="Morning" aria-label="Morning" role="radio" aria-checked="false">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              onclick="window.wyrmRemote.selectHabitGlyph('wb_sunny')" title="Morning" aria-label="Morning" role="radio"
+              aria-checked="false">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                stroke-linejoin="round">
                 <circle cx="12" cy="12" r="5"></circle>
                 <line x1="12" y1="1" x2="12" y2="3"></line>
                 <line x1="12" y1="21" x2="12" y2="23"></line>
@@ -311,15 +335,19 @@
               </svg>
             </button>
             <button type="button" class="glyph-chip" data-glyph="code"
-              onclick="window.wyrmRemote.selectHabitGlyph('code')" title="Coding" aria-label="Coding" role="radio" aria-checked="false">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              onclick="window.wyrmRemote.selectHabitGlyph('code')" title="Coding" aria-label="Coding" role="radio"
+              aria-checked="false">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                stroke-linejoin="round">
                 <polyline points="16 18 22 12 16 6"></polyline>
                 <polyline points="8 6 2 12 8 18"></polyline>
               </svg>
             </button>
             <button type="button" class="glyph-chip" data-glyph="local_cafe"
-              onclick="window.wyrmRemote.selectHabitGlyph('local_cafe')" title="Coffee" aria-label="Coffee" role="radio" aria-checked="false">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              onclick="window.wyrmRemote.selectHabitGlyph('local_cafe')" title="Coffee" aria-label="Coffee" role="radio"
+              aria-checked="false">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                stroke-linejoin="round">
                 <path d="M18 8h1a4 4 0 0 1 0 8h-1"></path>
                 <path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"></path>
                 <line x1="6" y1="1" x2="6" y2="4"></line>
@@ -328,16 +356,22 @@
               </svg>
             </button>
             <button type="button" class="glyph-chip" data-glyph="check_circle"
-              onclick="window.wyrmRemote.selectHabitGlyph('check_circle')" title="Checkmark" aria-label="Checkmark" role="radio" aria-checked="false">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              onclick="window.wyrmRemote.selectHabitGlyph('check_circle')" title="Checkmark" aria-label="Checkmark"
+              role="radio" aria-checked="false">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                stroke-linejoin="round">
                 <circle cx="12" cy="12" r="10"></circle>
                 <polyline points="16 9 12 15 8 11"></polyline>
               </svg>
             </button>
             <button type="button" class="glyph-chip" data-glyph="favorite"
-              onclick="window.wyrmRemote.selectHabitGlyph('favorite')" title="Health" aria-label="Health" role="radio" aria-checked="false">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
+              onclick="window.wyrmRemote.selectHabitGlyph('favorite')" title="Health" aria-label="Health" role="radio"
+              aria-checked="false">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                stroke-linejoin="round">
+                <path
+                  d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z">
+                </path>
               </svg>
             </button>
           </div>
@@ -353,7 +387,8 @@
           <div class="card-title-group clickable" onclick="window.wyrmRemote.setCardFilter('calendar')"
             title="Switch to Calendar view" tabindex="0" role="button">
             <span class="card-glyph" aria-hidden="true">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                stroke-linejoin="round">
                 <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
                 <line x1="16" y1="2" x2="16" y2="6"></line>
                 <line x1="8" y1="2" x2="8" y2="6"></line>
@@ -380,7 +415,8 @@
         <div class="card-header">
           <div class="card-title-group">
             <span class="card-glyph" aria-hidden="true">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                stroke-linejoin="round">
                 <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
                 <line x1="16" y1="2" x2="16" y2="6"></line>
                 <line x1="8" y1="2" x2="8" y2="6"></line>
@@ -406,7 +442,8 @@
         <div class="card-header">
           <div class="card-title-group">
             <span class="card-glyph" aria-hidden="true">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                stroke-linejoin="round">
                 <circle cx="12" cy="12" r="10"></circle>
                 <polyline points="12 6 12 12 14 14"></polyline>
               </svg>
@@ -440,7 +477,8 @@
         <div class="card-header">
           <div class="card-title-group">
             <span class="card-glyph" aria-hidden="true">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                stroke-linejoin="round">
                 <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
                 <line x1="16" y1="2" x2="16" y2="6"></line>
                 <line x1="8" y1="2" x2="8" y2="6"></line>
@@ -450,17 +488,21 @@
             <span id="webCalMonthYear" class="card-name">September 2026</span>
           </div>
           <div class="cal-nav-buttons">
-            <button class="cal-nav-btn" onclick="window.wyrmRemote.prevWebMonth()" title="Previous month" aria-label="Previous month">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <button class="cal-nav-btn" onclick="window.wyrmRemote.prevWebMonth()" title="Previous month"
+              aria-label="Previous month">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"
+                stroke-linejoin="round">
                 <polyline points="15 18 9 12 15 6"></polyline>
               </svg>
             </button>
             <button id="webCalTodayBtn" class="cal-nav-btn" onclick="window.wyrmRemote.todayWebMonth()"
               title="Jump to today" aria-label="Jump to today">Today</button>
-            <button class="cal-nav-btn" onclick="window.wyrmRemote.promptTravelDate()"
-              title="Travel to date" aria-label="Travel to specific date">Travel</button>
-            <button class="cal-nav-btn" onclick="window.wyrmRemote.nextWebMonth()" title="Next month" aria-label="Next month">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <button class="cal-nav-btn" onclick="window.wyrmRemote.promptTravelDate()" title="Travel to date"
+              aria-label="Travel to specific date">Travel</button>
+            <button class="cal-nav-btn" onclick="window.wyrmRemote.nextWebMonth()" title="Next month"
+              aria-label="Next month">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"
+                stroke-linejoin="round">
                 <polyline points="9 18 15 12 9 6"></polyline>
               </svg>
             </button>
@@ -482,7 +524,8 @@
         <div class="card-header">
           <div class="card-title-group">
             <span class="card-glyph" aria-hidden="true">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                stroke-linejoin="round">
                 <circle cx="12" cy="12" r="10"></circle>
                 <circle cx="12" cy="12" r="6"></circle>
                 <circle cx="12" cy="12" r="2"></circle>
@@ -498,23 +541,29 @@
             <input type="text" id="milestoneTitleInput" class="milestone-text-input" placeholder="Milestone title..."
               onkeydown="if(event.key==='Enter')window.wyrmRemote.addMilestone()" aria-label="Milestone title">
             <div class="milestone-date-container">
-              <input type="text" id="milestoneDateInput" class="milestone-date-input" placeholder="dd/mm/yyyy" maxlength="10"
-                aria-label="Target date (dd/mm/yyyy)" onkeydown="if(event.key==='Enter')window.wyrmRemote.addMilestone()">
-              <button type="button" class="milestone-picker-trigger" onclick="window.wyrmRemote.pickMilestoneDate()" title="Pick date from calendar" aria-label="Open date picker">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <input type="text" id="milestoneDateInput" class="milestone-date-input" placeholder="dd/mm/yyyy"
+                maxlength="10" aria-label="Target date (dd/mm/yyyy)"
+                onkeydown="if(event.key==='Enter')window.wyrmRemote.addMilestone()">
+              <button type="button" class="milestone-picker-trigger" onclick="window.wyrmRemote.pickMilestoneDate()"
+                title="Pick date from calendar" aria-label="Open date picker">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                  stroke-linejoin="round">
                   <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
                   <line x1="16" y1="2" x2="16" y2="6"></line>
                   <line x1="8" y1="2" x2="8" y2="6"></line>
                   <line x1="3" y1="10" x2="21" y2="10"></line>
                 </svg>
               </button>
-              <input type="date" id="milestoneNativePicker" style="position: absolute; opacity: 0; pointer-events: none; width: 0; height: 0;" tabindex="-1" onchange="window.wyrmRemote.onMilestonePickerChange(this.value)">
+              <input type="date" id="milestoneNativePicker"
+                style="position: absolute; opacity: 0; pointer-events: none; width: 0; height: 0;" tabindex="-1"
+                onchange="window.wyrmRemote.onMilestonePickerChange(this.value)">
             </div>
             <label class="milestone-pin-label" title="Pin to prominent countdown banner">
               <input type="checkbox" id="milestonePinCheckbox">
               <span>Pin</span>
             </label>
-            <button class="task-add-btn" onclick="window.wyrmRemote.addMilestone()" aria-label="Add milestone">Add</button>
+            <button class="task-add-btn" onclick="window.wyrmRemote.addMilestone()"
+              aria-label="Add milestone">Add</button>
           </div>
           <div id="milestonesList" class="milestones-checklist" role="list"></div>
         </div>
@@ -526,7 +575,8 @@
           <div class="card-title-group clickable" onclick="window.wyrmRemote.setCardFilter('tasks')"
             title="Switch to Tasks view" tabindex="0" role="button">
             <span class="card-glyph" aria-hidden="true">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                stroke-linejoin="round">
                 <polyline points="9 11 12 14 22 4"></polyline>
                 <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path>
               </svg>
@@ -551,7 +601,8 @@
         <div class="card-header">
           <div class="card-title-group">
             <span class="card-glyph" aria-hidden="true">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                stroke-linejoin="round">
                 <polyline points="4 7 4 4 20 4 20 7"></polyline>
                 <line x1="9" y1="20" x2="15" y2="20"></line>
                 <line x1="12" y1="4" x2="12" y2="20"></line>
@@ -560,16 +611,18 @@
             <span class="card-name">Card Font Size</span>
           </div>
           <div class="stepper-control" role="group" aria-label="Scale font size">
-            <button class="stepper-btn" onclick="window.wyrmRemote.decrementFontSize()"
-              title="Decrease font size" aria-label="Decrease font size">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <button class="stepper-btn" onclick="window.wyrmRemote.decrementFontSize()" title="Decrease font size"
+              aria-label="Decrease font size">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"
+                stroke-linejoin="round">
                 <line x1="5" y1="12" x2="19" y2="12"></line>
               </svg>
             </button>
             <span id="fontSizeDisplay" class="stepper-value">14 pt</span>
-            <button class="stepper-btn" onclick="window.wyrmRemote.incrementFontSize()"
-              title="Increase font size" aria-label="Increase font size">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <button class="stepper-btn" onclick="window.wyrmRemote.incrementFontSize()" title="Increase font size"
+              aria-label="Increase font size">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"
+                stroke-linejoin="round">
                 <line x1="12" y1="5" x2="12" y2="19"></line>
                 <line x1="5" y1="12" x2="19" y2="12"></line>
               </svg>
@@ -586,7 +639,8 @@
         <div class="card-header">
           <div class="card-title-group">
             <span class="card-glyph" aria-hidden="true">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                stroke-linejoin="round">
                 <line x1="8" y1="6" x2="21" y2="6"></line>
                 <line x1="8" y1="12" x2="21" y2="12"></line>
                 <line x1="8" y1="18" x2="21" y2="18"></line>
@@ -615,12 +669,50 @@
         </div>
       </article>
 
+      <!-- Display Brightness Card (bottom of the Layout view) -->
+      <article id="card-display-brightness" class="layout-card card-detail-section" data-card="all">
+        <div class="card-header">
+          <div class="card-title-group">
+            <span class="card-glyph" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                stroke-linejoin="round">
+                <circle cx="12" cy="12" r="5"></circle>
+                <line x1="12" y1="1" x2="12" y2="3"></line>
+                <line x1="12" y1="21" x2="12" y2="23"></line>
+                <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+                <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+                <line x1="1" y1="12" x2="3" y2="12"></line>
+                <line x1="21" y1="12" x2="23" y2="12"></line>
+                <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+                <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+              </svg>
+            </span>
+            <span class="card-name">Screen Brightness</span>
+            <span id="brightnessValueBadge" class="status-capsule">100%</span>
+          </div>
+        </div>
+        <div class="brightness-control">
+          <input type="range" id="brightnessSlider" class="brightness-slider" min="5" max="100" step="5" value="100"
+            style="--fill: 100%;" oninput="window.wyrmRemote.previewBrightness(this.value)"
+            onchange="window.wyrmRemote.setBrightness(this.value)" aria-label="Tablet screen brightness">
+          <div class="brightness-scale-row">
+            <span class="brightness-scale-label">Dim</span>
+            <span class="brightness-scale-label">Bright</span>
+          </div>
+        </div>
+        <div class="card-description-text">
+          Adjust the tablet's own panel brightness from this remote. Changes apply instantly on the device.
+        </div>
+      </article>
+
     </main>
 
     <!-- Floating Liquid Glass Mobile Tab Bar (Apple iOS Ergonomics: bottom thumb zone) -->
     <nav class="mobile-tab-bar glass-panel" aria-label="Bottom Navigation">
-      <button class="mobile-tab-item active" data-tab="all" onclick="window.wyrmRemote.setCardFilter('all')" aria-label="Layout">
-        <svg class="mobile-tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <button class="mobile-tab-item active" data-tab="all" onclick="window.wyrmRemote.setCardFilter('all')"
+        aria-label="Layout">
+        <svg class="mobile-tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+          stroke-linecap="round" stroke-linejoin="round">
           <rect x="3" y="3" width="7" height="7" rx="1.5"></rect>
           <rect x="14" y="3" width="7" height="7" rx="1.5"></rect>
           <rect x="14" y="14" width="7" height="7" rx="1.5"></rect>
@@ -628,21 +720,27 @@
         </svg>
         <span class="mobile-tab-label">Layout</span>
       </button>
-      <button class="mobile-tab-item" data-tab="clock" onclick="window.wyrmRemote.setCardFilter('clock')" aria-label="Clock">
-        <svg class="mobile-tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <button class="mobile-tab-item" data-tab="clock" onclick="window.wyrmRemote.setCardFilter('clock')"
+        aria-label="Clock">
+        <svg class="mobile-tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+          stroke-linecap="round" stroke-linejoin="round">
           <circle cx="12" cy="12" r="10"></circle>
           <polyline points="12 6 12 12 16 14"></polyline>
         </svg>
         <span class="mobile-tab-label">Clock</span>
       </button>
-      <button class="mobile-tab-item" data-tab="habits" onclick="window.wyrmRemote.setCardFilter('habits')" aria-label="Habits">
-        <svg class="mobile-tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <button class="mobile-tab-item" data-tab="habits" onclick="window.wyrmRemote.setCardFilter('habits')"
+        aria-label="Habits">
+        <svg class="mobile-tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+          stroke-linecap="round" stroke-linejoin="round">
           <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
         </svg>
         <span class="mobile-tab-label">Habits</span>
       </button>
-      <button class="mobile-tab-item" data-tab="calendar" onclick="window.wyrmRemote.setCardFilter('calendar')" aria-label="Calendar">
-        <svg class="mobile-tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <button class="mobile-tab-item" data-tab="calendar" onclick="window.wyrmRemote.setCardFilter('calendar')"
+        aria-label="Calendar">
+        <svg class="mobile-tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+          stroke-linecap="round" stroke-linejoin="round">
           <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
           <line x1="16" y1="2" x2="16" y2="6"></line>
           <line x1="8" y1="2" x2="8" y2="6"></line>
@@ -650,8 +748,10 @@
         </svg>
         <span class="mobile-tab-label">Calendar</span>
       </button>
-      <button class="mobile-tab-item" data-tab="tasks" onclick="window.wyrmRemote.setCardFilter('tasks')" aria-label="Tasks">
-        <svg class="mobile-tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <button class="mobile-tab-item" data-tab="tasks" onclick="window.wyrmRemote.setCardFilter('tasks')"
+        aria-label="Tasks">
+        <svg class="mobile-tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+          stroke-linecap="round" stroke-linejoin="round">
           <polyline points="9 11 12 14 22 4"></polyline>
           <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path>
         </svg>

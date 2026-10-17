@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:path_provider/path_provider.dart';
 import 'package:wyrm_desk/calendar/calendar_model.dart';
+import 'package:wyrm_desk/display/display_state.dart';
 import 'package:wyrm_desk/habits/habit_model.dart';
 import 'package:wyrm_desk/home/card_layout_state.dart';
 import 'package:wyrm_desk/settings/settings_state.dart';
@@ -138,6 +139,23 @@ class AppDatabase {
     await writeDatabase(db);
   }
 
+  /// Hydrates the tablet display configuration (panel brightness) from the database.
+  static Future<DisplayState> loadDisplay() async {
+    final db = await readDatabase();
+    final displayMap = db['display'];
+    if (displayMap is Map<String, dynamic>) {
+      return DisplayState.fromJson(displayMap);
+    }
+    return const DisplayState();
+  }
+
+  /// Persists the tablet display configuration to the database.
+  static Future<void> saveDisplay(DisplayState config) async {
+    final db = await readDatabase();
+    db['display'] = config.toJson();
+    await writeDatabase(db);
+  }
+
   /// Seeds default structure and imports existing settings/layout files if present.
   static Future<Map<String, dynamic>> _initializeAndMigrateDatabase() async {
     Map<String, dynamic>? migratedLayout;
@@ -165,6 +183,7 @@ class AppDatabase {
       'tasks': <dynamic>[],
       'habits': <dynamic>[],
       'calendar': <dynamic>[],
+      'display': const DisplayState().toJson(),
     };
 
     await writeDatabase(initialDocument);

@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:wyrm_desk/calendar/calendar_state.dart';
+import 'package:wyrm_desk/display/display.dart';
 import 'package:wyrm_desk/habits/habits.dart';
 import 'package:wyrm_desk/home/card_layout_state.dart';
 import 'package:wyrm_desk/server/web_server.dart';
@@ -16,6 +17,7 @@ final webServerProvider = Provider<ShelfWebServer>((ref) {
     getTasksConfig: () => ref.read(tasksProvider),
     getCalendarConfig: () => ref.read(calendarProvider),
     getHabitsConfig: () => ref.read(habitsProvider),
+    getDisplayConfig: () => ref.read(displayProvider),
     onSetCardSize: (type, size) {
       ref.read(cardLayoutProvider.notifier).setCardSize(type, size);
     },
@@ -27,6 +29,9 @@ final webServerProvider = Provider<ShelfWebServer>((ref) {
     },
     onSetStartWeekOnMonday: (startMon) {
       ref.read(appSettingsProvider.notifier).setStartWeekOnMonday(startMon);
+    },
+    onSetBrightness: (brightness) {
+      ref.read(displayProvider.notifier).setBrightness(brightness);
     },
     onAddTask: (title, priority) {
       ref.read(tasksProvider.notifier).addTask(title, priority: priority);
@@ -102,6 +107,11 @@ final webServerProvider = Provider<ShelfWebServer>((ref) {
   // Synchronize habits changes originating on the tablet to connected web clients.
   ref.listen<HabitsState>(habitsProvider, (previous, next) {
     server.broadcastState(habits: next);
+  });
+
+  // Synchronize display brightness changes to connected web clients.
+  ref.listen<DisplayState>(displayProvider, (previous, next) {
+    server.broadcastState(display: next);
   });
 
   ref.onDispose(() {
