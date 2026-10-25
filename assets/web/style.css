@@ -704,6 +704,16 @@ body {
   }
 }
 
+/* Detail/settings cards read as secondary to the primary layout controllers. */
+.layout-card.detail-card {
+  background: var(--bg-card-subtle);
+  box-shadow: none;
+}
+
+.layout-card.detail-card:hover {
+  background: var(--bg-surface-hover);
+}
+
 .card-description-text {
   font-size: 13px;
   color: var(--text-secondary);
@@ -1111,6 +1121,9 @@ body {
   display: flex;
   flex-direction: column;
   gap: 8px;
+  max-height: 320px;
+  overflow-y: auto;
+  padding-right: 2px;
 }
 
 .habit-item-row {
@@ -1706,5 +1719,389 @@ select:focus-visible,
 
   .layout-card {
     border-width: 1.5px;
+  }
+}
+
+/* --------------------------------------------------------------------------
+   16. Adaptive App Shell, Sidebar Rail & Bento Grid
+   -------------------------------------------------------------------------- */
+
+/* Shell: the sidebar rail and the content column fill the available width. */
+.app-shell {
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  width: 100%;
+  margin: 0 auto;
+}
+
+.app-container {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+/* The rail stays hidden until tablet/desktop widths (see media query below). */
+.side-nav {
+  display: none;
+}
+
+/* Bento grid: fully explicit, per-view card placements.
+   Every card is pinned to a named area, so a view always renders the same
+   composition and can never leave a stray empty cell behind. Columns step
+   1 -> 2 -> 3 -> 4 -> 5 with viewport width. */
+.cards-stream {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 14px;
+  align-items: stretch;
+}
+
+/* Phones (<640px) stay a simple stacked column in DOM order: no named areas. */
+
+@media (min-width: 640px) {
+  /* Named areas shared by every multi-column band below. */
+  #card-all { grid-area: all; }
+  #card-clock { grid-area: clk; }
+  #card-clock-format { grid-area: fmt; }
+  #card-habits { grid-area: hab; }
+  #card-habits-tracker { grid-area: trk; }
+  #card-calendar { grid-area: cal; }
+  #card-calendar-weekstart { grid-area: wk; }
+  #card-calendar-progress { grid-area: prg; }
+  #card-calendar-grid { grid-area: grd; }
+  #card-calendar-milestones { grid-area: mil; }
+  #card-tasks { grid-area: tsk; }
+  #card-tasks-font { grid-area: fnt; }
+  #card-tasks-checklist { grid-area: chk; }
+  #card-display-brightness { grid-area: brt; }
+}
+
+/* --- 2 columns: large phones in landscape & tablet portrait (640-1023px) --- */
+@media (min-width: 640px) and (max-width: 1023px) {
+  .cards-stream { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .cards-stream[data-view="all"] {
+    grid-template-areas:
+      "all all"
+      "clk hab"
+      "cal tsk"
+      "brt brt";
+  }
+  .cards-stream[data-view="clock"] { grid-template-areas: "clk fmt"; }
+  .cards-stream[data-view="habits"] {
+    grid-template-areas:
+      "hab hab"
+      "trk trk";
+  }
+  .cards-stream[data-view="calendar"] {
+    grid-template-areas:
+      "cal wk"
+      "prg grd"
+      "mil grd";
+  }
+  .cards-stream[data-view="tasks"] {
+    grid-template-areas:
+      "tsk fnt"
+      "chk chk";
+  }
+}
+
+/* --- 3 columns: compact desktop & tablet landscape (1024-1439px) --- */
+@media (min-width: 1024px) and (max-width: 1439px) {
+  .cards-stream { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .cards-stream[data-view="all"] {
+    grid-template-areas:
+      "all all clk"
+      "hab cal tsk"
+      "brt brt brt";
+  }
+  .cards-stream[data-view="clock"] { grid-template-areas: "clk fmt fmt"; }
+  .cards-stream[data-view="habits"] {
+    grid-template-areas:
+      "hab hab hab"
+      "trk trk trk";
+  }
+  .cards-stream[data-view="calendar"] {
+    grid-template-areas:
+      "cal wk grd"
+      "prg mil grd";
+  }
+  .cards-stream[data-view="tasks"] {
+    grid-template-areas:
+      "tsk fnt fnt"
+      "chk chk chk";
+  }
+}
+
+/* --- 4 columns: desktop (1440-1919px) --- */
+@media (min-width: 1440px) and (max-width: 1919px) {
+  .cards-stream { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .cards-stream[data-view="all"] {
+    grid-template-areas:
+      "all all clk hab"
+      "cal tsk brt brt";
+  }
+  .cards-stream[data-view="clock"] { grid-template-areas: "clk clk fmt fmt"; }
+  .cards-stream[data-view="habits"] {
+    grid-template-areas:
+      "hab hab hab hab"
+      "trk trk trk trk";
+  }
+  .cards-stream[data-view="calendar"] {
+    grid-template-areas:
+      "cal wk prg grd"
+      "mil mil mil grd";
+  }
+  .cards-stream[data-view="tasks"] { grid-template-areas: "tsk fnt chk chk"; }
+}
+
+/* --- 5 columns: wide & ultra-wide displays (>=1920px) --- */
+@media (min-width: 1920px) {
+  .cards-stream { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+  .cards-stream[data-view="all"] {
+    grid-template-areas:
+      "all all clk hab cal"
+      "tsk tsk brt brt brt";
+  }
+  .cards-stream[data-view="clock"] { grid-template-areas: "clk clk fmt fmt fmt"; }
+  .cards-stream[data-view="habits"] {
+    grid-template-areas:
+      "hab hab hab hab hab"
+      "trk trk trk trk trk";
+  }
+  .cards-stream[data-view="calendar"] {
+    grid-template-areas:
+      "cal wk prg grd grd"
+      "mil mil mil grd grd";
+  }
+  .cards-stream[data-view="tasks"] { grid-template-areas: "tsk fnt chk chk chk"; }
+}
+
+/* --------------------------------------------------------------------------
+   17. Sidebar Rail (Tablet & Desktop)
+   -------------------------------------------------------------------------- */
+@media (min-width: 768px) {
+  /* The rail carries brand, navigation and telemetry, so the top bar retires. */
+  .app-header {
+    display: none;
+  }
+
+  .app-container {
+    flex: 1 1 auto;
+    min-width: 0;
+    max-width: none;
+    padding-left: 20px;
+    padding-right: 20px;
+  }
+
+  .side-nav {
+    position: sticky;
+    top: 0;
+    align-self: flex-start;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    flex: 0 0 auto;
+    width: 72px;
+    height: 100vh;
+    height: 100dvh;
+    padding: calc(var(--safe-top) + 14px) 12px calc(var(--safe-bottom) + 14px);
+    border-radius: 0 24px 24px 0;
+    border-left: none;
+    overflow: hidden auto;
+    transition: width 0.24s var(--ease-spring);
+  }
+
+  body[data-rail="expanded"] .side-nav {
+    width: 248px;
+  }
+}
+
+.side-nav-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-height: 40px;
+  padding: 0 2px 10px;
+}
+
+.side-nav-brand {
+  overflow: hidden;
+  transition: var(--transition-fast);
+}
+
+.side-nav-toggle {
+  flex: 0 0 auto;
+  width: 32px;
+  height: 32px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9px;
+  background: transparent;
+  border: 1px solid transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: var(--transition-fast);
+}
+
+.side-nav-toggle:hover {
+  color: var(--text-primary);
+  background: var(--bg-surface-hover);
+}
+
+.side-nav-toggle:active {
+  transform: scale(0.94);
+}
+
+.side-nav-toggle svg {
+  width: 16px;
+  height: 16px;
+  transition: transform 0.24s var(--ease-spring);
+}
+
+.side-nav-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.side-nav-foot {
+  margin-top: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-top: 10px;
+  border-top: var(--border-subtle);
+}
+
+.side-nav-btn {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  min-height: 44px;
+  padding: 0 10px;
+  border-radius: 12px;
+  background: transparent;
+  border: 1px solid transparent;
+  color: var(--text-secondary);
+  font-family: var(--font-sans);
+  font-size: 13px;
+  font-weight: 600;
+  text-align: left;
+  white-space: nowrap;
+  overflow: hidden;
+  cursor: pointer;
+  transition: var(--transition-fast);
+}
+
+.side-nav-btn:hover {
+  color: var(--text-primary);
+  background: var(--bg-surface-hover);
+}
+
+.side-nav-btn:active {
+  transform: scale(0.98);
+}
+
+.side-nav-icon {
+  flex: 0 0 20px;
+  width: 20px;
+  height: 20px;
+}
+
+.side-nav-theme .theme-icon {
+  flex: 0 0 20px;
+  width: 20px;
+  height: 20px;
+}
+
+.side-nav-item.active {
+  color: var(--accent-amber);
+  background: var(--accent-amber-subtle);
+  border-color: var(--border-amber);
+}
+
+.side-nav-status {
+  justify-content: center;
+}
+
+/* Collapsed rail: icon-only, centred, chevron flipped toward "expand". */
+body[data-rail="collapsed"] .side-nav-brand,
+body[data-rail="collapsed"] .side-nav-label {
+  display: none;
+}
+
+body[data-rail="collapsed"] .side-nav-status .network-label {
+  display: none;
+}
+
+body[data-rail="collapsed"] .side-nav-head {
+  justify-content: center;
+}
+
+body[data-rail="collapsed"] .side-nav-btn {
+  justify-content: center;
+  padding: 0;
+}
+
+body[data-rail="collapsed"] .side-nav-toggle svg {
+  transform: rotate(180deg);
+}
+
+/* --------------------------------------------------------------------------
+   18. Bento Card Refinements & Scrolling
+   -------------------------------------------------------------------------- */
+
+/* Roomier rhythm once the deck is a true multi-column bento. */
+@media (min-width: 768px) {
+  .cards-stream {
+    gap: 16px;
+  }
+}
+
+/* Long lists scroll inside their card so the grid stays tidy. */
+.tasks-checklist,
+.habits-checklist,
+.milestones-checklist,
+.side-nav {
+  scrollbar-width: thin;
+  scrollbar-color: var(--bg-surface-active) transparent;
+}
+
+.tasks-checklist::-webkit-scrollbar,
+.habits-checklist::-webkit-scrollbar,
+.milestones-checklist::-webkit-scrollbar,
+.side-nav::-webkit-scrollbar {
+  width: 6px;
+}
+
+.tasks-checklist::-webkit-scrollbar-thumb,
+.habits-checklist::-webkit-scrollbar-thumb,
+.milestones-checklist::-webkit-scrollbar-thumb,
+.side-nav::-webkit-scrollbar-thumb {
+  background: var(--bg-surface-active);
+  border-radius: 999px;
+}
+
+.tasks-checklist::-webkit-scrollbar-thumb:hover,
+.habits-checklist::-webkit-scrollbar-thumb:hover,
+.milestones-checklist::-webkit-scrollbar-thumb:hover,
+.side-nav::-webkit-scrollbar-thumb:hover {
+  background: var(--text-muted);
+}
+
+.tasks-checklist::-webkit-scrollbar-track,
+.habits-checklist::-webkit-scrollbar-track,
+.milestones-checklist::-webkit-scrollbar-track,
+.side-nav::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* High-contrast mode keeps detail cards legible with a firm border. */
+@media (prefers-contrast: more) {
+  .layout-card.detail-card {
+    background: var(--bg-surface);
   }
 }

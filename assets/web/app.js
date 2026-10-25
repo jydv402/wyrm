@@ -409,9 +409,11 @@ class WyrmUiRenderer {
     this._setupCardClickListeners();
     this._initMilestoneDateInput();
     this._applyTheme(this.store.getState().theme || 'auto');
+    this.initSideNav();
   }
 
   _cacheDomElements() {
+    this.cardsStream = document.getElementById('mainContent');
     this.networkBadge = document.getElementById('networkBadge');
     this.networkLabel = document.getElementById('networkLabel');
     this.themeToggleBtn = document.getElementById('themeToggleBtn');
@@ -481,6 +483,8 @@ class WyrmUiRenderer {
     };
 
     this.mobileTabItems = document.querySelectorAll('.mobile-tab-item');
+    this.sideNavItems = document.querySelectorAll('.side-nav-item');
+    this.sideNavToggle = document.getElementById('sideNavToggle');
   }
 
   _setupCardClickListeners() {
@@ -664,6 +668,47 @@ class WyrmUiRenderer {
     } else {
       document.documentElement.removeAttribute('data-theme');
     }
+  }
+
+  /**
+   * Initialises the adaptive sidebar rail. The rail auto-expands on wide
+   * canvases and auto-collapses when space is tight; the dedicated toggle lets
+   * the user pin a preference, which then persists across sessions.
+   */
+  initSideNav() {
+    this._railUserPref = localStorage.getItem('wyrm_rail');
+    this._applySideNav();
+    window.addEventListener('resize', () => this._applySideNav(), { passive: true });
+  }
+
+  _applySideNav() {
+    const width = window.innerWidth;
+    // Auto-expand only when there is comfortable room; always collapse when the
+    // viewport is tight, regardless of any pinned preference.
+    const autoExpanded = width >= 1180;
+    const tooNarrow = width < 1024;
+    const expanded = tooNarrow
+      ? false
+      : this._railUserPref
+        ? this._railUserPref === 'expanded'
+        : autoExpanded;
+
+    document.body.dataset.rail = expanded ? 'expanded' : 'collapsed';
+
+    if (this.sideNavToggle) {
+      const label = expanded ? 'Collapse navigation' : 'Expand navigation';
+      this.sideNavToggle.setAttribute('aria-expanded', expanded ? 'true' : 'false');
+      this.sideNavToggle.setAttribute('title', label);
+      this.sideNavToggle.setAttribute('aria-label', label);
+    }
+  }
+
+  toggleSideNav() {
+    WyrmHaptics.selection();
+    const expanded = document.body.dataset.rail === 'expanded';
+    this._railUserPref = expanded ? 'collapsed' : 'expanded';
+    localStorage.setItem('wyrm_rail', this._railUserPref);
+    this._applySideNav();
   }
 
   prevWebMonth() {
@@ -875,15 +920,15 @@ class WyrmUiRenderer {
   }
 
   _renderNetworkStatus(state) {
-    if (!this.networkBadge || !this.networkLabel) return;
+    const connected = !!state.isConnected;
 
-    if (state.isConnected) {
-      this.networkBadge.classList.add('connected');
-      this.networkLabel.textContent = 'LIVE';
-    } else {
-      this.networkBadge.classList.remove('connected');
-      this.networkLabel.textContent = 'CONNECTING...';
-    }
+    // Multiple telemetry badges may exist (top bar + sidebar rail).
+    document.querySelectorAll('.network-badge').forEach((badge) => {
+      badge.classList.toggle('connected', connected);
+    });
+    document.querySelectorAll('.network-label').forEach((label) => {
+      label.textContent = connected ? 'LIVE' : 'CONNECTING...';
+    });
   }
 
   _renderPageSwitcher(state) {
@@ -891,6 +936,11 @@ class WyrmUiRenderer {
 
     // Synchronize page data attribute on body for scoped CSS rules
     document.body.setAttribute('data-active-page', activeFilter);
+
+    // Publish the active view on the card stream so the bento template applies
+    if (this.cardsStream) {
+      this.cardsStream.setAttribute('data-view', activeFilter);
+    }
 
     // Update desktop capsule tabs
     Object.keys(this.tabButtons).forEach((key) => {
@@ -909,6 +959,16 @@ class WyrmUiRenderer {
         const isActive = tabKey === activeFilter;
         tabItem.classList.toggle('active', isActive);
         tabItem.setAttribute('aria-selected', isActive ? 'true' : 'false');
+      });
+    }
+
+    // Update sidebar rail items
+    if (this.sideNavItems) {
+      this.sideNavItems.forEach((item) => {
+        const tabKey = item.getAttribute('data-tab');
+        const isActive = tabKey === activeFilter;
+        item.classList.toggle('active', isActive);
+        item.setAttribute('aria-selected', isActive ? 'true' : 'false');
       });
     }
 
@@ -1393,6 +1453,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     previewBrightness: (value) => renderer.previewBrightness(value),
     setBrightness: (value) => renderer.setBrightness(value),
     setCardFilter: (filter) => renderer.setCardFilter(filter),
+    toggleSideNav: () => renderer.toggleSideNav(),
     cycleTheme: () => renderer.cycleTheme(),
     addTask: () => renderer.addTask(),
     toggleTask: (id) => renderer.toggleTask(id),
