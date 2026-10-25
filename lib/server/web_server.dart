@@ -89,9 +89,6 @@ class ShelfWebServer {
     router.get('/index.html', _handleIndexHtml);
     router.get('/style.css', _handleStyleCss);
     router.get('/app.js', _handleAppJs);
-    router.get('/components.js', _handleStaticAsset);
-    router.get('/vue.global.prod.js', _handleVueJs);
-    router.get('/manifest.webmanifest', _handleStaticAsset);
     router.get('/favicon.ico', _handleFavicon);
     router.get('/icon_flat.png', _handleFavicon);
     router.get('/assets/icons/icon_flat.png', _handleFavicon);
@@ -416,33 +413,6 @@ class ShelfWebServer {
       );
     } catch (_) {
       return Response.notFound('// JS asset not found');
-    }
-  }
-
-  /// Serves the bundled Vue 3 production runtime.
-  Future<Response> _handleVueJs(Request request) async {
-    try {
-      final js = await rootBundle.loadString('assets/web/vue.global.prod.js');
-      return Response.ok(
-        js,
-        headers: {
-          'Content-Type': 'application/javascript; charset=utf-8',
-          'Cache-Control': 'public, max-age=31536000, immutable',
-        },
-      );
-    } catch (_) {
-      final file = File('assets/web/vue.global.prod.js');
-      if (await file.exists()) {
-        final js = await file.readAsString();
-        return Response.ok(
-          js,
-          headers: {
-            'Content-Type': 'application/javascript; charset=utf-8',
-            'Cache-Control': 'public, max-age=31536000, immutable',
-          },
-        );
-      }
-      return Response.notFound('// Vue JS asset not found');
     }
   }
 

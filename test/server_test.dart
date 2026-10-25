@@ -718,7 +718,7 @@ void main() {
       expect(components, contains('MonthGrid'));
 
       final css = await cssFile.readAsString();
-      expect(css, contains('--lamp-rgb'));
+      expect(css, contains('--t-accent'));
       expect(css, contains('.app'));
       expect(css, contains('.nav-rail'));
 

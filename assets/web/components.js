@@ -182,13 +182,18 @@
     },
     emits: ['update:modelValue'],
     setup(props) {
-      const fill = computed(() => ((props.modelValue - props.min) / (props.max - props.min)) * 100);
+      const fill = computed(() => {
+        const val = typeof props.modelValue === 'number' ? props.modelValue : 1.0;
+        return Math.max(0, Math.min(100, ((val - props.min) / (props.max - props.min)) * 100));
+      });
       return { fill };
     },
     template: `
       <input class="slider" type="range" :min="min" :max="max" :step="step" :value="modelValue"
              :style="{ '--fill': fill + '%' }"
-             @input="$emit('update:modelValue', parseFloat($event.target.value))">`,
+             aria-label="Display brightness"
+             @input="$emit('update:modelValue', parseFloat($event.target.value))"
+             @change="$emit('update:modelValue', parseFloat($event.target.value))">`,
   };
 
   components.ProgressMeter = {
@@ -841,7 +846,11 @@
     name: 'ViewSettings',
     setup() {
       const wyrm = inject('wyrm');
-      const brightness = computed(() => wyrm.state.display.brightness || 1.0);
+      const brightness = computed(() =>
+        wyrm.state.display && wyrm.state.display.brightness != null
+          ? wyrm.state.display.brightness
+          : 1.0
+      );
       return {
         wyrm,
         brightness,

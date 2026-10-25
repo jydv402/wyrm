@@ -232,7 +232,7 @@ function createWyrmActions(store, ws) {
       const clean = (title || '').trim();
       if (!clean) return false;
       haptic();
-      post('/api/tasks', { title: clean, priority }, 'add_task');
+      post('/api/tasks', { title: clean, priority }, 'create_task');
       return true;
     },
     toggleTask(id) {
@@ -335,14 +335,16 @@ function createWyrmActions(store, ws) {
 
     /* Display & settings */
     setBrightness(value) {
-      state.display.brightness = value;
-      brightPending = value;
+      const numVal = typeof value === 'number' ? value : parseFloat(value);
+      if (isNaN(numVal)) return;
+      state.display.brightness = numVal;
+      brightPending = numVal;
       if (brightTimer) return;
       const wait = Math.max(0, 80 - (Date.now() - brightLastSent));
       brightTimer = setTimeout(() => {
         brightTimer = null;
         brightLastSent = Date.now();
-        post('/api/display', { brightness: brightPending }, 'set_brightness');
+        post('/api/display', { brightness: brightPending }, 'set_display');
       }, wait);
     },
     set24HourFormat(is24) {
