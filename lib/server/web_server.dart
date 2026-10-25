@@ -89,9 +89,14 @@ class ShelfWebServer {
     router.get('/index.html', _handleIndexHtml);
     router.get('/style.css', _handleStyleCss);
     router.get('/app.js', _handleAppJs);
+    router.get('/components.js', _handleStaticAsset);
+    router.get('/vue.global.prod.js', _handleVueJs);
+    router.get('/manifest.webmanifest', _handleStaticAsset);
     router.get('/favicon.ico', _handleFavicon);
     router.get('/icon_flat.png', _handleFavicon);
     router.get('/assets/icons/icon_flat.png', _handleFavicon);
+    router.get('/assets/web/<file|.*>', _handleStaticAsset);
+    router.get('/<file|.*\\.(?:js|css|png|svg|json|webmanifest|ico|woff2?)>', _handleStaticAsset);
 
     // REST API endpoints.
     router.get('/api/status', _handleGetStatus);
@@ -411,6 +416,90 @@ class ShelfWebServer {
       );
     } catch (_) {
       return Response.notFound('// JS asset not found');
+    }
+  }
+
+  /// Serves the bundled Vue 3 production runtime.
+  Future<Response> _handleVueJs(Request request) async {
+    try {
+      final js = await rootBundle.loadString('assets/web/vue.global.prod.js');
+      return Response.ok(
+        js,
+        headers: {
+          'Content-Type': 'application/javascript; charset=utf-8',
+          'Cache-Control': 'public, max-age=31536000, immutable',
+        },
+      );
+    } catch (_) {
+      final file = File('assets/web/vue.global.prod.js');
+      if (await file.exists()) {
+        final js = await file.readAsString();
+        return Response.ok(
+          js,
+          headers: {
+            'Content-Type': 'application/javascript; charset=utf-8',
+            'Cache-Control': 'public, max-age=31536000, immutable',
+          },
+        );
+      }
+      return Response.notFound('// Vue JS asset not found');
+    }
+  }
+
+  /// Determines MIME type based on file path extension.
+  static String _getMimeType(String filePath) {
+    if (filePath.endsWith('.js')) {
+      return 'application/javascript; charset=utf-8';
+    } else if (filePath.endsWith('.css')) {
+      return 'text/css; charset=utf-8';
+    } else if (filePath.endsWith('.html')) {
+      return 'text/html; charset=utf-8';
+    } else if (filePath.endsWith('.webmanifest')) {
+      return 'application/manifest+json; charset=utf-8';
+    } else if (filePath.endsWith('.png')) {
+      return 'image/png';
+    } else if (filePath.endsWith('.svg')) {
+      return 'image/svg+xml';
+    } else if (filePath.endsWith('.json')) {
+      return 'application/json';
+    }
+    return 'application/octet-stream';
+  }
+
+  /// Serves static assets located inside assets/web/ dynamically.
+  Future<Response> _handleStaticAsset(Request request) async {
+    String filePath = request.url.path;
+    if (filePath.startsWith('assets/web/')) {
+      filePath = filePath.substring('assets/web/'.length);
+    }
+    final assetPath = 'assets/web/$filePath';
+    try {
+      final data = await rootBundle.load(assetPath);
+      final bytes = data.buffer.asUint8List(data.offsetInBytes, data.lengthInBytes);
+      final mime = _getMimeType(filePath);
+
+      return Response.ok(
+        bytes,
+        headers: {
+          'Content-Type': mime,
+          'Cache-Control': 'public, max-age=86400',
+        },
+      );
+    } catch (_) {
+      final file = File(assetPath);
+      if (await file.exists()) {
+        final bytes = await file.readAsBytes();
+        final mime = _getMimeType(filePath);
+
+        return Response.ok(
+          bytes,
+          headers: {
+            'Content-Type': mime,
+            'Cache-Control': 'public, max-age=86400',
+          },
+        );
+      }
+      return Response.notFound('Asset not found: $filePath');
     }
   }
 

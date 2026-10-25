@@ -211,6 +211,33 @@ void main() {
       expect(response.body, contains('Wyrm JS'));
     });
 
+    test('GET /components.js serves components JavaScript logic', () async {
+      final response = await http
+          .get(Uri.parse('http://127.0.0.1:${server.port}/components.js'));
+      expect(response.statusCode, 200);
+      expect(
+          response.headers['content-type'], contains('application/javascript'));
+      expect(response.body, contains('WyrmUI'));
+    });
+
+    test('GET /manifest.webmanifest serves web application manifest', () async {
+      final response = await http
+          .get(Uri.parse('http://127.0.0.1:${server.port}/manifest.webmanifest'));
+      expect(response.statusCode, 200);
+      expect(
+          response.headers['content-type'], contains('manifest+json'));
+      expect(response.body, contains('Wyrm Desk Remote'));
+    });
+
+    test('GET /vue.global.prod.js serves bundled Vue 3 runtime', () async {
+      final response = await http
+          .get(Uri.parse('http://127.0.0.1:${server.port}/vue.global.prod.js'));
+      expect(response.statusCode, 200);
+      expect(
+          response.headers['content-type'], contains('application/javascript'));
+      expect(response.body, contains('var Vue=function'));
+    });
+
     test('GET /favicon.ico serves favicon with image/png MIME', () async {
       final response = await http
           .get(Uri.parse('http://127.0.0.1:${server.port}/favicon.ico'));
@@ -662,65 +689,54 @@ void main() {
       final htmlFile = File('assets/web/index.html');
       final cssFile = File('assets/web/style.css');
       final jsFile = File('assets/web/app.js');
+      final componentsFile = File('assets/web/components.js');
+      final manifestFile = File('assets/web/manifest.webmanifest');
 
       expect(await htmlFile.exists(), isTrue);
       expect(await cssFile.exists(), isTrue);
       expect(await jsFile.exists(), isTrue);
+      expect(await componentsFile.exists(), isTrue);
+      expect(await manifestFile.exists(), isTrue);
 
       final html = await htmlFile.readAsString();
-      expect(html, contains('header-brand'));
-      expect(html, contains('card-all'));
-      expect(html, contains('card-clock'));
-      expect(html, contains('card-habits'));
-      expect(html, contains('card-habits-tracker'));
-      expect(html, contains('habitGlyphPicker'));
-      expect(html, contains('glyph-chip'));
-      expect(html, contains('card-calendar'));
-      expect(html, contains('card-tasks'));
-      expect(html, contains('card-calendar-weekstart'));
-      expect(html, contains('card-calendar-progress'));
-      expect(html, contains('card-calendar-grid'));
-      expect(html, contains('card-calendar-milestones'));
-      expect(html, contains('milestone-date-container'));
-      expect(html, contains('placeholder="dd/mm/yyyy"'));
-      expect(html, contains('milestone-picker-trigger'));
-      expect(html, contains('card-display-brightness'));
-      expect(html, contains('brightnessSlider'));
+      expect(html, contains('id="app"'));
+      expect(html, contains('components.js'));
+      expect(html, contains('app.js'));
+      expect(html, contains('vue.global.prod.js'));
+
+      final components = await componentsFile.readAsString();
+      expect(components, contains('WyrmUI'));
+      expect(components, contains('WyrmApp'));
+      expect(components, contains('ViewDeck'));
+      expect(components, contains('ViewTasks'));
+      expect(components, contains('ViewHabits'));
+      expect(components, contains('ViewCalendar'));
+      expect(components, contains('ViewSettings'));
+      expect(components, contains('MilestonesPanel'));
+      expect(components, contains('TaskComposer'));
+      expect(components, contains('HabitComposer'));
+      expect(components, contains('MonthGrid'));
 
       final css = await cssFile.readAsString();
-      expect(css, contains('--accent-amber: #ff9500'));
-      expect(css, contains('.task-manager-section'));
-      expect(css, contains('.habit-manager-section'));
-      expect(css, contains('.glyph-picker-container'));
-      expect(css, contains('.glyph-chip'));
-      expect(css, contains('.progress-section'));
-      expect(css, contains('.web-calendar-container'));
-      expect(css, contains('.milestone-manager-section'));
-      expect(css, contains('.milestone-date-container'));
-      expect(css, contains('.milestone-picker-trigger'));
-      expect(css, contains('.card-tapped'));
-      expect(css, contains('.brightness-slider'));
+      expect(css, contains('--lamp-rgb'));
+      expect(css, contains('.app'));
+      expect(css, contains('.nav-rail'));
 
       final js = await jsFile.readAsString();
       expect(js, contains('WyrmStateStore'));
       expect(js, contains('WyrmWebSocketManager'));
-      expect(js, contains('WyrmUiRenderer'));
+      expect(js, contains('createWyrmActions'));
+      expect(js, contains('window.wyrmRemote'));
       expect(js, contains('setAllCardsSize'));
-      expect(js, contains('toggleStartWeekOnMonday'));
       expect(js, contains('createMilestone'));
       expect(js, contains('deleteMilestone'));
       expect(js, contains('togglePinMilestone'));
-      expect(js, contains('pickMilestoneDate'));
-      expect(js, contains('onMilestonePickerChange'));
       expect(js, contains('createHabit'));
-      expect(js, contains('selectHabitGlyph'));
-      expect(js, contains('selectedHabitGlyph'));
       expect(js, contains('toggleHabit'));
       expect(js, contains('stepHabit'));
       expect(js, contains('deleteHabit'));
       expect(js, contains('scrollToCard'));
       expect(js, contains('setBrightness'));
-      expect(js, contains(r'${day}/${month}/${year}'));
     });
 
     test('POST /api/calendar/milestones accepts dd/mm/yyyy date format', () async {

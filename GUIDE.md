@@ -462,10 +462,14 @@ The top bar and settings dialog render `http://<ip>:8080`.
 | `GET /` and `GET /index.html` | `text/html; charset=utf-8` | `assets/web/index.html` |
 | `GET /style.css` | `text/css; charset=utf-8` | `assets/web/style.css` |
 | `GET /app.js` | `application/javascript; charset=utf-8` | `assets/web/app.js` |
+| `GET /components.js` | `application/javascript; charset=utf-8` | `assets/web/components.js` |
+| `GET /vue.global.prod.js` | `application/javascript; charset=utf-8` | `assets/web/vue.global.prod.js` (Vue 3 offline bundle) |
+| `GET /manifest.webmanifest` | `application/manifest+json; charset=utf-8` | `assets/web/manifest.webmanifest` |
 | `GET /favicon.ico`, `/icon_flat.png`, `/assets/icons/icon_flat.png` | `image/png` | `assets/icons/icon_flat.png` |
+| `GET /assets/web/*` | Content-type inferred dynamically | Any file placed in `assets/web/` |
 
 CSS/JS/HTML are served with `Cache-Control: no-cache` (bump `?v=` in `index.html` when you
-change them). `index.html` references `style.css?v=2` and `app.js?v=2`.
+change them). `vue.global.prod.js` is served with long-term immutable caching.
 
 ### 11.2 REST endpoints (all under `http://<ip>:8080/api`)
 
@@ -541,97 +545,56 @@ The server never sends acknowledgements; clients learn the result from the next 
 
 ## 12. Web remote client — `assets/web/`
 
-Three hand-written files, no build step, no framework. Served verbatim by the Shelf server.
+Offline-bundled **Zero-Build Vue 3** application styled as a **Teenage Engineering / Dieter Rams** physical hardware remote control pad. Served verbatim by the tablet's Shelf server with zero external build step and zero cloud dependencies.
 
 ### 12.1 `index.html` — structure
 
-- **Meta:** viewport locked (no zoom), dual `theme-color` (dark `#0a0b0e` / light `#f2f2f7`),
-  iOS standalone PWA meta, apple-touch-icon, favicon → `/assets/icons/icon_flat.png`.
-- **Header (`glass-panel`)**: `header-brand` (inline SVG WYRM wordmark), a center
-  `page-switcher` with tabs **Layout / Clock / Habits / Calendar / Tasks**, a
-  `themeToggleBtn` (cycle auto→dark→light) and a `networkBadge` (`pulse-dot` + label
-  showing `CONNECTING...` or `LIVE`).
-- **Card stream (`#mainContent`)**: `article.layout-card` elements, each with
-  `data-card="clock|habits|calendar|tasks|all"`. Response-card sizing uses
-  `.segmented-bar > .segment-btn`; detail/view-only cards use the `detail-card` and
-  `card-detail-section` classes (hidden unless their tab is active).
-- **Feature sections present:** All-cards controller, Clock + 24-hour toggle,
-  Habits + habit tracker (`habitGlyphPicker`, `habitsList`), Calendar + week-start toggle +
-  progress bars + interactive web calendar grid (`webCalDays`) + milestones manager
-  (`milestoneDateInput`, `milestoneNativePicker`, `milestonesList`), Tasks + font-size
-  stepper + tasks checklist (`taskInput`, `taskPriority`, `tasksList`).
-- **Mobile bottom tab bar (`mobile-tab-bar glass-panel`)**: the same 5 tabs for thumb reach.
-- **Interaction model:** every control calls `window.wyrmRemote.<method>()` via inline
-  `onclick`/`onkeydown`; no framework binding.
+- **Offline Vendor Runtime:** `<script src="/vue.global.prod.js"></script>` loads the bundled Vue 3 production runtime locally without CDN or internet connection.
+- **Top Hardware Header (`header-brand`)**: Industrial wordmark (`WYRM REMOTE // V3`), live network telemetry capsule (`networkBadge` with `pulse-dot` and `networkLabel` showing `LIVE • XXms` or `CONNECTING...`), and Master Nightstand tactile rocker switch (`master-nightstand-btn`).
+- **Physical Channel Bank Selector (`.channel-bank`)**: Hardware selector buttons with illuminated status LEDs:
+  - `[1: DECK]` — Master card sizes (Clock, Habits, Calendar, Tasks) and global batch actions.
+  - `[2: TASKS]` — Tasks matrix, checklist, priority toggles, and card font-size stepper.
+  - `[3: HABITS]` — Habit tracker with 7-day dot-matrix history, binary toggles, numeric steppers, and glyph picker.
+  - `[4: CAL]` — Temporal inspector, progress bars (year/quarter), month grid, and milestones manager.
+  - `[5: SYS]` — System hardware controls, display brightness fader, 24-hour clock toggle, and haptic feedback.
+- **Declarative Vue Reactivity:** Uses standard Vue directives (`v-if`, `v-for`, `@click`, `v-model`, `:class`).
 
 ### 12.2 `style.css` — design system
 
-Documented token block at the top (Apple HIG + Dieter Rams "Liquid Glass"). Key tokens:
+Teenage Engineering / Braun retro-minimalist hardware design tokens:
 
+```css
+--bg-canvas:#0c0d10  --bg-chassis:#14161c  --bg-surface:#1b1e27  --bg-recessed:#08090b
+--keycap-bg:#222632  --keycap-border:#32384a  --keycap-hover:#292e3c  --keycap-active:#171922
+--border-subtle:#242936  --border-highlight:#384054
+--accent-orange:#ff5500  --accent-amber:#ff9500  --accent-emerald:#00d084  --accent-cyan:#00b4d8
+--text-primary:#f5f3e9  --text-secondary:#8d93a0  --text-muted:#525766
+--font-mono:'JetBrains Mono','SF Mono',monospace  --font-sans:'Inter',sans-serif
 ```
---bg-canvas:#0a0b0e  --bg-surface:#14171f  --bg-surface-elevated:#1a1e28
---glass-bg:rgba(18,20,27,.78)  --glass-blur:blur(28px) saturate(190%)
---border-subtle / --border-hover / --border-focus / --border-amber
---accent-amber:#ff9500  --accent-green:#34c759  --accent-red:#ff3b30
---text-primary / --text-secondary / --text-muted / --text-inverse
---font-sans (SF Pro/Inter)  --font-mono (SF Mono)  --ease-spring
---safe-top/bottom/left/right: env(safe-area-inset-*)
-```
 
-- **Three appearance states:** default dark, `@media (prefers-color-scheme: light)`, and
-  explicit `[data-theme="light"|"dark"]` overrides (set by `app.js`).
-- Sticky frosted headers use `backdrop-filter`.
-- Layout is a single-column card stream on phones; the header nav appears on wider screens
-  (the bottom tab bar is the mobile affordance).
-- `body[data-active-page]` scopes per-tab visibility in addition to the JS display toggling.
+- **Tactile Keycaps:** Physical button press depth (`transform: translateY(2px)` with mechanical shadow depression).
+- **Recessed LCD Displays:** Inner shadow wells (`box-shadow: inset 0 2px 4px rgba(0,0,0,0.6)`) for status and telemetry.
+- **Zero Heavy Shaders:** No expensive Gaussian blurs or heavy GPU filters, ensuring buttery 60 FPS performance on low-end client phones.
 
-### 12.3 `app.js` — engine (~1366 lines)
+### 12.3 `app.js` — Vue 3 reactive engine
 
-Four pieces:
+Built around Vue 3 `createApp`:
 
-1. **`WyrmHaptics`** — wraps `navigator.vibrate` (`tap/selection/success/impact`) with try/catch.
-2. **`WyrmStateStore`** — the client mirror of state:
+1. **`WyrmHaptics`** — wraps `navigator.vibrate` for authentic mechanical click feedback on taps and switch flips.
+2. **`WyrmStateStore`** — wraps central reactive `state`:
    ```js
-   { layout:{clock,habits,calendar,tasks}, settings:{is24HourFormat,cardFontSize,startWeekOnMonday},
-     tasks:[], habits:[], calendar:{...}, activeFilter:'all', isConnected:false, theme:'auto'|'dark'|'light' }
+   { currentChannel: 'deck', isConnected: false, latencyMs: null, hapticsEnabled: true,
+     layout: { clock, habits, calendar, tasks },
+     settings: { is24HourFormat, cardFontSize, startWeekOnMonday },
+     display: { brightness },
+     tasks: [], habits: [], calendar: { selectedDate, viewMonth, milestones } }
    ```
-   `subscribe(fn)` (observer), `setState(partial)` (shallow merge with nested merge for
-   `layout`/`settings`/`calendar`), `getState()`. Theme persists in
-   `localStorage('wyrm_theme')`.
-3. **`WyrmWebSocketManager`** — connects to `${ws|wss}://location.host/ws`, auto-reconnects
-   every 2 s, marks `isConnected`. Each mutation method **prefers WS** and **falls back to
-   the matching REST POST** if the socket isn't open. Incoming `snapshot`/`state_update`
-   messages are merged into the store.
-4. **`WyrmUiRenderer`** — caches DOM refs, owns all handlers, and surgically re-renders:
-   `render()` calls `_renderNetworkStatus`, `_renderPageSwitcher`, `_renderCards`,
-   `_render24HourToggle`, `_renderFontSize`, `_renderTasks`, `_renderCalendar`
-   (→ web calendar + milestones), `_renderHabits`.
-
-**Bootstrap (`DOMContentLoaded`):** build store → ws manager → renderer → expose
-`window.wyrmRemote` (the full command surface, listed below) → `store.subscribe(render)` →
-**initial REST sync** via `fetch('/api/status')` → `wsManager.connect()`.
-
-**Theme:** `cycleTheme()` steps `dark ⟷ light` (never returns to `auto` once clicked) and
-sets `document.documentElement[data-theme]`.
-
-**`window.wyrmRemote` surface:**
-`setCardSize`, `setAllCardsSize`, `toggleTimeFormat`, `incrementFontSize`, `decrementFontSize`,
-`setCardFilter`, `cycleTheme`, `addTask`, `toggleTask`, `deleteTask`, `toggleStartWeekOnMonday`,
-`prevWebMonth`, `nextWebMonth`, `todayWebMonth`, `promptTravelDate`, `travelWebDate`,
-`selectWebDate`, `addMilestone`, `createMilestone`, `deleteMilestone`, `togglePinMilestone`,
-`pickMilestoneDate`, `onMilestonePickerChange`, `onHabitTypeChange`, `selectHabitGlyph`,
-`addHabit`, `toggleHabit`, `stepHabit`, `deleteHabit`, `scrollToCard`.
-
-**Notable behaviors:**
-- Tab filter (`activeFilter`) hides `detail-card`s in "Layout" view and shows only matching
-  `data-card` sections otherwise.
-- Tapping a card body (outside interactive controls) sends `scroll_to_card`.
-- Resizing sends `set_layout`; global layout buttons send one `set_layout` per card and mark
-  the "All Cards" badge `MIXED` when sizes differ.
-- Habitat glyphs and habit icons are inline SVG maps (`_resolveGlyphEmoji`).
-- Milestone date field enforces `dd/mm/yyyy` with auto-slash insertion and a native picker bridge.
-- Habit "today" is computed from `new Date().toISOString().split('T')[0]` (**UTC**), while the
-  tablet uses local `dateKey`. Watch this on non-UTC hosts.
+3. **`WyrmWebSocketManager`** — auto-reconnecting socket to `${ws|wss}://location.host/ws`, heartbeat ping measuring round-trip latency (`Xms`), and transparent REST fallback for mutations.
+4. **Vue 3 View Model (`vm`)** — computed helpers (`calendarCells`, `habitWeekDays`, `calendarMetrics`, `isNightstandActive`) and declarative mutation actions.
+5. **Compatibility Bridge (`window.wyrmRemote`)** — exposes public methods for testing and headless scripting:
+   `setCardSize`, `setAllCardsSize`, `scrollToCard`, `toggleStartWeekOnMonday`, `createMilestone`,
+   `deleteMilestone`, `togglePinMilestone`, `pickMilestoneDate`, `onMilestonePickerChange`,
+   `createHabit`, `selectHabitGlyph`, `toggleHabit`, `stepHabit`, `deleteHabit`, `setBrightness`.
 
 ---
 

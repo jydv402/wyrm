@@ -1,0 +1,14 @@
+{
+  "name": "Wyrm Desk Remote",
+  "short_name": "Wyrm Remote",
+  "description": "Control your Wyrm Desk tablet from your phone or computer.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#020305",
+  "theme_color": "#020305",
+  "icons": [
+    { "src": "/assets/icons/icon_flat.png", "sizes": "any", "type": "image/png", "purpose": "any" }
+  ]
+}
