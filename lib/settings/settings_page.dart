@@ -513,7 +513,7 @@ class SettingsPage extends ConsumerWidget {
                 const SizedBox(width: 12),
                 Expanded(
                   child: Text(
-                    'Small steps, big progress.',
+                    'Live Preview: ${settings.cardFontSize.toInt()} pt',
                     style: TextStyle(
                       color: AppColors.textPrimary,
                       fontSize: settings.cardFontSize,
@@ -671,24 +671,6 @@ class SettingsPage extends ConsumerWidget {
               ],
             ),
           ),
-
-          const SizedBox(height: 14),
-
-          // Connection Facts
-          _buildFactRow(
-            label: 'Port & Protocol',
-            value: 'HTTP and WebSocket on port 8080',
-          ),
-          const SizedBox(height: 8),
-          _buildFactRow(
-            label: 'Remote Client',
-            value: 'Vue 3 Single Page Application',
-          ),
-          const SizedBox(height: 8),
-          _buildFactRow(
-            label: 'Real-Time Sync',
-            value: 'Automatic bi-directional state broadcast',
-          ),
         ],
       ),
     );
@@ -830,44 +812,6 @@ class SettingsPage extends ConsumerWidget {
             ],
           );
         },
-      ),
-    );
-  }
-
-  Widget _buildFactRow({required String label, required String value}) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-      decoration: BoxDecoration(
-        color: AppColors.well,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppColors.line, width: 1.0),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          Text(
-            label,
-            style: const TextStyle(
-              color: AppColors.textSecondary,
-              fontSize: 12.5,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Text(
-              value,
-              textAlign: TextAlign.end,
-              style: const TextStyle(
-                color: AppColors.textPrimary,
-                fontSize: 12.5,
-                fontWeight: FontWeight.w600,
-              ),
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-            ),
-          ),
-        ],
       ),
     );
   }
