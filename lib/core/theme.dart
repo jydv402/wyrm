@@ -20,10 +20,10 @@ class DuskTone {
   });
 
   LinearGradient get gradient => LinearGradient(
-        begin: Alignment.topCenter,
-        end: Alignment.bottomCenter,
-        colors: [top, bottom],
-      );
+    begin: Alignment.topCenter,
+    end: Alignment.bottomCenter,
+    colors: [top, bottom],
+  );
 
   Color get border => accent.withValues(alpha: 0.22);
 }
@@ -91,6 +91,22 @@ class AppColors {
   static const Color rustInk = Color(0xFFFFFFFF);
   static const Color rustGlow = Color(0x26E5693E);
 
+  // Glacier Tone Colors (Settings Theme - Tranquil Nordic Cyan)
+  static const Color glacierTop = Color(0xFF1B2733);
+  static const Color glacierBottom = Color(0xFF0C131A);
+  static const Color glacierAccent = Color(0xFF8CC8DC);
+  static const Color glacierFill = Color(0xFF68ABC2);
+  static const Color glacierInk = Color(0xFF091C24);
+  static const Color glacierGlow = Color(0x268CC8DC);
+
+  // Backward-compatibility aliases
+  static const Color lilacTop = glacierTop;
+  static const Color lilacBottom = glacierBottom;
+  static const Color lilacAccent = glacierAccent;
+  static const Color lilacFill = glacierFill;
+  static const Color lilacInk = glacierInk;
+  static const Color lilacGlow = glacierGlow;
+
   // Destination Tones
   static const DuskTone slate = DuskTone(
     top: slateTop,
@@ -127,6 +143,17 @@ class AppColors {
     ink: rustInk,
     glow: rustGlow,
   );
+
+  static const DuskTone glacier = DuskTone(
+    top: glacierTop,
+    bottom: glacierBottom,
+    accent: glacierAccent,
+    fill: glacierFill,
+    ink: glacierInk,
+    glow: glacierGlow,
+  );
+
+  static const DuskTone lilac = glacier;
 
   // Legacy mappings for backwards-compatibility
   static const Color cardSage = Color(0xFF8ED5B7);

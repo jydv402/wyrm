@@ -13,6 +13,7 @@ class DuskGlassPanel extends StatelessWidget {
   final double? height;
   final Border? customBorder;
   final Gradient? customGradient;
+  final Widget? background;
 
   const DuskGlassPanel({
     super.key,
@@ -25,6 +26,7 @@ class DuskGlassPanel extends StatelessWidget {
     this.height,
     this.customBorder,
     this.customGradient,
+    this.background,
   });
 
   @override
@@ -65,6 +67,15 @@ class DuskGlassPanel extends StatelessWidget {
       child: Stack(
         fit: StackFit.passthrough,
         children: [
+          // Background layer (e.g. dynamic time-of-day photo, persistent wallpaper)
+          if (background != null)
+            Positioned.fill(
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(borderRadius),
+                child: background!,
+              ),
+            ),
+
           // Soft light sheen falling across the top edge of the glass surface
           Positioned(
             top: 1,

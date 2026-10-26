@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:wyrm_desk/clock/clock_provider.dart';
 import 'package:wyrm_desk/core/theme.dart';
 import 'package:wyrm_desk/home/card_layout_state.dart';
 import 'package:wyrm_desk/widgets/analog_clock.dart';
@@ -10,7 +12,7 @@ import 'package:wyrm_desk/widgets/dusk_card_header.dart';
 import 'package:wyrm_desk/widgets/dusk_glass_panel.dart';
 
 /// Primary clock card container supporting Small, Medium, Fullscreen, and Nightstand sizing tiers.
-class ClockContainer extends StatelessWidget {
+class ClockContainer extends ConsumerWidget {
   final Widget? child;
   final ValueChanged<CardSize>? onSelectSize;
   final CardSize currentSize;
@@ -23,8 +25,9 @@ class ClockContainer extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final isNightstand = currentSize == CardSize.nightstand;
+    final backgroundAsset = ref.watch(clockBackgroundAssetProvider);
 
     final Widget content;
     if (child != null) {
@@ -68,6 +71,7 @@ class ClockContainer extends StatelessWidget {
       tone: AppColors.slate,
       borderRadius: 32.0,
       padding: const EdgeInsets.fromLTRB(20.0, 16.0, 16.0, 16.0),
+      background: _ClockImageBackdrop(assetPath: backgroundAsset),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -80,6 +84,49 @@ class ClockContainer extends StatelessWidget {
             showNightstandOption: true,
           ),
           Expanded(child: content),
+        ],
+      ),
+    );
+  }
+}
+
+/// Dynamic time-of-day photographic backdrop with smooth cross-fade animation
+/// and dark gradient sheen for high-contrast typography readability.
+class _ClockImageBackdrop extends StatelessWidget {
+  final String assetPath;
+
+  const _ClockImageBackdrop({required this.assetPath});
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedSwitcher(
+      duration: const Duration(milliseconds: 1000),
+      switchInCurve: Curves.easeInOut,
+      switchOutCurve: Curves.easeInOut,
+      child: Stack(
+        key: ValueKey(assetPath),
+        fit: StackFit.expand,
+        children: [
+          Image.asset(
+            assetPath,
+            fit: BoxFit.cover,
+            alignment: Alignment.center,
+          ),
+          // High-contrast gradient overlay ensuring clock digits and labels remain legible
+          DecoratedBox(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [
+                  Colors.black.withValues(alpha: 0.45),
+                  Colors.black.withValues(alpha: 0.20),
+                  Colors.black.withValues(alpha: 0.65),
+                ],
+                stops: const [0.0, 0.45, 1.0],
+              ),
+            ),
+          ),
         ],
       ),
     );

@@ -5,22 +5,6 @@
  */
 
 /* --------------------------------------------------------------------------
-   HAPTICS
-   -------------------------------------------------------------------------- */
-const WyrmHaptics = {
-  tap() {
-    try {
-      if (typeof navigator !== 'undefined' && navigator.vibrate) navigator.vibrate(10);
-    } catch (_) {}
-  },
-  impact() {
-    try {
-      if (typeof navigator !== 'undefined' && navigator.vibrate) navigator.vibrate([15, 30, 10]);
-    } catch (_) {}
-  },
-};
-
-/* --------------------------------------------------------------------------
    REACTIVE STATE STORE
    -------------------------------------------------------------------------- */
 class WyrmStateStore {
@@ -29,7 +13,6 @@ class WyrmStateStore {
       currentChannel: 'deck',
       isConnected: false,
       latencyMs: null,
-      hapticsEnabled: true,
 
       layout: { clock: 'small', habits: 'small', calendar: 'small', tasks: 'small' },
       settings: { is24HourFormat: false, cardFontSize: 13.0, startWeekOnMonday: false },
@@ -186,9 +169,6 @@ function createWyrmActions(store, ws) {
   // disagree with the week strip (toISOString is UTC and flips at the wrong hour).
   const dateKey = (d = new Date()) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 
-  const haptic = () => {
-    if (state.hapticsEnabled) WyrmHaptics.tap();
-  };
   const post = (endpoint, data, type) => ws.sendOrPost(endpoint, data, type);
 
   // Brightness drags fire constantly; send at most one update per 80ms, always ending on the final value.
@@ -200,20 +180,16 @@ function createWyrmActions(store, ws) {
     state,
     draft,
     dateKey,
-    haptic,
 
     /* Navigation & layout */
     setChannel(name) {
-      haptic();
       state.currentChannel = name;
     },
     setCardSize(card, size) {
-      haptic();
       state.layout[card] = size;
       post('/api/layout', { card, size }, 'set_layout');
     },
     setAllCardsSize(size) {
-      haptic();
       CARDS.forEach((card) => {
         state.layout[card] = size;
         post('/api/layout', { card, size }, 'set_layout');
@@ -223,7 +199,6 @@ function createWyrmActions(store, ws) {
       actions.setCardSize('clock', state.layout.clock === 'nightstand' ? 'fullscreen' : 'nightstand');
     },
     scrollToCard(card) {
-      haptic();
       post('/api/scroll', { card }, 'scroll_to_card');
     },
 
@@ -231,23 +206,19 @@ function createWyrmActions(store, ws) {
     addTask(title, priority) {
       const clean = (title || '').trim();
       if (!clean) return false;
-      haptic();
       post('/api/tasks', { title: clean, priority }, 'create_task');
       return true;
     },
     toggleTask(id) {
-      haptic();
       const t = state.tasks.find((item) => item.id === id);
       if (t) t.isCompleted = !t.isCompleted;
       post('/api/tasks/toggle', { id }, 'toggle_task');
     },
     deleteTask(id) {
-      haptic();
       state.tasks = state.tasks.filter((item) => item.id !== id);
       post('/api/tasks/delete', { id }, 'delete_task');
     },
     setFontSize(delta) {
-      haptic();
       const current = state.settings.cardFontSize || 13.0;
       const next = Math.min(22.0, Math.max(9.0, current + delta));
       state.settings.cardFontSize = next;
@@ -258,7 +229,6 @@ function createWyrmActions(store, ws) {
     createHabit({ title, type = 'binary', target = 1, glyph }) {
       const clean = (title || '').trim();
       if (!clean) return false;
-      haptic();
       const icon = glyph || draft.glyph;
       post(
         '/api/habits',
@@ -280,15 +250,12 @@ function createWyrmActions(store, ws) {
       return (habit.completions[key] || 0) >= (habit.targetValue || 1);
     },
     toggleHabit(id) {
-      haptic();
       post('/api/habits/toggle', { id, date: dateKey() }, 'toggle_habit');
     },
     stepHabit(id, delta) {
-      haptic();
       post('/api/habits/step', { id, delta, date: dateKey() }, 'step_habit');
     },
     deleteHabit(id) {
-      haptic();
       state.habits = state.habits.filter((h) => h.id !== id);
       post('/api/habits/delete', { id }, 'delete_habit');
     },
@@ -298,18 +265,15 @@ function createWyrmActions(store, ws) {
       const cleanTitle = (title || '').trim();
       const cleanDate = (date || '').trim();
       if (!cleanTitle || !cleanDate) return false;
-      haptic();
       post('/api/calendar/milestones', { title: cleanTitle, target_date: cleanDate, is_pinned: !!pinned }, 'create_milestone');
       return true;
     },
     togglePinMilestone(id) {
-      haptic();
       const ms = state.calendar.milestones.find((m) => m.id === id);
       if (ms) ms.isPinned = !ms.isPinned;
       post('/api/calendar/milestones/pin', { id }, 'toggle_pin_milestone');
     },
     deleteMilestone(id) {
-      haptic();
       state.calendar.milestones = state.calendar.milestones.filter((m) => m.id !== id);
       post('/api/calendar/milestones/delete', { id }, 'delete_milestone');
     },
@@ -348,18 +312,12 @@ function createWyrmActions(store, ws) {
       }, wait);
     },
     set24HourFormat(is24) {
-      haptic();
       state.settings.is24HourFormat = is24;
       post('/api/settings', { is24HourFormat: is24 }, 'set_settings');
     },
     setStartWeekOnMonday(startMon) {
-      haptic();
       state.settings.startWeekOnMonday = startMon;
       post('/api/settings', { startWeekOnMonday: startMon }, 'set_settings');
-    },
-    setHaptics(enabled) {
-      state.hapticsEnabled = enabled;
-      if (enabled) WyrmHaptics.tap();
     },
   };
 

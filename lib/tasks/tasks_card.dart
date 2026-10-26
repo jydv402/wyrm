@@ -11,7 +11,6 @@ import 'package:wyrm_desk/widgets/dusk_card_header.dart';
 import 'package:wyrm_desk/widgets/dusk_glass_button.dart';
 import 'package:wyrm_desk/widgets/dusk_glass_panel.dart';
 import 'package:wyrm_desk/widgets/dusk_glass_pill.dart';
-import 'package:wyrm_desk/widgets/dusk_mountain_backdrop.dart';
 
 /// Dusk Glass Tasks card with rust/ember gradient, empty state matching the screenshot,
 /// and interactive task checklist with priority pills.
@@ -60,6 +59,7 @@ class TasksCard extends ConsumerWidget {
     return DuskGlassPanel(
       tone: AppColors.rust,
       borderRadius: 32.0,
+      background: const _TasksImageBackdrop(),
       padding: EdgeInsets.symmetric(
         horizontal: isSmall ? 16.0 : 20.0,
         vertical: 14.0,
@@ -90,7 +90,11 @@ class TasksCard extends ConsumerWidget {
   }
 
   /// Compact Small layout: screenshot-matching empty state or glass task checklist.
-  Widget _buildSmallLayout(BuildContext context, WidgetRef ref, List<TaskItem> tasks) {
+  Widget _buildSmallLayout(
+    BuildContext context,
+    WidgetRef ref,
+    List<TaskItem> tasks,
+  ) {
     if (tasks.isEmpty) {
       return _buildEmptyState(context, ref);
     }
@@ -109,7 +113,9 @@ class TasksCard extends ConsumerWidget {
 
   /// Single Dusk Glass task item row with circular check toggle and priority pill.
   Widget _buildTaskRow(WidgetRef ref, TaskItem task) {
-    final cardFontSize = ref.watch(appSettingsProvider.select((s) => s.cardFontSize));
+    final cardFontSize = ref.watch(
+      appSettingsProvider.select((s) => s.cardFontSize),
+    );
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
@@ -151,7 +157,11 @@ class TasksCard extends ConsumerWidget {
                     : null,
               ),
               child: task.isCompleted
-                  ? const Icon(Icons.check_rounded, size: 16, color: Colors.white)
+                  ? const Icon(
+                      Icons.check_rounded,
+                      size: 16,
+                      color: Colors.white,
+                    )
                   : null,
             ),
           ),
@@ -171,7 +181,9 @@ class TasksCard extends ConsumerWidget {
                       ? AppColors.textMuted
                       : AppColors.textPrimary,
                   fontSize: cardFontSize,
-                  fontWeight: task.isCompleted ? FontWeight.w400 : FontWeight.w600,
+                  fontWeight: task.isCompleted
+                      ? FontWeight.w400
+                      : FontWeight.w600,
                   decoration: task.isCompleted
                       ? TextDecoration.lineThrough
                       : TextDecoration.none,
@@ -186,16 +198,22 @@ class TasksCard extends ConsumerWidget {
           const SizedBox(width: 8),
 
           // Priority Pill
-          if (task.priority.isNotEmpty && task.priority.toLowerCase() != 'normal')
+          if (task.priority.isNotEmpty &&
+              task.priority.toLowerCase() != 'normal')
             DuskGlassPill.priority(task.priority),
 
           const SizedBox(width: 4),
 
           // Delete Action Button
           DuskGlassButton.icon(
-            onPressed: () => ref.read(tasksProvider.notifier).deleteTask(task.id),
+            onPressed: () =>
+                ref.read(tasksProvider.notifier).deleteTask(task.id),
             size: 28,
-            icon: const Icon(Icons.close_rounded, size: 14, color: AppColors.textSecondary),
+            icon: const Icon(
+              Icons.close_rounded,
+              size: 14,
+              color: AppColors.textSecondary,
+            ),
           ),
         ],
       ),
@@ -203,76 +221,61 @@ class TasksCard extends ConsumerWidget {
   }
 
   /// Empty state matching the screenshot: checkmark circle, "All caught up",
-  /// "Tap + to add a task or priority.", and mountain silhouettes (no quote).
+  /// and "Tap + to add a task or priority." (no quote).
   Widget _buildEmptyState(BuildContext context, WidgetRef ref) {
-    return Stack(
-      children: [
-        // Mountain silhouettes at bottom (no quote)
-        Positioned(
-          left: -20,
-          right: -20,
-          bottom: -20,
-          child: IgnorePointer(
-            child: DuskMountainBackdrop.tasks(height: 170),
+    return Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          // Checkmark Circle Glyph
+          Container(
+            width: 68,
+            height: 68,
+            decoration: BoxDecoration(
+              color: AppColors.rust.accent.withValues(alpha: 0.12),
+              shape: BoxShape.circle,
+              border: Border.all(
+                color: AppColors.rust.accent.withValues(alpha: 0.38),
+                width: 1.5,
+              ),
+            ),
+            child: const Icon(
+              Icons.check_rounded,
+              size: 34,
+              color: AppColors.rustAccent,
+            ),
           ),
-        ),
 
-        // Centered empty state text and check icon
-        Center(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              // Checkmark Circle Glyph
-              Container(
-                width: 68,
-                height: 68,
-                decoration: BoxDecoration(
-                  color: AppColors.rust.accent.withValues(alpha: 0.12),
-                  shape: BoxShape.circle,
-                  border: Border.all(
-                    color: AppColors.rust.accent.withValues(alpha: 0.38),
-                    width: 1.5,
-                  ),
-                ),
-                child: const Icon(
-                  Icons.check_rounded,
-                  size: 34,
-                  color: AppColors.rustAccent,
-                ),
-              ),
+          const SizedBox(height: 16),
 
-              const SizedBox(height: 16),
-
-              // Title
-              const Text(
-                'All caught up',
-                style: TextStyle(
-                  color: AppColors.textPrimary,
-                  fontSize: 18,
-                  fontWeight: FontWeight.w600,
-                  letterSpacing: -0.2,
-                ),
-              ),
-
-              const SizedBox(height: 4),
-
-              // Subtitle
-              const Text(
-                'Tap + to add a task or priority.',
-                style: TextStyle(
-                  color: AppColors.textSecondary,
-                  fontSize: 13.5,
-                  fontWeight: FontWeight.w400,
-                ),
-                textAlign: TextAlign.center,
-              ),
-
-              const SizedBox(height: 80),
-            ],
+          // Title
+          const Text(
+            'All caught up',
+            style: TextStyle(
+              color: AppColors.textPrimary,
+              fontSize: 18,
+              fontWeight: FontWeight.w600,
+              letterSpacing: -0.2,
+            ),
           ),
-        ),
-      ],
+
+          const SizedBox(height: 4),
+
+          // Subtitle
+          const Text(
+            'Tap + to add a task or priority.',
+            style: TextStyle(
+              color: AppColors.textSecondary,
+              fontSize: 13.5,
+              fontWeight: FontWeight.w400,
+            ),
+            textAlign: TextAlign.center,
+          ),
+
+          const SizedBox(height: 80),
+        ],
+      ),
     );
   }
 
@@ -309,7 +312,10 @@ class TasksCard extends ConsumerWidget {
                     ? const Center(
                         child: Text(
                           'No active priorities.\nTap + to add a task.',
-                          style: TextStyle(color: AppColors.textSecondary, fontSize: 13),
+                          style: TextStyle(
+                            color: AppColors.textSecondary,
+                            fontSize: 13,
+                          ),
                           textAlign: TextAlign.center,
                         ),
                       )
@@ -317,7 +323,8 @@ class TasksCard extends ConsumerWidget {
                         physics: const BouncingScrollPhysics(),
                         itemCount: activeTasks.length,
                         separatorBuilder: (_, _) => const SizedBox(height: 8),
-                        itemBuilder: (context, index) => _buildTaskRow(ref, activeTasks[index]),
+                        itemBuilder: (context, index) =>
+                            _buildTaskRow(ref, activeTasks[index]),
                       ),
               ),
             ],
@@ -351,14 +358,18 @@ class TasksCard extends ConsumerWidget {
                     ? const Center(
                         child: Text(
                           'No completed tasks yet.',
-                          style: TextStyle(color: AppColors.textMuted, fontSize: 13),
+                          style: TextStyle(
+                            color: AppColors.textMuted,
+                            fontSize: 13,
+                          ),
                         ),
                       )
                     : ListView.separated(
                         physics: const BouncingScrollPhysics(),
                         itemCount: completedTasks.length,
                         separatorBuilder: (_, _) => const SizedBox(height: 8),
-                        itemBuilder: (context, index) => _buildTaskRow(ref, completedTasks[index]),
+                        itemBuilder: (context, index) =>
+                            _buildTaskRow(ref, completedTasks[index]),
                       ),
               ),
             ],
@@ -440,10 +451,9 @@ class TasksCard extends ConsumerWidget {
               final text = titleController.text.trim();
               if (text.isEmpty) return;
 
-              ref.read(tasksProvider.notifier).addTask(
-                    text,
-                    priority: selectedPriority,
-                  );
+              ref
+                  .read(tasksProvider.notifier)
+                  .addTask(text, priority: selectedPriority);
               Navigator.of(context).pop();
             }
 
@@ -456,7 +466,9 @@ class TasksCard extends ConsumerWidget {
               ),
               decoration: BoxDecoration(
                 color: AppColors.surface,
-                borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
+                borderRadius: const BorderRadius.vertical(
+                  top: Radius.circular(32),
+                ),
                 border: Border.all(color: AppColors.lineStrong, width: 1.0),
               ),
               child: SingleChildScrollView(
@@ -478,7 +490,11 @@ class TasksCard extends ConsumerWidget {
                         DuskGlassButton.icon(
                           onPressed: () => Navigator.of(context).pop(),
                           size: 32,
-                          icon: const Icon(Icons.close_rounded, size: 16, color: AppColors.textSecondary),
+                          icon: const Icon(
+                            Icons.close_rounded,
+                            size: 16,
+                            color: AppColors.textSecondary,
+                          ),
                         ),
                       ],
                     ),
@@ -486,7 +502,8 @@ class TasksCard extends ConsumerWidget {
                     TaskFormContent(
                       titleController: titleController,
                       selectedPriority: selectedPriority,
-                      onPriorityChanged: (p) => setSheetState(() => selectedPriority = p),
+                      onPriorityChanged: (p) =>
+                          setSheetState(() => selectedPriority = p),
                       onSubmitted: (_) => saveTask(),
                     ),
                     const SizedBox(height: 20),
@@ -512,6 +529,39 @@ class TasksCard extends ConsumerWidget {
           },
         );
       },
+    );
+  }
+}
+
+/// Full-bleed image backdrop for the Tasks card using [assets/card_bg/task/task_bg.png].
+class _TasksImageBackdrop extends StatelessWidget {
+  const _TasksImageBackdrop();
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        Image.asset(
+          'assets/card_bg/task/task_bg.png',
+          fit: BoxFit.cover,
+          alignment: Alignment.center,
+        ),
+        DecoratedBox(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [
+                Colors.black.withValues(alpha: 0.45),
+                Colors.black.withValues(alpha: 0.25),
+                Colors.black.withValues(alpha: 0.70),
+              ],
+              stops: const [0.0, 0.45, 1.0],
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

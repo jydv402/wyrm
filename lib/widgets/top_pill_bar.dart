@@ -68,11 +68,7 @@ class TopPillBar extends StatelessWidget {
           const SizedBox(width: 18),
 
           // Vertical divider line
-          Container(
-            width: 1.0,
-            height: 18.0,
-            color: AppColors.lineStrong,
-          ),
+          Container(width: 1.0, height: 18.0, color: AppColors.lineStrong),
 
           const SizedBox(width: 18),
 
@@ -98,7 +94,7 @@ class TopPillBar extends StatelessWidget {
 
           // Settings Gear Action Button
           DuskGlassButton.icon(
-            onPressed: onOpenSettings ?? () => SettingsDialog.show(context),
+            onPressed: onOpenSettings ?? () => SettingsPage.open(context),
             size: 40.0,
             icon: const Icon(
               Icons.settings_rounded,

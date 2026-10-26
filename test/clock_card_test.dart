@@ -315,4 +315,101 @@ void main() {
       expect(restored.clock, CardSize.nightstand);
     },
   );
+
+  test('clockBackgroundAssetProvider maps hour ranges accurately', () async {
+    final hoursToExpected = {
+      4: 'assets/card_bg/clock/clock_1.png',
+      6: 'assets/card_bg/clock/clock_1.png',
+      7: 'assets/card_bg/clock/clock_2.png',
+      10: 'assets/card_bg/clock/clock_2.png',
+      11: 'assets/card_bg/clock/clock_3.png',
+      15: 'assets/card_bg/clock/clock_3.png',
+      16: 'assets/card_bg/clock/clock_4.png',
+      18: 'assets/card_bg/clock/clock_4.png',
+      19: 'assets/card_bg/clock/clock_5.png',
+      23: 'assets/card_bg/clock/clock_5.png',
+      0: 'assets/card_bg/clock/clock_5.png',
+      3: 'assets/card_bg/clock/clock_5.png',
+    };
+
+    for (final entry in hoursToExpected.entries) {
+      final testTime = DateTime(2026, 9, 17, entry.key, 30);
+      final container = ProviderContainer(
+        overrides: [
+          clockTimeProvider.overrideWith((ref) => Stream.value(testTime)),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      final subscription = container.listen(clockTimeProvider, (_, _) {});
+      await container.read(clockTimeProvider.future);
+
+      expect(
+        container.read(clockBackgroundAssetProvider),
+        entry.value,
+        reason: 'Failed for hour ${entry.key}',
+      );
+      subscription.close();
+    }
+  });
+
+  testWidgets(
+    'ClockContainer renders image background in standard mode and omits it in nightstand mode',
+    (WidgetTester tester) async {
+      final morningTime = DateTime(2026, 9, 17, 8, 30);
+
+      // Standard small mode renders Image.asset with clock_2.png
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            clockTimeProvider.overrideWith((ref) => Stream.value(morningTime)),
+          ],
+          child: const MaterialApp(
+            home: Scaffold(
+              body: SizedBox(
+                width: 300,
+                height: 400,
+                child: ClockContainer(
+                  currentSize: CardSize.small,
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
+
+      final imageFinder = find.byWidgetPredicate((widget) {
+        if (widget is Image && widget.image is AssetImage) {
+          final asset = widget.image as AssetImage;
+          return asset.assetName == 'assets/card_bg/clock/clock_2.png';
+        }
+        return false;
+      });
+      expect(imageFinder, findsOneWidget);
+
+      // Nightstand mode omits image backdrop
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            clockTimeProvider.overrideWith((ref) => Stream.value(morningTime)),
+          ],
+          child: const MaterialApp(
+            home: Scaffold(
+              body: SizedBox(
+                width: 300,
+                height: 400,
+                child: ClockContainer(
+                  currentSize: CardSize.nightstand,
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
+
+      expect(find.byType(Image), findsNothing);
+    },
+  );
 }

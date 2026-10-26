@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:wyrm_desk/clock/clock.dart';
 import 'package:wyrm_desk/home/home.dart';
 import 'package:wyrm_desk/tasks/tasks.dart';
 
@@ -76,6 +77,9 @@ void main() {
 
     final container = ProviderContainer(
       overrides: [
+        clockTimeProvider.overrideWith(
+          (ref) => Stream.value(DateTime(2026, 9, 17, 10, 0)),
+        ),
         cardLayoutProvider.overrideWith(
           () => _CustomCardLayoutNotifier(
             const CardLayoutConfig(

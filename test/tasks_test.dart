@@ -185,6 +185,47 @@ void main() {
 
       expect(notifier.state.isEmpty, true);
     });
+
+    testWidgets(
+        'renders task_bg.png backdrop in both empty and populated states',
+        (WidgetTester tester) async {
+      final notifier = _TestTasksNotifier([]);
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            tasksProvider.overrideWith(() => notifier),
+          ],
+          child: const MaterialApp(
+            home: Scaffold(
+              body: SizedBox(
+                width: 320,
+                height: 400,
+                child: TasksCard(currentSize: CardSize.small),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
+
+      // Verify task_bg.png in empty state
+      final taskBgFinder = find.byWidgetPredicate((widget) {
+        if (widget is Image && widget.image is AssetImage) {
+          final asset = widget.image as AssetImage;
+          return asset.assetName == 'assets/card_bg/task/task_bg.png';
+        }
+        return false;
+      });
+      expect(taskBgFinder, findsOneWidget);
+
+      // Add a task and re-pump
+      notifier.addTask('New Task');
+      await tester.pump();
+
+      // Verify task_bg.png remains in populated state
+      expect(taskBgFinder, findsOneWidget);
+    });
   });
 }
 

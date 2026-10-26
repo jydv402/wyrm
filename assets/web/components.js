@@ -137,17 +137,6 @@
       </div>`,
   };
 
-  components.ToggleSwitch = {
-    name: 'ToggleSwitch',
-    props: { modelValue: Boolean },
-    emits: ['update:modelValue'],
-    template: `
-      <button type="button" role="switch" class="switch" :class="{ 'is-on': modelValue }"
-              :aria-checked="modelValue" @click="$emit('update:modelValue', !modelValue)">
-        <span class="switch__knob"></span>
-      </button>`,
-  };
-
   components.UiInput = {
     name: 'UiInput',
     props: {
@@ -804,16 +793,13 @@
       });
 
       function shift(delta) {
-        wyrm.haptic();
         viewDate.value = new Date(viewDate.value.getFullYear(), viewDate.value.getMonth() + delta, 1);
       }
       function today() {
-        wyrm.haptic();
         viewDate.value = new Date();
         selectedKey.value = wyrm.dateKey();
       }
       function select(date) {
-        wyrm.haptic();
         selectedKey.value = wyrm.dateKey(date);
         viewDate.value = new Date(date);
       }
@@ -888,23 +874,6 @@
                                aria-label="First day of the week" @update:model-value="(v) => wyrm.setStartWeekOnMonday(v)" />
           </setting-row>
         </ui-panel>
-
-        <ui-panel>
-          <panel-head title="This device" icon="sliders" />
-          <setting-row label="Haptic feedback" hint="A short buzz when you tap">
-            <toggle-switch :model-value="wyrm.state.hapticsEnabled" aria-label="Haptic feedback"
-                           @update:model-value="(v) => wyrm.setHaptics(v)" />
-          </setting-row>
-        </ui-panel>
-
-        <ui-panel>
-          <panel-head title="Connection" icon="wifi" />
-          <dl class="facts">
-            <div><dt>Status</dt><dd>{{ wyrm.state.isConnected ? 'Connected' : 'Reconnecting' }}</dd></div>
-            <div><dt>Server</dt><dd>HTTP and WebSocket on port 8080</dd></div>
-            <div><dt>Remote</dt><dd>Vue 3, runs without a build step</dd></div>
-          </dl>
-        </ui-panel>
       </div>`,
   };
 
@@ -932,7 +901,7 @@
           case 'cal':
             return new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
           case 'sys':
-            return 'Display, clock and connection';
+            return 'Display and clock';
           default:
             return 'How each card appears on the tablet';
         }

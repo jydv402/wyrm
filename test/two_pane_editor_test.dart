@@ -6,7 +6,8 @@ import 'package:wyrm_desk/habits/habit_form_content.dart';
 import 'package:wyrm_desk/habits/habits.dart';
 import 'package:wyrm_desk/home/card_layout_state.dart';
 import 'package:wyrm_desk/in_app_keyboard/in_app_keyboard.dart';
-import 'package:wyrm_desk/settings/settings_dialog.dart';
+import 'package:wyrm_desk/server/network_info.dart';
+import 'package:wyrm_desk/settings/settings_page.dart';
 import 'package:wyrm_desk/settings/settings_state.dart';
 import 'package:wyrm_desk/tasks/task_form_content.dart';
 import 'package:wyrm_desk/tasks/tasks.dart';
@@ -49,7 +50,7 @@ void main() {
       expect(toggled.useClassicModalSheet, false);
     });
 
-    testWidgets('SettingsDialog renders Classic Modal Sheet toggle switch',
+    testWidgets('SettingsPage renders Classic Modal Sheet toggle switch',
         (WidgetTester tester) async {
       tester.view.physicalSize = const Size(1280, 800);
       tester.view.devicePixelRatio = 1.0;
@@ -58,6 +59,7 @@ void main() {
       await tester.pumpWidget(
         ProviderScope(
           overrides: [
+            localIpProvider.overrideWith((ref) => Future.value('127.0.0.1')),
             appSettingsProvider.overrideWith(
               () => _FakeAppSettingsNotifier(
                 const AppSettingsConfig(useClassicModalSheet: false),
@@ -66,7 +68,7 @@ void main() {
           ],
           child: const MaterialApp(
             home: Scaffold(
-              body: SettingsDialog(),
+              body: SettingsPage(),
             ),
           ),
         ),

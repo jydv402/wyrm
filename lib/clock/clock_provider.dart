@@ -99,3 +99,28 @@ final analogueAnglesProvider = Provider.autoDispose<AnalogueClockAngles>((ref) {
     secondAngle: secondAngle,
   );
 });
+
+/// Granular provider mapping the current hour to the corresponding time-of-day backdrop image.
+///
+/// Schedule:
+/// - 04:00 - 06:59: clock_1.png (Early morning fog)
+/// - 07:00 - 10:59: clock_2.png (Morning after sunrise)
+/// - 11:00 - 15:59: clock_3.png (Midday / noon)
+/// - 16:00 - 18:59: clock_4.png (Golden hour)
+/// - 19:00 - 03:59: clock_5.png (Night)
+final clockBackgroundAssetProvider = Provider.autoDispose<String>((ref) {
+  final time = ref.watch(clockTimeProvider).value ?? DateTime.now();
+  final hour = time.hour;
+
+  if (hour >= 4 && hour < 7) {
+    return 'assets/card_bg/clock/clock_1.png';
+  } else if (hour >= 7 && hour < 11) {
+    return 'assets/card_bg/clock/clock_2.png';
+  } else if (hour >= 11 && hour < 16) {
+    return 'assets/card_bg/clock/clock_3.png';
+  } else if (hour >= 16 && hour < 19) {
+    return 'assets/card_bg/clock/clock_4.png';
+  } else {
+    return 'assets/card_bg/clock/clock_5.png';
+  }
+});

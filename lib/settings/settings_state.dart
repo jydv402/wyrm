@@ -143,5 +143,5 @@ class AppSettingsNotifier extends Notifier<AppSettingsConfig> {
 /// Riverpod provider exposing application settings.
 final appSettingsProvider =
     NotifierProvider<AppSettingsNotifier, AppSettingsConfig>(
-  AppSettingsNotifier.new,
-);
+      AppSettingsNotifier.new,
+    );
