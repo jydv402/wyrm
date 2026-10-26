@@ -3,21 +3,11 @@ import 'package:wyrm_desk/core/theme.dart';
 import 'package:wyrm_desk/in_app_keyboard/in_app_keyboard_text_field.dart';
 
 const List<String> _calendarMonthNames = [
-  'January',
-  'February',
-  'March',
-  'April',
-  'May',
-  'June',
-  'July',
-  'August',
-  'September',
-  'October',
-  'November',
-  'December',
+  'January', 'February', 'March', 'April', 'May', 'June',
+  'July', 'August', 'September', 'October', 'November', 'December'
 ];
 
-/// Reusable form content for creating and editing calendar milestones.
+/// Reusable form content for creating and editing calendar milestones in Dusk Glass style.
 class MilestoneFormContent extends StatelessWidget {
   final TextEditingController titleController;
   final DateTime selectedDate;
@@ -58,14 +48,21 @@ class MilestoneFormContent extends StatelessWidget {
           style: const TextStyle(color: AppColors.textPrimary, fontSize: 14),
           decoration: InputDecoration(
             hintText: 'e.g. Project Launch, Anniversary, Vacation',
-            hintStyle: const TextStyle(color: AppColors.textSecondary),
+            hintStyle: const TextStyle(color: AppColors.textMuted),
             filled: true,
-            fillColor: Colors.white.withValues(alpha: 0.06),
-            contentPadding:
-                const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            fillColor: AppColors.well,
+            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
             border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide.none,
+              borderRadius: BorderRadius.circular(16),
+              borderSide: const BorderSide(color: AppColors.line, width: 1.0),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(16),
+              borderSide: const BorderSide(color: AppColors.line, width: 1.0),
+            ),
+            focusedBorder: const OutlineInputBorder(
+              borderRadius: BorderRadius.all(Radius.circular(16)),
+              borderSide: BorderSide(color: AppColors.goldAccent, width: 1.5),
             ),
           ),
           onChanged: (_) => onChanged?.call(),
@@ -92,9 +89,9 @@ class MilestoneFormContent extends StatelessWidget {
               builder: (context, child) {
                 return Theme(
                   data: Theme.of(context).copyWith(
-                    colorScheme: const ColorScheme.light(
-                      primary: Colors.black87,
-                      onPrimary: AppColors.cardYellow,
+                    colorScheme: const ColorScheme.dark(
+                      primary: AppColors.goldFill,
+                      onPrimary: AppColors.goldInk,
                       surface: AppColors.surface,
                       onSurface: AppColors.textPrimary,
                     ),
@@ -108,19 +105,20 @@ class MilestoneFormContent extends StatelessWidget {
               onChanged?.call();
             }
           },
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(16),
           child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
             decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.06),
-              borderRadius: BorderRadius.circular(12),
+              color: AppColors.well,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: AppColors.line, width: 1.0),
             ),
             child: Row(
               children: [
                 const Icon(
                   Icons.event_rounded,
                   size: 18,
-                  color: AppColors.accentOrange,
+                  color: AppColors.goldAccent,
                 ),
                 const SizedBox(width: 10),
                 Text(
@@ -135,7 +133,7 @@ class MilestoneFormContent extends StatelessWidget {
                 const Text(
                   'Change',
                   style: TextStyle(
-                    color: AppColors.accentOrange,
+                    color: AppColors.goldAccent,
                     fontWeight: FontWeight.w700,
                     fontSize: 12,
                   ),
@@ -147,19 +145,20 @@ class MilestoneFormContent extends StatelessWidget {
         const SizedBox(height: 18),
 
         Container(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           decoration: BoxDecoration(
-            color: Colors.white.withValues(alpha: 0.04),
-            borderRadius: BorderRadius.circular(12),
+            color: AppColors.well,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: AppColors.line, width: 1.0),
           ),
           child: Row(
             children: [
               const Icon(
                 Icons.push_pin_rounded,
                 size: 18,
-                color: AppColors.accentOrange,
+                color: AppColors.goldAccent,
               ),
-              const SizedBox(width: 10),
+              const SizedBox(width: 12),
               const Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -184,8 +183,9 @@ class MilestoneFormContent extends StatelessWidget {
               ),
               Switch.adaptive(
                 value: isPinned,
-                activeTrackColor: AppColors.accentOrange,
-                activeThumbColor: Colors.white,
+                activeThumbColor: AppColors.goldFill,
+                inactiveThumbColor: AppColors.textSecondary,
+                inactiveTrackColor: AppColors.well,
                 onChanged: (val) {
                   onPinnedChanged(val);
                   onChanged?.call();
@@ -237,8 +237,9 @@ class MilestonePreviewCard extends StatelessWidget {
       width: 290,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppColors.cardYellow,
+        color: AppColors.surface,
         borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: AppColors.lineStrong, width: 1.0),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.3),
@@ -256,13 +257,13 @@ class MilestonePreviewCard extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: Colors.black.withValues(alpha: 0.12),
+                  color: AppColors.goldAccent.withValues(alpha: 0.14),
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: Icon(
                   isPinned ? Icons.push_pin_rounded : Icons.event_rounded,
                   size: 20,
-                  color: AppColors.textOnLight,
+                  color: AppColors.goldAccent,
                 ),
               ),
               const SizedBox(width: 10),
@@ -273,7 +274,7 @@ class MilestonePreviewCard extends StatelessWidget {
                     Text(
                       displayTitle,
                       style: const TextStyle(
-                        color: AppColors.textOnLight,
+                        color: AppColors.textPrimary,
                         fontWeight: FontWeight.w800,
                         fontSize: 15,
                       ),
@@ -282,8 +283,8 @@ class MilestonePreviewCard extends StatelessWidget {
                     ),
                     Text(
                       '${_calendarMonthNames[targetDate.month - 1]} ${targetDate.day}, ${targetDate.year}',
-                      style: TextStyle(
-                        color: AppColors.textOnLight.withValues(alpha: 0.7),
+                      style: const TextStyle(
+                        color: AppColors.textSecondary,
                         fontSize: 11,
                         fontWeight: FontWeight.w600,
                       ),
@@ -297,42 +298,48 @@ class MilestonePreviewCard extends StatelessWidget {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
             decoration: BoxDecoration(
-              color: Colors.black.withValues(alpha: 0.1),
+              color: AppColors.well,
               borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: AppColors.line, width: 1.0),
             ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Row(
-                  children: [
-                    const Icon(
-                      Icons.timer_outlined,
-                      size: 16,
-                      color: AppColors.textOnLight,
-                    ),
-                    const SizedBox(width: 6),
-                    Text(
-                      daysLabel,
-                      style: const TextStyle(
-                        color: AppColors.textOnLight,
-                        fontSize: 13,
-                        fontWeight: FontWeight.w800,
+                Expanded(
+                  child: Row(
+                    children: [
+                      const Icon(
+                        Icons.timer_outlined,
+                        size: 16,
+                        color: AppColors.goldAccent,
                       ),
-                    ),
-                  ],
+                      const SizedBox(width: 6),
+                      Flexible(
+                        child: Text(
+                          daysLabel,
+                          style: const TextStyle(
+                            color: AppColors.textPrimary,
+                            fontSize: 13,
+                            fontWeight: FontWeight.w800,
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
                 if (isPinned)
                   Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
                     decoration: BoxDecoration(
-                      color: Colors.black.withValues(alpha: 0.15),
+                      color: AppColors.goldAccent.withValues(alpha: 0.15),
                       borderRadius: BorderRadius.circular(6),
+                      border: Border.all(color: AppColors.goldAccent.withValues(alpha: 0.4), width: 1.0),
                     ),
                     child: const Text(
                       'PINNED',
                       style: TextStyle(
-                        color: AppColors.textOnLight,
+                        color: AppColors.goldAccent,
                         fontSize: 9,
                         fontWeight: FontWeight.w800,
                         letterSpacing: 0.8,

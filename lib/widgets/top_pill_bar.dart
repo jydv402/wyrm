@@ -1,22 +1,16 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:wyrm_desk/core/theme.dart';
 import 'package:wyrm_desk/server/network_info.dart';
+import 'package:wyrm_desk/server/network_modal.dart';
 import 'package:wyrm_desk/settings/settings.dart';
+import 'package:wyrm_desk/widgets/dusk_glass_button.dart';
 
-import 'bento_box.dart';
-
-/// Top horizontal pill bar container hosting ambient brand header, status, and settings access.
+/// Pinned top navigation and status pill bar matching the Dusk Glass screenshot.
 class TopPillBar extends StatelessWidget {
-  /// Total height of the top bar container.
   final double height;
-
-  /// Custom center content overriding default server network pill.
   final Widget? child;
-
-  /// Optional callback overriding default settings dialog presentation.
   final VoidCallback? onOpenSettings;
 
   const TopPillBar({
@@ -28,46 +22,88 @@ class TopPillBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return BentoBox(
+    return Container(
       height: height,
-      color: AppColors.cardCream,
-      borderRadius: height / 2,
-      padding: const EdgeInsets.symmetric(horizontal: 16.0),
+      padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 6.0),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(height / 2),
+        border: Border.all(color: AppColors.lineStrong, width: 1.0),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.6),
+            blurRadius: 24,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
       child: Row(
-        spacing: 8,
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          // Left ambient brand SVG logo mark.
-          SvgPicture.asset(
-            'assets/icons/header_text.svg',
-            height: 24,
-            colorFilter: const ColorFilter.mode(
-              AppColors.textOnLight,
-              BlendMode.srcIn,
+          // WYRM. Brand Logo Mark
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              SvgPicture.asset(
+                'assets/icons/header_text.svg',
+                height: 14.0,
+                colorFilter: const ColorFilter.mode(
+                  AppColors.textPrimary,
+                  BlendMode.srcIn,
+                ),
+              ),
+              Container(
+                width: 4,
+                height: 4,
+                margin: const EdgeInsets.only(left: 3, top: 4),
+                decoration: const BoxDecoration(
+                  color: AppColors.brandDot,
+                  shape: BoxShape.circle,
+                ),
+              ),
+            ],
+          ),
+
+          const SizedBox(width: 18),
+
+          // Vertical divider line
+          Container(
+            width: 1.0,
+            height: 18.0,
+            color: AppColors.lineStrong,
+          ),
+
+          const SizedBox(width: 18),
+
+          // Ambient Tagline
+          const Expanded(
+            child: Text(
+              'A calmer, more focused you',
+              style: TextStyle(
+                color: AppColors.textSecondary,
+                fontSize: 13.0,
+                fontWeight: FontWeight.w400,
+                letterSpacing: 0.2,
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
             ),
           ),
 
-          Spacer(),
-
+          // Center/Right Network Status Pill
           child ?? const _ServerNetworkPill(),
 
-          // Settings action button triggering the bento configuration modal.
-          Material(
-            color: Colors.transparent,
-            child: InkWell(
-              onTap: onOpenSettings ?? () => SettingsDialog.show(context),
-              borderRadius: BorderRadius.circular(height / 2),
-              child: Container(
-                padding: const EdgeInsets.all(8.0),
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: Colors.black.withValues(alpha: 0.08),
-                ),
-                child: const Icon(
-                  Icons.settings_rounded,
-                  size: 18,
-                  color: AppColors.textOnLight,
-                ),
-              ),
+          const SizedBox(width: 10),
+
+          // Settings Gear Action Button
+          DuskGlassButton.icon(
+            onPressed: onOpenSettings ?? () => SettingsDialog.show(context),
+            size: 40.0,
+            icon: const Icon(
+              Icons.settings_rounded,
+              size: 19,
+              color: AppColors.textPrimary,
             ),
           ),
         ],
@@ -76,7 +112,7 @@ class TopPillBar extends StatelessWidget {
   }
 }
 
-/// Minimal always-visible network pill displaying the active server IP address and status.
+/// Always-visible network pill displaying active server IP and opening connection modal.
 class _ServerNetworkPill extends ConsumerWidget {
   const _ServerNetworkPill();
 
@@ -84,39 +120,41 @@ class _ServerNetworkPill extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final ipAsync = ref.watch(localIpProvider);
     final ipAddress = ipAsync.value ?? '127.0.0.1';
-    final serverUrl = 'http://$ipAddress:8080';
+    final serverUrl = '$ipAddress:8080';
 
     return Material(
       color: Colors.transparent,
       child: InkWell(
-        onTap: () {
-          Clipboard.setData(ClipboardData(text: serverUrl));
-          ScaffoldMessenger.of(context).hideCurrentSnackBar();
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Copied "$serverUrl" to clipboard'),
-              duration: const Duration(seconds: 2),
-              behavior: SnackBarBehavior.floating,
-              backgroundColor: AppColors.cardCream,
-            ),
-          );
-        },
-        borderRadius: BorderRadius.circular(14),
+        onTap: () => NetworkConnectionModal.show(context),
+        borderRadius: BorderRadius.circular(999),
         child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          height: 40,
+          padding: const EdgeInsets.symmetric(horizontal: 16.0),
           decoration: BoxDecoration(
-            color: Colors.black.withValues(alpha: 0.07),
-            borderRadius: BorderRadius.circular(14),
+            color: AppColors.glass,
+            borderRadius: BorderRadius.circular(999),
+            border: Border.all(color: AppColors.lineStrong, width: 1.0),
           ),
-          child: Text(
-            '$ipAddress:8080',
-            style: const TextStyle(
-              color: AppColors.textOnLight,
-              fontSize: 11,
-              fontWeight: FontWeight.w700,
-              letterSpacing: 0.3,
-              fontFeatures: [FontFeature.tabularFigures()],
-            ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              const Icon(
+                Icons.wifi_rounded,
+                size: 17,
+                color: AppColors.tealAccent,
+              ),
+              const SizedBox(width: 10),
+              Text(
+                serverUrl,
+                style: const TextStyle(
+                  color: AppColors.textPrimary,
+                  fontSize: 13.5,
+                  fontWeight: FontWeight.w600,
+                  letterSpacing: 0.3,
+                ),
+              ),
+            ],
           ),
         ),
       ),

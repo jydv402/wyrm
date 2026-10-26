@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:wyrm_desk/core/theme.dart';
 import 'package:wyrm_desk/in_app_keyboard/in_app_keyboard_text_field.dart';
 
-/// Reusable form content for creating and editing tasks.
+/// Reusable form content for creating and editing tasks in Dusk Glass style.
 class TaskFormContent extends StatelessWidget {
   final TextEditingController titleController;
   final String selectedPriority;
@@ -39,17 +39,24 @@ class TaskFormContent extends StatelessWidget {
           controller: titleController,
           autofocus: true,
           style: const TextStyle(color: AppColors.textPrimary, fontSize: 14),
-          cursorColor: AppColors.accentOrange,
+          cursorColor: AppColors.rust.accent,
           decoration: InputDecoration(
             hintText: 'What needs to be done?',
-            hintStyle: const TextStyle(color: AppColors.textSecondary),
+            hintStyle: const TextStyle(color: AppColors.textMuted),
             filled: true,
-            fillColor: Colors.white.withValues(alpha: 0.06),
-            contentPadding:
-                const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            fillColor: AppColors.well,
+            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
             border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide.none,
+              borderRadius: BorderRadius.circular(16),
+              borderSide: const BorderSide(color: AppColors.line, width: 1.0),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(16),
+              borderSide: const BorderSide(color: AppColors.line, width: 1.0),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(16),
+              borderSide: BorderSide(color: AppColors.rust.accent, width: 1.5),
             ),
           ),
           onChanged: (_) => onChanged?.call(),
@@ -69,59 +76,55 @@ class TaskFormContent extends StatelessWidget {
         const SizedBox(height: 8),
         Row(
           children: [
-            ChoiceChip(
-              label: const Text('Normal Priority'),
-              selected: selectedPriority == 'normal',
-              selectedColor: AppColors.cardOrange,
-              backgroundColor: Colors.white.withValues(alpha: 0.06),
-              labelStyle: TextStyle(
-                color: selectedPriority == 'normal'
-                    ? AppColors.textOnLight
-                    : AppColors.textSecondary,
-                fontWeight: FontWeight.w700,
-                fontSize: 12,
-              ),
-              side: BorderSide(
-                color: selectedPriority == 'normal'
-                    ? AppColors.cardOrange
-                    : Colors.transparent,
-              ),
-              onSelected: (_) {
-                onPriorityChanged('normal');
-                onChanged?.call();
-              },
-            ),
+            _buildPriorityOption('normal', 'Normal Priority', AppColors.teal.accent),
             const SizedBox(width: 10),
-            ChoiceChip(
-              label: const Text('High Priority'),
-              selected: selectedPriority == 'high',
-              selectedColor: AppColors.cardOrange,
-              backgroundColor: Colors.white.withValues(alpha: 0.06),
-              labelStyle: TextStyle(
-                color: selectedPriority == 'high'
-                    ? AppColors.textOnLight
-                    : AppColors.textSecondary,
-                fontWeight: FontWeight.w700,
-                fontSize: 12,
-              ),
-              side: BorderSide(
-                color: selectedPriority == 'high'
-                    ? AppColors.cardOrange
-                    : Colors.transparent,
-              ),
-              onSelected: (_) {
-                onPriorityChanged('high');
-                onChanged?.call();
-              },
-            ),
+            _buildPriorityOption('high', 'High Priority', AppColors.priorityHigh),
           ],
         ),
       ],
     );
   }
+
+  Widget _buildPriorityOption(String value, String label, Color accentColor) {
+    final isSelected = selectedPriority == value;
+
+    return Expanded(
+      child: InkWell(
+        onTap: () {
+          onPriorityChanged(value);
+          onChanged?.call();
+        },
+        borderRadius: BorderRadius.circular(999),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 180),
+          height: 38,
+          decoration: BoxDecoration(
+            color: isSelected
+                ? accentColor.withValues(alpha: 0.2)
+                : AppColors.well,
+            borderRadius: BorderRadius.circular(999),
+            border: Border.all(
+              color: isSelected ? accentColor : AppColors.line,
+              width: isSelected ? 1.5 : 1.0,
+            ),
+          ),
+          child: Center(
+            child: Text(
+              label,
+              style: TextStyle(
+                color: isSelected ? accentColor : AppColors.textSecondary,
+                fontSize: 12.5,
+                fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 }
 
-/// WYSIWYG live preview card for tasks.
+/// Live preview card for tasks.
 class TaskPreviewCard extends StatelessWidget {
   final String title;
   final String priority;
@@ -142,11 +145,12 @@ class TaskPreviewCard extends StatelessWidget {
       width: 290,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppColors.cardOrange,
+        color: AppColors.surface,
         borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: AppColors.lineStrong, width: 1.0),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.3),
+            color: Colors.black.withValues(alpha: 0.4),
             blurRadius: 16,
             offset: const Offset(0, 4),
           ),
@@ -159,16 +163,16 @@ class TaskPreviewCard extends StatelessWidget {
           Row(
             children: [
               const Icon(
-                Icons.task_alt_rounded,
+                Icons.check_box_outlined,
                 size: 18,
-                color: AppColors.textOnLight,
+                color: AppColors.rustAccent,
               ),
               const SizedBox(width: 8),
               const Expanded(
                 child: Text(
-                  'ACTIVE TASK PREVIEW',
+                  'PRIORITY PREVIEW',
                   style: TextStyle(
-                    color: AppColors.textOnLight,
+                    color: AppColors.textPrimary,
                     fontSize: 11,
                     fontWeight: FontWeight.w800,
                     letterSpacing: 0.8,
@@ -179,16 +183,16 @@ class TaskPreviewCard extends StatelessWidget {
               if (isHigh) ...[
                 const SizedBox(width: 6),
                 Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
                   decoration: BoxDecoration(
-                    color: Colors.black.withValues(alpha: 0.18),
+                    color: AppColors.priorityHigh.withValues(alpha: 0.15),
                     borderRadius: BorderRadius.circular(6),
+                    border: Border.all(color: AppColors.priorityHigh.withValues(alpha: 0.4), width: 1.0),
                   ),
                   child: const Text(
                     'HIGH',
                     style: TextStyle(
-                      color: AppColors.textOnLight,
+                      color: AppColors.priorityHigh,
                       fontSize: 10,
                       fontWeight: FontWeight.w800,
                       letterSpacing: 0.5,
@@ -202,8 +206,9 @@ class TaskPreviewCard extends StatelessWidget {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
             decoration: BoxDecoration(
-              color: Colors.black.withValues(alpha: 0.1),
+              color: AppColors.well,
               borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: AppColors.line, width: 1.0),
             ),
             child: Row(
               children: [
@@ -211,10 +216,10 @@ class TaskPreviewCard extends StatelessWidget {
                   width: 20,
                   height: 20,
                   decoration: BoxDecoration(
-                    color: Colors.black.withValues(alpha: 0.08),
-                    borderRadius: BorderRadius.circular(6),
+                    color: Colors.transparent,
+                    shape: BoxShape.circle,
                     border: Border.all(
-                      color: Colors.black.withValues(alpha: 0.25),
+                      color: Colors.white.withValues(alpha: 0.35),
                       width: 1.2,
                     ),
                   ),
@@ -224,8 +229,8 @@ class TaskPreviewCard extends StatelessWidget {
                   child: Text(
                     displayTitle,
                     style: const TextStyle(
-                      color: AppColors.textOnLight,
-                      fontWeight: FontWeight.w700,
+                      color: AppColors.textPrimary,
+                      fontWeight: FontWeight.w600,
                       fontSize: 13,
                     ),
                     maxLines: 2,

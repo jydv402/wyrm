@@ -1,23 +1,18 @@
 import 'package:flutter/material.dart';
-import 'package:wyrm_desk/core/core.dart';
+import 'package:wyrm_desk/core/theme.dart';
 import 'package:wyrm_desk/home/card_layout_state.dart';
 import 'package:wyrm_desk/widgets/analog_clock.dart';
+import 'package:wyrm_desk/widgets/bento_box.dart';
+import 'package:wyrm_desk/widgets/card_edit_button.dart';
 import 'package:wyrm_desk/widgets/digital_clock_medium.dart';
 import 'package:wyrm_desk/widgets/digital_clock_small.dart';
+import 'package:wyrm_desk/widgets/dusk_card_header.dart';
+import 'package:wyrm_desk/widgets/dusk_glass_panel.dart';
 
 /// Primary clock card container supporting Small, Medium, Fullscreen, and Nightstand sizing tiers.
-///
-/// Features dynamic responsive layout switching between a vertical digital clock in Small mode,
-/// a horizontal digital clock in Medium mode, a dual squircle-analogue + horizontal-digital
-/// companion arrangement in Fullscreen mode, and a dedicated pitch-black glowing amber Nightstand mode.
 class ClockContainer extends StatelessWidget {
-  /// Custom nested content or widget tree overriding the default clock view.
   final Widget? child;
-
-  /// Callback when a sizing tier is selected from the in-place popup menu.
   final ValueChanged<CardSize>? onSelectSize;
-
-  /// Active sizing tier for the card.
   final CardSize currentSize;
 
   const ClockContainer({
@@ -47,29 +42,41 @@ class ClockContainer extends StatelessWidget {
       }
     }
 
-    final cardColor = isNightstand ? Colors.black : AppColors.cardWhite;
-    final cardBorder = isNightstand
-        ? Border.all(
-            color: const Color(0xFFFF9500).withValues(alpha: 0.2),
-            width: 1.5,
-          )
-        : null;
+    if (isNightstand) {
+      return BentoBox(
+        color: Colors.black,
+        borderRadius: 0.0,
+        padding: const EdgeInsets.all(16.0),
+        child: Stack(
+          children: [
+            Positioned.fill(child: content),
+            Positioned(
+              top: 0,
+              right: 0,
+              child: CardEditButton(
+                currentSize: currentSize,
+                onSelectSize: onSelectSize ?? (_) {},
+                showNightstandOption: true,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
 
-    return BentoBox(
-      color: cardColor,
+    return DuskGlassPanel(
+      tone: AppColors.slate,
       borderRadius: 32.0,
-      border: cardBorder,
-      padding: const EdgeInsets.fromLTRB(16.0, 12.0, 12.0, 12.0),
+      padding: const EdgeInsets.fromLTRB(20.0, 16.0, 16.0, 16.0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          CardHeader(
+          DuskCardHeader(
             icon: Icons.schedule_rounded,
             title: 'Clock',
-            showHeader: isNightstand,
+            accentColor: AppColors.slate.accent,
             onSelectSize: onSelectSize,
             currentSize: currentSize,
-            isDarkGlyph: !isNightstand,
             showNightstandOption: true,
           ),
           Expanded(child: content),
@@ -89,7 +96,7 @@ class _ClockFullscreenView extends StatelessWidget {
   Widget build(BuildContext context) {
     final seamColor = isNightstand
         ? const Color(0xFFFF9500).withValues(alpha: 0.15)
-        : Colors.black.withValues(alpha: 0.08);
+        : AppColors.lineStrong;
 
     return Row(
       children: [
@@ -111,7 +118,7 @@ class _ClockFullscreenView extends StatelessWidget {
         ),
 
         // Subtle vertical hardware separation seam.
-        Container(width: 1.5, height: 180, color: seamColor),
+        Container(width: 1.0, height: 220, color: seamColor),
 
         // Right side: horizontal digital clock layout.
         Expanded(

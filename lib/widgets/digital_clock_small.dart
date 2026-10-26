@@ -1,15 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:intl/intl.dart';
 import 'package:wyrm_desk/clock/clock_provider.dart';
 import 'package:wyrm_desk/core/theme.dart';
+import 'package:wyrm_desk/widgets/dusk_glass_pill.dart';
+import 'package:wyrm_desk/widgets/dusk_mountain_backdrop.dart';
 
-/// Vertical clock layout optimized for compact bento placement.
-///
-/// Features vertically stacked hours and minutes rendered with lean, tall Oswald typography,
-/// an integrated seconds and AM/PM badge row, and a midnight countdown status line.
-class DigitalClockSmall extends StatelessWidget {
-  /// Toggles glowing amber/orange nightstand palette for pitch-black ambient viewing.
+/// Compact vertical desk clock matching the screenshot reference.
+class DigitalClockSmall extends ConsumerWidget {
   final bool isNightstand;
 
   const DigitalClockSmall({
@@ -18,181 +17,148 @@ class DigitalClockSmall extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 16.0),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          // Top breathing spacer maintaining alignment below the corner button.
-          const SizedBox(height: 16),
+  Widget build(BuildContext context, WidgetRef ref) {
+    final now = ref.watch(clockTimeProvider).value ?? DateTime.now();
+    final hours = ref.watch(clockHoursProvider);
+    final minutes = ref.watch(clockMinutesProvider);
 
-          // Vertically stacked digital time typography utilizing maximum card area.
-          Expanded(
-            child: Center(
+    // End of day countdown
+    final endOfDay = DateTime(now.year, now.month, now.day + 1);
+    final diff = endOfDay.difference(now);
+    final hoursLeft = diff.inHours;
+    final minsLeft = diff.inMinutes % 60;
+
+    // Greeting
+    final String greeting;
+    if (now.hour < 12) {
+      greeting = 'Good morning';
+    } else if (now.hour < 17) {
+      greeting = 'Good afternoon';
+    } else {
+      greeting = 'Good evening';
+    }
+
+    final dateStr = DateFormat('EEE, MMM d').format(now);
+
+    final fontColor = isNightstand
+        ? const Color(0xFFFF9500)
+        : AppColors.textPrimary;
+
+    return Stack(
+      children: [
+        // Mountain Sunset Backdrop at bottom
+        if (!isNightstand)
+          Positioned(
+            left: -20,
+            right: -20,
+            bottom: -20,
+            child: IgnorePointer(
+              child: DuskMountainBackdrop.clock(height: 180),
+            ),
+          ),
+
+        // Main Clock Typography & Metrics
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const SizedBox(height: 12),
+
+            // Formatted Date (e.g. Thu, Sep 11)
+            Text(
+              dateStr,
+              style: TextStyle(
+                color: isNightstand
+                    ? const Color(0xFFFF9500).withValues(alpha: 0.7)
+                    : AppColors.textSecondary,
+                fontSize: 16.0,
+                fontWeight: FontWeight.w500,
+                letterSpacing: 0.2,
+              ),
+            ),
+
+            const SizedBox(height: 10),
+
+            // Giant Stacked Digits
+            Expanded(
               child: FittedBox(
+                alignment: Alignment.centerLeft,
                 fit: BoxFit.scaleDown,
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    _ClockHoursDigit(isNightstand: isNightstand),
-                    _ClockMinutesDigit(isNightstand: isNightstand),
+                    Text(
+                      hours,
+                      style: GoogleFonts.barlowCondensed(
+                        color: fontColor,
+                        fontSize: 126,
+                        fontWeight: FontWeight.w700,
+                        height: 0.86,
+                        letterSpacing: -2.0,
+                      ),
+                    ),
+                    Text(
+                      minutes,
+                      style: GoogleFonts.barlowCondensed(
+                        color: fontColor,
+                        fontSize: 126,
+                        fontWeight: FontWeight.w700,
+                        height: 0.86,
+                        letterSpacing: -2.0,
+                      ),
+                    ),
+                    const SizedBox(height: 14),
+
+                    // Divider line
+                    Container(
+                      width: 44,
+                      height: 2.5,
+                      decoration: BoxDecoration(
+                        color: isNightstand
+                            ? const Color(0xFFFF9500).withValues(alpha: 0.4)
+                            : AppColors.lineStrong,
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+
+                    const SizedBox(height: 14),
+
+                    // Greeting & Tagline
+                    Text(
+                      greeting,
+                      style: TextStyle(
+                        color: fontColor,
+                        fontSize: 18.0,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      'Small steps, big progress.',
+                      style: TextStyle(
+                        color: isNightstand
+                            ? const Color(0xFFFF9500).withValues(alpha: 0.5)
+                            : AppColors.textSecondary,
+                        fontSize: 13.5,
+                        fontWeight: FontWeight.w400,
+                      ),
+                    ),
                   ],
                 ),
               ),
             ),
-          ),
 
-          // Bottom section hosting seconds, AM/PM period, and remaining time.
-          Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              _ClockSecondsAndPeriodRow(isNightstand: isNightstand),
-              const SizedBox(height: 8),
-              _ClockTimeLeftLabel(isNightstand: isNightstand),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-/// Renders the hour digits, rebuilding strictly when the hour changes.
-class _ClockHoursDigit extends ConsumerWidget {
-  final bool isNightstand;
-
-  const _ClockHoursDigit({this.isNightstand = false});
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final hours = ref.watch(clockHoursProvider);
-    final color = isNightstand ? const Color(0xFFFF9500) : AppColors.textOnLight;
-
-    return Text(
-      hours,
-      style: GoogleFonts.oswald(
-        color: color,
-        fontSize: 96,
-        fontWeight: FontWeight.w700,
-        height: 0.88,
-        letterSpacing: -1.0,
-      ),
-    );
-  }
-}
-
-/// Renders the minute digits, rebuilding strictly when the minute changes.
-class _ClockMinutesDigit extends ConsumerWidget {
-  final bool isNightstand;
-
-  const _ClockMinutesDigit({this.isNightstand = false});
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final minutes = ref.watch(clockMinutesProvider);
-    final color = isNightstand
-        ? const Color(0xFFFF9500).withValues(alpha: 0.85)
-        : AppColors.textOnLight.withValues(alpha: 0.85);
-
-    return Text(
-      minutes,
-      style: GoogleFonts.oswald(
-        color: color,
-        fontSize: 96,
-        fontWeight: FontWeight.w700,
-        height: 0.88,
-        letterSpacing: -1.0,
-      ),
-    );
-  }
-}
-
-/// Renders seconds and AM/PM status badge, with seconds ticking each second.
-class _ClockSecondsAndPeriodRow extends ConsumerWidget {
-  final bool isNightstand;
-
-  const _ClockSecondsAndPeriodRow({this.isNightstand = false});
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final seconds = ref.watch(clockSecondsProvider);
-    final period = ref.watch(clockPeriodProvider);
-
-    final secondsBg = isNightstand ? const Color(0xFFFF9500) : AppColors.accentOrange;
-    final secondsTextColor = isNightstand ? Colors.black : Colors.white;
-
-    final periodBg = isNightstand
-        ? const Color(0xFFFF9500).withValues(alpha: 0.15)
-        : Colors.black.withValues(alpha: 0.08);
-    final periodTextColor = isNightstand
-        ? const Color(0xFFFF9500)
-        : AppColors.textOnLight;
-
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-          decoration: BoxDecoration(
-            color: secondsBg,
-            borderRadius: BorderRadius.circular(6),
-          ),
-          child: Text(
-            ':$seconds',
-            style: GoogleFonts.oswald(
-              color: secondsTextColor,
-              fontSize: 13,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-        ),
-        if (period != null) ...[
-          const SizedBox(width: 6),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-            decoration: BoxDecoration(
-              color: periodBg,
-              borderRadius: BorderRadius.circular(6),
-            ),
-            child: Text(
-              period,
-              style: GoogleFonts.oswald(
-                color: periodTextColor,
-                fontSize: 11,
-                fontWeight: FontWeight.w700,
-                letterSpacing: 0.5,
+            // Bottom Sun Countdown Pill
+            if (!isNightstand) ...[
+              const SizedBox(height: 12),
+              DuskGlassPill.sunCountdown(
+                timeLeft: '${hoursLeft}h ${minsLeft}m',
+                suffix: 'left today',
               ),
-            ),
-          ),
-        ],
+            ],
+          ],
+        ),
       ],
-    );
-  }
-}
-
-/// Renders remaining time until midnight, updating only once per minute.
-class _ClockTimeLeftLabel extends ConsumerWidget {
-  final bool isNightstand;
-
-  const _ClockTimeLeftLabel({this.isNightstand = false});
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final timeLeft = ref.watch(timeLeftTodayProvider);
-    final color = isNightstand
-        ? const Color(0xFFFF9500).withValues(alpha: 0.6)
-        : AppColors.textOnLight.withValues(alpha: 0.6);
-
-    return Text(
-      timeLeft,
-      textAlign: TextAlign.center,
-      style: TextStyle(
-        color: color,
-        fontSize: 11,
-        fontWeight: FontWeight.w600,
-        letterSpacing: 0.1,
-      ),
     );
   }
 }

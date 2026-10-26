@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:wyrm_desk/core/theme.dart';
 import 'package:wyrm_desk/home/card_layout_state.dart';
 
-/// Corner button that triggers an in-place pop-up menu for selecting container dimensions.
+/// Corner button that triggers an in-place pop-up menu for selecting container dimensions
+/// with Dusk Glass styling.
 class CardEditButton extends StatelessWidget {
   /// Invoked when the user selects a size tier from the in-place menu.
   final ValueChanged<CardSize> onSelectSize;
@@ -26,79 +27,61 @@ class CardEditButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isNightstand = currentSize == CardSize.nightstand;
-
-    final Color iconColor;
-    final Color containerColor;
-
-    if (isNightstand) {
-      iconColor = const Color(0xFFFF9500).withValues(alpha: 0.6);
-      containerColor = const Color(0xFFFF9500).withValues(alpha: 0.1);
-    } else if (isDarkGlyph) {
-      iconColor = Colors.black87;
-      containerColor = Colors.black.withValues(alpha: 0.12);
-    } else {
-      iconColor = Colors.white;
-      containerColor = Colors.white.withValues(alpha: 0.16);
-    }
-
-    return Theme(
-      data: Theme.of(context).copyWith(
-        splashColor: Colors.transparent,
-        highlightColor: Colors.transparent,
+    return PopupMenuButton<CardSize>(
+      onSelected: onSelectSize,
+      tooltip: 'Select card size',
+      position: PopupMenuPosition.under,
+      offset: const Offset(0, 8),
+      elevation: 16,
+      color: AppColors.surface,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(18),
+        side: const BorderSide(color: AppColors.lineStrong, width: 1.0),
       ),
-      child: PopupMenuButton<CardSize>(
-        onSelected: onSelectSize,
-        tooltip: 'Select card size',
-        position: PopupMenuPosition.under,
-        offset: const Offset(0, 8),
-        elevation: 6,
-        color: AppColors.surface,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-          side: const BorderSide(color: AppColors.borderDark, width: 1.0),
+      itemBuilder: (context) => [
+        _buildMenuItem(
+          size: CardSize.small,
+          label: 'Small',
+          icon: Icons.crop_square_rounded,
+          isSelected: currentSize == CardSize.small,
         ),
-        itemBuilder: (context) => [
+        _buildMenuItem(
+          size: CardSize.medium,
+          label: 'Medium',
+          icon: Icons.view_column_rounded,
+          isSelected: currentSize == CardSize.medium,
+        ),
+        _buildMenuItem(
+          size: CardSize.fullscreen,
+          label: 'Fullscreen',
+          icon: Icons.fullscreen_rounded,
+          isSelected: currentSize == CardSize.fullscreen,
+        ),
+        if (showNightstandOption)
           _buildMenuItem(
-            size: CardSize.small,
-            label: 'Small',
-            icon: Icons.crop_square_rounded,
-            isSelected: currentSize == CardSize.small,
+            size: CardSize.nightstand,
+            label: 'Nightstand',
+            icon: Icons.bedtime_rounded,
+            isSelected: currentSize == CardSize.nightstand,
           ),
-          _buildMenuItem(
-            size: CardSize.medium,
-            label: 'Medium',
-            icon: Icons.view_column_rounded,
-            isSelected: currentSize == CardSize.medium,
-          ),
-          _buildMenuItem(
-            size: CardSize.fullscreen,
-            label: 'Fullscreen',
-            icon: Icons.fullscreen_rounded,
-            isSelected: currentSize == CardSize.fullscreen,
-          ),
-          if (showNightstandOption)
-            _buildMenuItem(
-              size: CardSize.nightstand,
-              label: 'Nightstand',
-              icon: Icons.bedtime_rounded,
-              isSelected: currentSize == CardSize.nightstand,
-            ),
-        ],
-        child: Container(
-          width: 28,
-          height: 28,
-          decoration: BoxDecoration(
-            color: containerColor,
-            shape: BoxShape.circle,
-          ),
-          child: Icon(Icons.tune_rounded, size: 16, color: iconColor),
+      ],
+      child: Container(
+        width: 36,
+        height: 36,
+        decoration: BoxDecoration(
+          color: AppColors.glass,
+          shape: BoxShape.circle,
+          border: Border.all(color: AppColors.lineStrong, width: 1.0),
+        ),
+        child: const Icon(
+          Icons.tune_rounded,
+          size: 18,
+          color: AppColors.textPrimary,
         ),
       ),
     );
   }
 
-  /// Builds an individual item in the in-place sizing popup menu.
   PopupMenuItem<CardSize> _buildMenuItem({
     required CardSize size,
     required String label,
@@ -107,34 +90,34 @@ class CardEditButton extends StatelessWidget {
   }) {
     return PopupMenuItem<CardSize>(
       value: size,
-      height: 42,
+      height: 44,
       child: Row(
         children: [
           Icon(
             icon,
             size: 18,
-            color: isSelected
-                ? AppColors.accentOrange
-                : AppColors.textSecondary,
+            color: isSelected ? AppColors.accentOrange : AppColors.textSecondary,
           ),
-          const SizedBox(width: 10),
+          const SizedBox(width: 12),
           Text(
             label,
             style: TextStyle(
-              color: isSelected
-                  ? AppColors.textPrimary
-                  : AppColors.textSecondary,
+              color: isSelected ? AppColors.textPrimary : AppColors.textSecondary,
               fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-              fontSize: 13,
+              fontSize: 13.5,
             ),
           ),
-          const Spacer(),
-          if (isSelected)
-            const Icon(
-              Icons.check_rounded,
-              size: 16,
-              color: AppColors.accentOrange,
+          if (isSelected) ...[
+            const Spacer(),
+            Container(
+              width: 6,
+              height: 6,
+              decoration: const BoxDecoration(
+                color: AppColors.accentOrange,
+                shape: BoxShape.circle,
+              ),
             ),
+          ],
         ],
       ),
     );

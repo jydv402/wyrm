@@ -4,17 +4,17 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:wyrm_desk/calendar/calendar.dart';
 import 'package:wyrm_desk/clock/clock.dart';
-import 'package:wyrm_desk/core/core.dart';
+import 'package:wyrm_desk/core/theme.dart';
 import 'package:wyrm_desk/habits/habits.dart';
 import 'package:wyrm_desk/tasks/tasks.dart';
+import 'package:wyrm_desk/widgets/top_pill_bar.dart';
 
 import 'card_layout_state.dart';
 
 /// Consolidated full-screen ambient desk dashboard and application home page.
 ///
-/// Features an anchored top navigation bar, horizontally scrollable bento cards
-/// with independent Small, Medium, and Fullscreen sizing, tactile single-tap cycling,
-/// smooth animated resizing, auto-scrolling focus, and a retro bottom scroll indicator.
+/// Features a Dusk Glass pinned top navigation bar, 3-column desk grid matching
+/// the reference design, smooth animated resizing, and ambient glow backdrop.
 class HomePage extends ConsumerStatefulWidget {
   /// Optional custom top bar widget.
   final Widget? topBar;
@@ -31,7 +31,7 @@ class HomePage extends ConsumerStatefulWidget {
   /// Custom content injected into the tasks container.
   final Widget? tasksWidget;
 
-  /// Spacing between adjacent bento cards and columns.
+  /// Spacing between adjacent cards and columns.
   final double spacing;
 
   /// Padding around the perimeter of the master canvas.
@@ -44,8 +44,8 @@ class HomePage extends ConsumerStatefulWidget {
     this.habitsWidget,
     this.calendarWidget,
     this.tasksWidget,
-    this.spacing = 10.0,
-    this.padding = const EdgeInsets.all(12.0),
+    this.spacing = 14.0,
+    this.padding = const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
   });
 
   @override
@@ -156,26 +156,35 @@ class _HomePageState extends ConsumerState<HomePage>
     return Scaffold(
       backgroundColor: AppColors.background,
       body: Stack(
+        fit: StackFit.expand,
         children: [
+          // Ambient Dusk Glass Backdrop Radial Glows
+          if (!isNightstand)
+            const Positioned.fill(
+              child: IgnorePointer(
+                child: _DuskAmbientBackdrop(),
+              ),
+            ),
+
           SafeArea(
             child: AnimatedPadding(
               duration: const Duration(milliseconds: 380),
               curve: Curves.easeInOutCubic,
               padding: isNightstand ? EdgeInsets.zero : widget.padding,
               child: Column(
-                spacing: isNightstand ? 0.0 : widget.spacing,
                 children: [
                   // Pinned top navigation and status pill bar, smoothly hidden in nightstand mode.
                   AnimatedContainer(
                     duration: const Duration(milliseconds: 380),
                     curve: Curves.easeInOutCubic,
                     height: isNightstand ? 0.0 : 54.0,
+                    margin: EdgeInsets.only(bottom: isNightstand ? 0.0 : widget.spacing),
                     clipBehavior: Clip.hardEdge,
                     decoration: const BoxDecoration(),
                     child: widget.topBar ?? const TopPillBar(),
                   ),
 
-                  // Horizontally scrollable card deck with dynamic animated widths.
+                  // 3-Column Desk Grid Deck
                   Expanded(
                     child: LayoutBuilder(
                       builder: (context, constraints) {
@@ -196,14 +205,14 @@ class _HomePageState extends ConsumerState<HomePage>
     );
   }
 
-  /// Constructs the horizontal scrolling row with adaptive unstacking.
+  /// Constructs the 3-column desk layout with adaptive expansion.
   Widget _buildScrollableDeck({
     required BuildContext context,
     required BoxConstraints constraints,
     required CardLayoutConfig config,
   }) {
     final viewportWidth = constraints.maxWidth;
-    final mediumWidth = (viewportWidth * 0.5).clamp(380.0, 900.0);
+    final mediumWidth = (viewportWidth * 0.55).clamp(380.0, 900.0);
 
     final bool allSmall =
         config.clock == CardSize.small &&
@@ -219,26 +228,26 @@ class _HomePageState extends ConsumerState<HomePage>
     } else if (config.clock == CardSize.medium) {
       clockWidth = mediumWidth;
     } else {
-      clockWidth = (allSmall && viewportWidth > 1140)
-          ? (viewportWidth - widget.spacing * 2) * (3 / 14)
-          : 280.0;
+      clockWidth = (allSmall && viewportWidth > 1100)
+          ? (viewportWidth - widget.spacing * 2) * (3.1 / 14)
+          : 300.0;
     }
 
     // Determine whether habits and calendar remain stacked or unstack into separate columns.
     final bool centerStacked =
         config.habits == CardSize.small && config.calendar == CardSize.small;
 
-    final double centerStackedWidth = (allSmall && viewportWidth > 1140)
-        ? (viewportWidth - widget.spacing * 2) * (7 / 14)
-        : 520.0;
+    final double centerStackedWidth = (allSmall && viewportWidth > 1100)
+        ? (viewportWidth - widget.spacing * 2) * (6.9 / 14)
+        : 540.0;
 
     final double habitsWidth = config.habits == CardSize.fullscreen
         ? viewportWidth
-        : (config.habits == CardSize.medium ? mediumWidth : 340.0);
+        : (config.habits == CardSize.medium ? mediumWidth : 360.0);
 
     final double calendarWidth = config.calendar == CardSize.fullscreen
         ? viewportWidth
-        : (config.calendar == CardSize.medium ? mediumWidth : 420.0);
+        : (config.calendar == CardSize.medium ? mediumWidth : 440.0);
 
     // Calculate tasks width based on active sizing state.
     final double tasksWidth;
@@ -247,9 +256,9 @@ class _HomePageState extends ConsumerState<HomePage>
     } else if (config.tasks == CardSize.medium) {
       tasksWidth = mediumWidth;
     } else {
-      tasksWidth = (allSmall && viewportWidth > 1140)
-          ? (viewportWidth - widget.spacing * 2) * (4 / 14)
-          : 320.0;
+      tasksWidth = (allSmall && viewportWidth > 1100)
+          ? (viewportWidth - widget.spacing * 2) * (4.0 / 14)
+          : 340.0;
     }
 
     return SingleChildScrollView(
@@ -264,10 +273,9 @@ class _HomePageState extends ConsumerState<HomePage>
           minHeight: constraints.maxHeight,
         ),
         child: Row(
-          spacing: widget.spacing,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // Clock container with animated width transition.
+            // Column 1: Clock Container
             AnimatedContainer(
               key: _clockKey,
               duration: const Duration(milliseconds: 380),
@@ -281,14 +289,15 @@ class _HomePageState extends ConsumerState<HomePage>
               ),
             ),
 
-            // Center section: stacked bento column or unstacked independent columns.
+            SizedBox(width: widget.spacing),
+
+            // Column 2: Center Section (Stacked Habits & Calendar)
             if (centerStacked)
               AnimatedContainer(
                 duration: const Duration(milliseconds: 380),
                 curve: Curves.easeInOutCubic,
                 width: centerStackedWidth,
                 child: Column(
-                  spacing: widget.spacing,
                   children: [
                     Expanded(
                       flex: 4,
@@ -303,8 +312,9 @@ class _HomePageState extends ConsumerState<HomePage>
                         child: widget.habitsWidget,
                       ),
                     ),
+                    SizedBox(height: widget.spacing),
                     Expanded(
-                      flex: 7,
+                      flex: 6,
                       child: CalendarCard(
                         key: _calendarKey,
                         currentSize: config.calendar,
@@ -335,6 +345,7 @@ class _HomePageState extends ConsumerState<HomePage>
                   child: widget.habitsWidget,
                 ),
               ),
+              SizedBox(width: widget.spacing),
               AnimatedContainer(
                 key: _calendarKey,
                 duration: const Duration(milliseconds: 380),
@@ -352,7 +363,9 @@ class _HomePageState extends ConsumerState<HomePage>
               ),
             ],
 
-            // Tasks container with animated width transition.
+            SizedBox(width: widget.spacing),
+
+            // Column 3: Tasks Container
             AnimatedContainer(
               key: _tasksKey,
               duration: const Duration(milliseconds: 380),
@@ -370,4 +383,56 @@ class _HomePageState extends ConsumerState<HomePage>
       ),
     );
   }
+}
+
+/// Atmospheric backdrop with subtle ambient destination glows matching assets/web.
+class _DuskAmbientBackdrop extends StatelessWidget {
+  const _DuskAmbientBackdrop();
+
+  @override
+  Widget build(BuildContext context) {
+    return CustomPaint(
+      painter: _DuskBackdropPainter(),
+    );
+  }
+}
+
+class _DuskBackdropPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    // Void base canvas
+    canvas.drawRect(
+      Offset.zero & size,
+      Paint()..color = AppColors.background,
+    );
+
+    // Glow 1: Top-Left Slate / Peach glow
+    final glow1Paint = Paint()
+      ..shader = RadialGradient(
+        center: const Alignment(-0.85, -0.9),
+        radius: 0.9,
+        colors: [
+          AppColors.slate.accent.withValues(alpha: 0.08),
+          Colors.transparent,
+        ],
+        stops: const [0.0, 1.0],
+      ).createShader(Offset.zero & size);
+    canvas.drawRect(Offset.zero & size, glow1Paint);
+
+    // Glow 2: Bottom-Right Rust / Ember glow
+    final glow2Paint = Paint()
+      ..shader = RadialGradient(
+        center: const Alignment(0.9, 0.95),
+        radius: 0.85,
+        colors: [
+          AppColors.rust.accent.withValues(alpha: 0.06),
+          Colors.transparent,
+        ],
+        stops: const [0.0, 1.0],
+      ).createShader(Offset.zero & size);
+    canvas.drawRect(Offset.zero & size, glow2Paint);
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }

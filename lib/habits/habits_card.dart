@@ -1,23 +1,21 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:wyrm_desk/core/core.dart';
+import 'package:wyrm_desk/core/theme.dart';
+import 'package:wyrm_desk/habits/habit_form_content.dart';
+import 'package:wyrm_desk/habits/habit_model.dart';
+import 'package:wyrm_desk/habits/habits_state.dart';
 import 'package:wyrm_desk/home/card_layout_state.dart';
 import 'package:wyrm_desk/in_app_keyboard/in_app_keyboard.dart';
 import 'package:wyrm_desk/settings/settings_state.dart';
+import 'package:wyrm_desk/widgets/dusk_card_header.dart';
+import 'package:wyrm_desk/widgets/dusk_glass_button.dart';
+import 'package:wyrm_desk/widgets/dusk_glass_panel.dart';
 
-import 'habit_form_content.dart';
-import 'habit_model.dart';
-import 'habits_state.dart';
-
-/// Sage green bento card designated for daily habit tracking, streak preservation, and weekly check-ins.
+/// Dusk Glass Habits card with teal gradient, empty state matching the reference,
+/// and interactive 7-day completion matrices.
 class HabitsCard extends ConsumerWidget {
-  /// Custom nested content or widget tree.
   final Widget? child;
-
-  /// Callback when a sizing tier is selected from the in-place popup menu.
   final ValueChanged<CardSize>? onSelectSize;
-
-  /// Active sizing tier for the card.
   final CardSize currentSize;
 
   const HabitsCard({
@@ -27,18 +25,15 @@ class HabitsCard extends ConsumerWidget {
     this.currentSize = CardSize.small,
   });
 
-  /// Standard month label strings.
   static const monthNames = [
     'January', 'February', 'March', 'April', 'May', 'June',
     'July', 'August', 'September', 'October', 'November', 'December'
   ];
 
-  /// Resolves an IconData glyph from an iconName token string.
   static IconData resolveIcon(String? name) {
     return resolveHabitIcon(name);
   }
 
-  /// Resolves start of the current week based on startWeekOnMonday setting.
   static DateTime getWeekStart(DateTime referenceDate, bool startWeekOnMonday) {
     final ref = DateTime(referenceDate.year, referenceDate.month, referenceDate.day);
     if (!startWeekOnMonday) {
@@ -58,42 +53,48 @@ class HabitsCard extends ConsumerWidget {
 
     final badgeWidget = habitsState.habits.isNotEmpty
         ? Container(
-            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
             decoration: BoxDecoration(
-              color: Colors.black.withValues(alpha: 0.12),
+              color: AppColors.tealAccent.withValues(alpha: 0.16),
               borderRadius: BorderRadius.circular(10),
+              border: Border.all(
+                color: AppColors.tealAccent.withValues(alpha: 0.35),
+                width: 1.0,
+              ),
             ),
             child: Text(
               '${habitsState.completedTodayCount()}/${habitsState.habits.length}',
               style: const TextStyle(
-                color: Colors.black87,
-                fontSize: 10,
-                fontWeight: FontWeight.w800,
+                color: AppColors.tealAccent,
+                fontSize: 11,
+                fontWeight: FontWeight.w700,
               ),
             ),
           )
         : null;
 
-    return BentoBox(
-      color: AppColors.cardSage,
-      borderRadius: 30.0,
+    return DuskGlassPanel(
+      tone: AppColors.teal,
+      borderRadius: 32.0,
       padding: EdgeInsets.symmetric(
-        horizontal: isSmall ? 14.0 : 16.0,
-        vertical: isSmall ? 10.0 : 12.0,
+        horizontal: isSmall ? 16.0 : 20.0,
+        vertical: 14.0,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          CardHeader(
-            icon: Icons.bolt_rounded,
+          DuskCardHeader(
+            icon: Icons.eco_rounded,
             title: 'Habits',
+            accentColor: AppColors.tealAccent,
             badge: badgeWidget,
             onAdd: () => _showHabitFormSheet(context, ref),
+            addColor: AppColors.tealFill,
+            addForegroundColor: AppColors.tealInk,
             onSelectSize: onSelectSize,
             currentSize: currentSize,
-            isDarkGlyph: true,
           ),
-          SizedBox(height: isSmall ? 4 : 8),
+          const SizedBox(height: 12),
           Expanded(
             child: isSmall
                 ? _buildSmallLayout(context, ref, habitsState, settings)
@@ -104,7 +105,7 @@ class HabitsCard extends ConsumerWidget {
     );
   }
 
-  /// Compact Small card layout rendering habit carousel with weekly strip.
+  /// Compact Small card view: Empty state matching reference, or habit carousel with 7-day dot matrix.
   Widget _buildSmallLayout(
     BuildContext context,
     WidgetRef ref,
@@ -115,7 +116,7 @@ class HabitsCard extends ConsumerWidget {
       return _buildEmptyState(context, ref);
     }
 
-    final activeHabit = state.activeHabit!;
+    final activeHabit = state.activeHabit ?? state.habits.first;
     final today = DateTime.now();
     final weekStart = getWeekStart(today, settings.startWeekOnMonday);
     final isDoneToday = activeHabit.isCompletedOn(today);
@@ -125,105 +126,82 @@ class HabitsCard extends ConsumerWidget {
         final isUltraCompact = constraints.maxHeight < 150;
         final isCompactHeight = constraints.maxHeight < 240;
 
-        return Column(
+        final content = Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             // Carousel Navigation Bar
             Row(
               children: [
-                _buildCircleButton(
-                  icon: Icons.chevron_left_rounded,
-                  onTap: () => ref.read(habitsProvider.notifier).cycleCarousel(-1),
-                  size: isUltraCompact ? 22 : (isCompactHeight ? 24 : 26),
+                DuskGlassButton.icon(
+                  onPressed: () => ref.read(habitsProvider.notifier).cycleCarousel(-1),
+                  size: isUltraCompact ? 22 : (isCompactHeight ? 26 : 30),
+                  icon: const Icon(Icons.chevron_left_rounded, size: 16, color: AppColors.textPrimary),
                 ),
-                const SizedBox(width: 5),
-                Icon(
-                  resolveIcon(activeHabit.iconName),
-                  size: isUltraCompact ? 13 : (isCompactHeight ? 14 : 16),
-                  color: Colors.black87,
+                const SizedBox(width: 4),
+                Container(
+                  width: isUltraCompact ? 22 : (isCompactHeight ? 26 : 30),
+                  height: isUltraCompact ? 22 : (isCompactHeight ? 26 : 30),
+                  decoration: BoxDecoration(
+                    color: AppColors.tealAccent.withValues(alpha: 0.14),
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: AppColors.tealAccent.withValues(alpha: 0.35),
+                      width: 1.0,
+                    ),
+                  ),
+                  child: Icon(
+                    resolveIcon(activeHabit.iconName),
+                    size: isUltraCompact ? 12 : 15,
+                    color: AppColors.tealAccent,
+                  ),
                 ),
-                const SizedBox(width: 5),
+                const SizedBox(width: 6),
                 Expanded(
                   child: Text(
                     activeHabit.title,
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
-                      color: AppColors.textOnLight,
-                      fontWeight: FontWeight.w800,
-                      fontSize: isUltraCompact ? 12 : (isCompactHeight ? 13 : 14),
+                      color: AppColors.textPrimary,
+                      fontWeight: FontWeight.w700,
+                      fontSize: isUltraCompact ? 12 : (isCompactHeight ? 13.5 : 15),
                     ),
                   ),
                 ),
                 Text(
                   '${state.selectedCarouselIndex + 1}/${state.habits.length}',
                   style: TextStyle(
-                    color: Colors.black54,
+                    color: AppColors.tealAccent,
                     fontWeight: FontWeight.w700,
-                    fontSize: isUltraCompact ? 9 : (isCompactHeight ? 10 : 11),
+                    fontSize: isUltraCompact ? 10 : 11,
                   ),
                 ),
-                const SizedBox(width: 5),
-                _buildCircleButton(
-                  icon: Icons.chevron_right_rounded,
-                  onTap: () => ref.read(habitsProvider.notifier).cycleCarousel(1),
-                  size: isUltraCompact ? 22 : (isCompactHeight ? 24 : 26),
+                const SizedBox(width: 4),
+                DuskGlassButton.icon(
+                  onPressed: () => ref.read(habitsProvider.notifier).cycleCarousel(1),
+                  size: isUltraCompact ? 22 : (isCompactHeight ? 26 : 30),
+                  icon: const Icon(Icons.chevron_right_rounded, size: 16, color: AppColors.textPrimary),
                 ),
               ],
             ),
-            SizedBox(height: isUltraCompact ? 3 : (isCompactHeight ? 5 : 8)),
 
-            // Active Habit Details and Today Quick Action
+            SizedBox(height: isUltraCompact ? 4 : 8),
+
+            // Middle status bar (action button + streak)
             Row(
               children: [
-                // Streak capsule
-                Container(
-                  padding: EdgeInsets.symmetric(
-                    horizontal: isUltraCompact ? 5 : 7,
-                    vertical: isUltraCompact ? 2 : 3,
-                  ),
-                  decoration: BoxDecoration(
-                    color: Colors.black.withValues(alpha: 0.12),
-                    borderRadius: BorderRadius.circular(6),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        '🔥',
-                        style: TextStyle(fontSize: isUltraCompact ? 9 : 11),
-                      ),
-                      const SizedBox(width: 3),
-                      Text(
-                        '${activeHabit.currentStreak()}d',
-                        style: TextStyle(
-                          color: Colors.black87,
-                          fontSize: isUltraCompact ? 9 : 11,
-                          fontWeight: FontWeight.w800,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(width: 5),
-
-                // Target progress label
                 if (activeHabit.type == HabitType.numeric)
                   Container(
-                    padding: EdgeInsets.symmetric(
-                      horizontal: isUltraCompact ? 5 : 7,
-                      vertical: isUltraCompact ? 2 : 3,
-                    ),
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                     decoration: BoxDecoration(
-                      color: isDoneToday
-                          ? Colors.black87
-                          : Colors.black.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(6),
+                      color: AppColors.well,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: AppColors.line, width: 1.0),
                     ),
                     child: Text(
                       '${activeHabit.completionCountOn(today)}/${activeHabit.targetValue} ${activeHabit.unit ?? ""}'.trim(),
-                      style: TextStyle(
-                        color: isDoneToday ? AppColors.cardSage : Colors.black87,
-                        fontSize: isUltraCompact ? 9 : 11,
+                      style: const TextStyle(
+                        color: AppColors.textPrimary,
+                        fontSize: 11,
                         fontWeight: FontWeight.w700,
                       ),
                     ),
@@ -231,47 +209,26 @@ class HabitsCard extends ConsumerWidget {
 
                 const Spacer(),
 
-                // Today Quick Action (Binary toggle or Numeric steppers)
+                // Done / Quick Action Button
                 if (activeHabit.type == HabitType.binary)
-                  Material(
-                    color: Colors.transparent,
-                    child: InkWell(
-                      onTap: () => ref
-                          .read(habitsProvider.notifier)
-                          .toggleCompletion(activeHabit.id, today),
-                      borderRadius: BorderRadius.circular(14),
-                      child: Container(
-                        padding: EdgeInsets.symmetric(
-                          horizontal: isUltraCompact ? 7 : 10,
-                          vertical: isUltraCompact ? 2 : 3,
-                        ),
-                        decoration: BoxDecoration(
-                          color: isDoneToday
-                              ? Colors.black87
-                              : Colors.black.withValues(alpha: 0.12),
-                          borderRadius: BorderRadius.circular(14),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(
-                              isDoneToday
-                                  ? Icons.check_circle_rounded
-                                  : Icons.radio_button_unchecked_rounded,
-                              size: isUltraCompact ? 12 : 14,
-                              color: isDoneToday ? AppColors.cardSage : Colors.black87,
-                            ),
-                            const SizedBox(width: 3),
-                            Text(
-                              isDoneToday ? 'Done' : 'Today',
-                              style: TextStyle(
-                                color: isDoneToday ? AppColors.cardSage : Colors.black87,
-                                fontSize: isUltraCompact ? 9 : 11,
-                                fontWeight: FontWeight.w700,
-                              ),
-                            ),
-                          ],
-                        ),
+                  DuskGlassButton(
+                    onPressed: () => ref.read(habitsProvider.notifier).toggleCompletion(activeHabit.id, today),
+                    height: isUltraCompact ? 24 : 30,
+                    padding: const EdgeInsets.symmetric(horizontal: 10),
+                    isPrimary: isDoneToday,
+                    primaryColor: AppColors.teal.fill,
+                    primaryForegroundColor: AppColors.tealInk,
+                    icon: Icon(
+                      isDoneToday ? Icons.check_circle_rounded : Icons.radio_button_unchecked_rounded,
+                      size: 14,
+                      color: isDoneToday ? AppColors.tealInk : AppColors.textPrimary,
+                    ),
+                    label: Text(
+                      isDoneToday ? 'Done' : 'Mark done',
+                      style: TextStyle(
+                        color: isDoneToday ? AppColors.tealInk : AppColors.textPrimary,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w700,
                       ),
                     ),
                   )
@@ -279,154 +236,136 @@ class HabitsCard extends ConsumerWidget {
                   Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      _buildStepperButton(
-                        icon: Icons.remove_rounded,
-                        onTap: () => ref
-                            .read(habitsProvider.notifier)
-                            .stepCompletion(activeHabit.id, -1, today),
-                        size: isUltraCompact ? 20 : (isCompactHeight ? 22 : 26),
+                      DuskGlassButton.icon(
+                        onPressed: () => ref.read(habitsProvider.notifier).stepCompletion(activeHabit.id, -1, today),
+                        size: isUltraCompact ? 24 : 30,
+                        icon: const Icon(Icons.remove_rounded, size: 14, color: AppColors.textPrimary),
                       ),
-                      const SizedBox(width: 5),
-                      Text(
-                        '${activeHabit.completionCountOn(today)}',
-                        style: TextStyle(
-                          color: Colors.black87,
-                          fontSize: isUltraCompact ? 11 : 13,
-                          fontWeight: FontWeight.w800,
-                        ),
-                      ),
-                      const SizedBox(width: 5),
-                      _buildStepperButton(
-                        icon: Icons.add_rounded,
-                        onTap: () => ref
-                            .read(habitsProvider.notifier)
-                            .stepCompletion(activeHabit.id, 1, today),
-                        size: isUltraCompact ? 20 : (isCompactHeight ? 22 : 26),
+                      const SizedBox(width: 4),
+                      DuskGlassButton.icon(
+                        onPressed: () => ref.read(habitsProvider.notifier).stepCompletion(activeHabit.id, 1, today),
+                        size: isUltraCompact ? 24 : 30,
+                        icon: const Icon(Icons.add_rounded, size: 14, color: AppColors.textPrimary),
                       ),
                     ],
                   ),
               ],
             ),
-            SizedBox(height: isUltraCompact ? 4 : (isCompactHeight ? 6 : 10)),
 
-            // 7-Day Interactive Week Strip
-            Expanded(
-              child: _buildWeekStrip(
+            if (!isUltraCompact) ...[
+              const SizedBox(height: 10),
+              // 7-day dot matrix
+              _buildDuskWeekDots(
                 ref: ref,
                 habit: activeHabit,
                 weekStart: weekStart,
                 today: today,
                 startWeekOnMonday: settings.startWeekOnMonday,
-                isUltraCompact: isUltraCompact,
               ),
-            ),
+            ],
           ],
         );
+
+        if (isUltraCompact) {
+          return FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: Alignment.topCenter,
+            child: SizedBox(
+              width: constraints.maxWidth,
+              child: content,
+            ),
+          );
+        }
+
+        return content;
       },
     );
   }
 
-  /// Interactive 7-day strip where tapping any day toggles or steps the habit for that day.
-  Widget _buildWeekStrip({
+  /// 7-day circular completion dots matching assets/web Dusk Glass .week__dot
+  Widget _buildDuskWeekDots({
     required WidgetRef ref,
     required HabitItem habit,
     required DateTime weekStart,
     required DateTime today,
     required bool startWeekOnMonday,
-    bool isUltraCompact = false,
   }) {
     final dayLabels = !startWeekOnMonday
         ? const ['S', 'M', 'T', 'W', 'T', 'F', 'S']
         : const ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
 
     return Row(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: List.generate(7, (index) {
         final dayDate = weekStart.add(Duration(days: index));
         final isToday = dayDate.year == today.year &&
             dayDate.month == today.month &&
             dayDate.day == today.day;
         final isCompleted = habit.isCompletedOn(dayDate);
-        final count = habit.completionCountOn(dayDate);
 
-        return Expanded(
+        return InkWell(
+          onTap: () {
+            if (habit.type == HabitType.binary) {
+              ref.read(habitsProvider.notifier).toggleCompletion(habit.id, dayDate);
+            } else {
+              ref.read(habitsProvider.notifier).stepCompletion(habit.id, 1, dayDate);
+            }
+          },
+          borderRadius: BorderRadius.circular(20),
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 2.0),
-            child: Material(
-              color: Colors.transparent,
-              child: InkWell(
-                onTap: () {
-                  if (habit.type == HabitType.binary) {
-                    ref.read(habitsProvider.notifier).toggleCompletion(habit.id, dayDate);
-                  } else {
-                    ref.read(habitsProvider.notifier).stepCompletion(habit.id, 1, dayDate);
-                  }
-                },
-                borderRadius: BorderRadius.circular(8),
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: isCompleted
-                        ? Colors.black87
-                        : (count > 0
-                            ? Colors.black.withValues(alpha: 0.20)
-                            : Colors.black.withValues(alpha: 0.07)),
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(
-                      color: isToday
-                          ? Colors.black87
-                          : (isCompleted
-                              ? Colors.black87
-                              : Colors.black.withValues(alpha: 0.12)),
-                      width: isToday ? 1.5 : 1.0,
-                    ),
-                  ),
-                  child: Center(
-                    child: FittedBox(
-                      fit: BoxFit.scaleDown,
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 2.0, vertical: 2.0),
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Text(
-                              dayLabels[index],
-                              style: TextStyle(
-                                color: isCompleted
-                                    ? AppColors.cardSage
-                                    : (isToday ? Colors.black87 : Colors.black54),
-                                fontSize: isUltraCompact ? 9 : 10,
-                                fontWeight: FontWeight.w800,
-                              ),
-                            ),
-                            const SizedBox(height: 2),
-                            Text(
-                              habit.type == HabitType.numeric && count > 0 && !isCompleted
-                                  ? '$count'
-                                  : '${dayDate.day}',
-                              style: TextStyle(
-                                color: isCompleted ? AppColors.cardSage : Colors.black87,
-                                fontSize: isUltraCompact ? 10 : 11,
-                                fontWeight: isToday || isCompleted
-                                    ? FontWeight.w800
-                                    : FontWeight.w600,
-                              ),
-                            ),
-                            if (isCompleted) ...[
-                              const SizedBox(height: 2),
-                              Icon(
-                                Icons.check_rounded,
-                                size: isUltraCompact ? 8 : 9,
-                                color: AppColors.cardSage,
-                              ),
-                            ],
-                          ],
-                        ),
-                      ),
-                    ),
+            padding: const EdgeInsets.symmetric(horizontal: 4.0),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  dayLabels[index],
+                  style: TextStyle(
+                    color: isToday ? AppColors.tealAccent : AppColors.textMuted,
+                    fontSize: 11,
+                    fontWeight: isToday ? FontWeight.w800 : FontWeight.w500,
                   ),
                 ),
-              ),
+                const SizedBox(height: 6),
+                Container(
+                  width: 28,
+                  height: 28,
+                  decoration: BoxDecoration(
+                    color: isCompleted
+                        ? AppColors.tealFill
+                        : AppColors.well,
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: isCompleted
+                          ? Colors.transparent
+                          : (isToday ? AppColors.tealAccent : AppColors.lineStrong),
+                      width: isToday ? 1.5 : 1.0,
+                    ),
+                    boxShadow: isCompleted
+                        ? [
+                            BoxShadow(
+                              color: AppColors.tealFill.withValues(alpha: 0.5),
+                              blurRadius: 10,
+                              offset: const Offset(0, 2),
+                            ),
+                          ]
+                        : null,
+                  ),
+                  child: isCompleted
+                      ? const Icon(Icons.check_rounded, size: 16, color: AppColors.tealInk)
+                      : (isToday
+                          ? Center(
+                              child: Container(
+                                width: 4,
+                                height: 4,
+                                decoration: const BoxDecoration(
+                                  color: AppColors.tealAccent,
+                                  shape: BoxShape.circle,
+                                ),
+                              ),
+                            )
+                          : null),
+                ),
+              ],
             ),
           ),
         );
@@ -434,7 +373,88 @@ class HabitsCard extends ConsumerWidget {
     );
   }
 
-  /// Multi-column Card Grid layout for Medium and Fullscreen modes.
+  /// Empty state matching the reference screenshot: sprout circle, title, subtitle, "+ Add a habit".
+  Widget _buildEmptyState(BuildContext context, WidgetRef ref) {
+    return Center(
+      child: FittedBox(
+        fit: BoxFit.scaleDown,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            // Circular sprout icon badge
+            Container(
+              width: 72,
+              height: 72,
+              decoration: BoxDecoration(
+                color: AppColors.tealAccent.withValues(alpha: 0.12),
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: AppColors.tealAccent.withValues(alpha: 0.38),
+                  width: 1.2,
+                ),
+              ),
+              child: const Icon(
+                Icons.spa_rounded,
+                size: 34,
+                color: AppColors.tealAccent,
+              ),
+            ),
+
+            const SizedBox(height: 14),
+
+            // Title
+            const Text(
+              'No habits for today',
+              style: TextStyle(
+                color: AppColors.textPrimary,
+                fontSize: 18,
+                fontWeight: FontWeight.w600,
+                letterSpacing: -0.2,
+              ),
+            ),
+
+            const SizedBox(height: 4),
+
+            // Subtitle
+            const Text(
+              'Build the life you want, one habit at a time.',
+              style: TextStyle(
+                color: AppColors.textSecondary,
+                fontSize: 13.5,
+                fontWeight: FontWeight.w400,
+              ),
+              textAlign: TextAlign.center,
+            ),
+
+            const SizedBox(height: 18),
+
+            // + Add a habit button
+            DuskGlassButton(
+              onPressed: () => _showHabitFormSheet(context, ref),
+              height: 42,
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              icon: const Icon(
+                Icons.add_rounded,
+                size: 18,
+                color: AppColors.textPrimary,
+              ),
+              label: const Text(
+                'Add a habit',
+                style: TextStyle(
+                  color: AppColors.textPrimary,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Expanded Multi-Column Grid layout for Medium & Fullscreen modes.
   Widget _buildExpandedLayout(
     BuildContext context,
     WidgetRef ref,
@@ -447,237 +467,118 @@ class HabitsCard extends ConsumerWidget {
 
     final today = DateTime.now();
     final weekStart = getWeekStart(today, settings.startWeekOnMonday);
-    final bool isFullscreen = currentSize == CardSize.fullscreen;
-    final int crossAxisCount = isFullscreen ? 2 : 1;
+    final isFullscreen = currentSize == CardSize.fullscreen;
 
     return GridView.builder(
       physics: const BouncingScrollPhysics(),
-      padding: const EdgeInsets.only(top: 4, bottom: 8),
       gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: crossAxisCount,
-        crossAxisSpacing: 12,
-        mainAxisSpacing: 12,
-        mainAxisExtent: 280.0,
+        crossAxisCount: isFullscreen ? 2 : 1,
+        crossAxisSpacing: 14,
+        mainAxisSpacing: 14,
+        mainAxisExtent: 270.0,
       ),
       itemCount: state.habits.length,
       itemBuilder: (context, index) {
         final habit = state.habits[index];
-        return _buildHabitCardTile(
-          context: context,
-          ref: ref,
-          habit: habit,
-          today: today,
-          weekStart: weekStart,
-          settings: settings,
-        );
-      },
-    );
-  }
+        final isDoneToday = habit.isCompletedOn(today);
 
-  /// Individual habit card tile within the Medium/Fullscreen grid with weekly strip and GitHub heatmap.
-  Widget _buildHabitCardTile({
-    required BuildContext context,
-    required WidgetRef ref,
-    required HabitItem habit,
-    required DateTime today,
-    required DateTime weekStart,
-    required AppSettingsConfig settings,
-  }) {
-    final isDoneToday = habit.isCompletedOn(today);
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-      decoration: BoxDecoration(
-        color: Colors.black.withValues(alpha: 0.08),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: Colors.black.withValues(alpha: 0.12),
-          width: 1.0,
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          // Header: Icon, Title, Streak, and Options Menu
-          Row(
-            children: [
-              Icon(
-                resolveIcon(habit.iconName),
-                size: 16,
-                color: Colors.black87,
-              ),
-              const SizedBox(width: 6),
-              Expanded(
-                child: Text(
-                  habit.title,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    color: AppColors.textOnLight,
-                    fontWeight: FontWeight.w800,
-                    fontSize: 13,
-                  ),
-                ),
-              ),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
-                decoration: BoxDecoration(
-                  color: Colors.black.withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(6),
-                ),
-                child: Text(
-                  '🔥 ${habit.currentStreak()}d',
-                  style: const TextStyle(
-                    color: Colors.black87,
-                    fontSize: 10,
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-              ),
-              const SizedBox(width: 2),
-              PopupMenuButton<String>(
-                icon: const Icon(Icons.more_vert_rounded, size: 16, color: Colors.black54),
-                padding: EdgeInsets.zero,
-                constraints: const BoxConstraints(),
-                color: AppColors.surface,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                onSelected: (value) {
-                  if (value == 'edit') {
-                    _showHabitFormSheet(context, ref, habitToEdit: habit);
-                  } else if (value == 'delete') {
-                    ref.read(habitsProvider.notifier).deleteHabit(habit.id);
-                  }
-                },
-                itemBuilder: (context) => [
-                  const PopupMenuItem(
-                    value: 'edit',
-                    child: Text('Edit', style: TextStyle(color: AppColors.textPrimary)),
-                  ),
-                  const PopupMenuItem(
-                    value: 'delete',
-                    child: Text('Delete', style: TextStyle(color: AppColors.accentRed)),
-                  ),
-                ],
-              ),
-            ],
+        return Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: AppColors.well,
+            borderRadius: BorderRadius.circular(22),
+            border: Border.all(
+              color: isDoneToday
+                  ? AppColors.tealAccent.withValues(alpha: 0.5)
+                  : AppColors.line,
+              width: 1.0,
+            ),
           ),
-          const SizedBox(height: 6),
-
-          // Today Quick Action Row
-          Row(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              if (habit.type == HabitType.numeric)
-                Expanded(
-                  child: Text(
-                    '${habit.completionCountOn(today)}/${habit.targetValue} ${habit.unit ?? ""}'.trim(),
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      color: Colors.black87,
-                      fontSize: 11,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                )
-              else
-                Expanded(
-                  child: Text(
-                    isDoneToday ? 'Completed today' : 'Pending today',
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      color: isDoneToday ? Colors.black87 : Colors.black54,
-                      fontSize: 11,
-                      fontWeight: isDoneToday ? FontWeight.w700 : FontWeight.w600,
-                    ),
-                  ),
-                ),
-              const SizedBox(width: 4),
-              if (habit.type == HabitType.binary)
-                InkWell(
-                  onTap: () => ref.read(habitsProvider.notifier).toggleCompletion(habit.id, today),
-                  borderRadius: BorderRadius.circular(12),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+              Row(
+                children: [
+                  Container(
+                    width: 44,
+                    height: 44,
                     decoration: BoxDecoration(
-                      color: isDoneToday ? Colors.black87 : Colors.black.withValues(alpha: 0.12),
-                      borderRadius: BorderRadius.circular(12),
+                      color: AppColors.tealAccent.withValues(alpha: 0.14),
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: AppColors.tealAccent.withValues(alpha: 0.35),
+                        width: 1.0,
+                      ),
                     ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
+                    child: Icon(
+                      resolveIcon(habit.iconName),
+                      size: 22,
+                      color: AppColors.tealAccent,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Icon(
-                          isDoneToday ? Icons.check_circle_rounded : Icons.radio_button_unchecked_rounded,
-                          size: 13,
-                          color: isDoneToday ? AppColors.cardSage : Colors.black87,
-                        ),
-                        const SizedBox(width: 4),
                         Text(
-                          isDoneToday ? 'Done' : 'Check',
-                          style: TextStyle(
-                            color: isDoneToday ? AppColors.cardSage : Colors.black87,
-                            fontSize: 10,
+                          habit.title,
+                          style: const TextStyle(
+                            color: AppColors.textPrimary,
+                            fontSize: 16.5,
                             fontWeight: FontWeight.w700,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          '${habit.completionCountOn(today)} of ${habit.targetValue} completed today',
+                          style: const TextStyle(
+                            color: AppColors.textSecondary,
+                            fontSize: 12.5,
                           ),
                         ),
                       ],
                     ),
                   ),
-                )
-              else
-                Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    _buildStepperButton(
-                      icon: Icons.remove_rounded,
-                      onTap: () => ref.read(habitsProvider.notifier).stepCompletion(habit.id, -1, today),
-                      size: 22,
-                    ),
-                    const SizedBox(width: 6),
-                    Text(
-                      '${habit.completionCountOn(today)}',
-                      style: const TextStyle(
-                        color: Colors.black87,
-                        fontSize: 12,
-                        fontWeight: FontWeight.w800,
-                      ),
-                    ),
-                    const SizedBox(width: 6),
-                    _buildStepperButton(
-                      icon: Icons.add_rounded,
-                      onTap: () => ref.read(habitsProvider.notifier).stepCompletion(habit.id, 1, today),
-                      size: 22,
-                    ),
-                  ],
+                  DuskGlassButton.icon(
+                    onPressed: () => _showHabitFormSheet(context, ref, habitToEdit: habit),
+                    size: 34,
+                    icon: const Icon(Icons.edit_outlined, size: 16, color: AppColors.textSecondary),
+                  ),
+                  const SizedBox(width: 6),
+                  DuskGlassButton.icon(
+                    onPressed: () => ref.read(habitsProvider.notifier).deleteHabit(habit.id),
+                    size: 34,
+                    icon: const Icon(Icons.delete_outline_rounded, size: 16, color: AppColors.accentRed),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              _buildDuskWeekDots(
+                ref: ref,
+                habit: habit,
+                weekStart: weekStart,
+                today: today,
+                startWeekOnMonday: settings.startWeekOnMonday,
+              ),
+              const SizedBox(height: 8),
+              Expanded(
+                child: _buildCalendarHeatmap(
+                  habit: habit,
+                  today: today,
+                  startWeekOnMonday: settings.startWeekOnMonday,
                 ),
+              ),
             ],
           ),
-          const SizedBox(height: 6),
-
-          // 7-Day Current Week Strip
-          SizedBox(
-            height: 42,
-            child: _buildWeekStrip(
-              ref: ref,
-              habit: habit,
-              weekStart: weekStart,
-              today: today,
-              startWeekOnMonday: settings.startWeekOnMonday,
-            ),
-          ),
-          const SizedBox(height: 6),
-
-          // Calendar-Style Heatmap Widget (5x7 / 6x7 grid)
-          Expanded(
-            child: _buildCalendarHeatmap(
-              habit: habit,
-              today: today,
-              startWeekOnMonday: settings.startWeekOnMonday,
-            ),
-          ),
-        ],
-      ),
+        );
+      },
     );
   }
 
-  /// Calendar-style monthly contribution heatmap showing daily dots in a 7-column x 5/6-row matrix.
+  /// Calendar-style monthly contribution heatmap showing daily activity dots.
   Widget _buildCalendarHeatmap({
     required HabitItem habit,
     required DateTime today,
@@ -698,8 +599,9 @@ class HabitsCard extends ConsumerWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
       decoration: BoxDecoration(
-        color: Colors.black.withValues(alpha: 0.05),
-        borderRadius: BorderRadius.circular(12),
+        color: AppColors.glass,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: AppColors.line, width: 1.0),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -711,19 +613,19 @@ class HabitsCard extends ConsumerWidget {
                   '$monthName Activity',
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
-                    color: Colors.black87,
-                    fontSize: 10,
-                    fontWeight: FontWeight.w800,
+                    color: AppColors.textPrimary,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
                   ),
                 ),
               ),
               const SizedBox(width: 4),
               Text(
                 '$completedCount/$totalDays days',
-                style: TextStyle(
-                  color: Colors.black.withValues(alpha: 0.6),
-                  fontSize: 10,
-                  fontWeight: FontWeight.w700,
+                style: const TextStyle(
+                  color: AppColors.textSecondary,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600,
                 ),
               ),
             ],
@@ -739,224 +641,67 @@ class HabitsCard extends ConsumerWidget {
                   children: [
                     Row(
                       mainAxisSize: MainAxisSize.min,
-                      children: [
-                        for (var i = 0; i < 7; i++) ...[
-                          if (i > 0) const SizedBox(width: 3),
-                          SizedBox(
-                            width: 14,
-                            child: Center(
-                              child: Text(
-                                weekdayLabels[i],
-                                style: TextStyle(
-                                  color: Colors.black.withValues(alpha: 0.45),
-                                  fontSize: 9,
-                                  fontWeight: FontWeight.w800,
-                                ),
-                              ),
+                      children: weekdayLabels.map((lbl) {
+                        return Container(
+                          width: 16,
+                          margin: const EdgeInsets.symmetric(horizontal: 2),
+                          alignment: Alignment.center,
+                          child: Text(
+                            lbl,
+                            style: const TextStyle(
+                              color: AppColors.textSecondary,
+                              fontSize: 9,
+                              fontWeight: FontWeight.w600,
                             ),
                           ),
-                        ],
-                      ],
+                        );
+                      }).toList(),
                     ),
                     const SizedBox(height: 3),
-                    for (var w = 0; w < weeks.length; w++) ...[
-                      if (w > 0) const SizedBox(height: 3),
-                      Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          for (var d = 0; d < 7; d++) ...[
-                            if (d > 0) const SizedBox(width: 3),
-                            _buildHeatmapDot(weeks[w][d]),
-                          ],
-                        ],
-                      ),
-                    ],
+                    ...weeks.map((week) {
+                      return Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 1.5),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: week.map((cell) {
+                            Color dotColor;
+                            Border? border;
+
+                            if (cell.date == null) {
+                              dotColor = Colors.transparent;
+                            } else if (cell.isCompleted) {
+                              dotColor = AppColors.tealAccent;
+                            } else if (cell.count > 0) {
+                              dotColor = AppColors.tealAccent.withValues(alpha: 0.4);
+                            } else {
+                              dotColor = AppColors.glass;
+                              border = Border.all(color: AppColors.line, width: 1.0);
+                            }
+
+                            if (cell.isToday) {
+                              border = Border.all(color: AppColors.textPrimary, width: 1.2);
+                            }
+
+                            return Container(
+                              width: 16,
+                              height: 16,
+                              margin: const EdgeInsets.symmetric(horizontal: 2),
+                              decoration: BoxDecoration(
+                                color: dotColor,
+                                borderRadius: BorderRadius.circular(4),
+                                border: border,
+                              ),
+                            );
+                          }).toList(),
+                        ),
+                      );
+                    }),
                   ],
                 ),
               ),
             ),
           ),
         ],
-      ),
-    );
-  }
-
-  /// Individual rounded square dot for the calendar-style monthly heatmap.
-  Widget _buildHeatmapDot(HeatmapCellData cell) {
-    if (!cell.isCurrentMonth) {
-      return const SizedBox(
-        width: 14,
-        height: 14,
-      );
-    }
-
-    Color dotColor;
-    Border? border;
-
-    if (cell.isCompleted) {
-      dotColor = Colors.black87;
-    } else if (cell.intensity > 0.6) {
-      dotColor = Colors.black.withValues(alpha: 0.65);
-    } else if (cell.intensity > 0.3) {
-      dotColor = Colors.black.withValues(alpha: 0.45);
-    } else if (cell.intensity > 0.0) {
-      dotColor = Colors.black.withValues(alpha: 0.25);
-    } else if (cell.isFuture) {
-      dotColor = Colors.black.withValues(alpha: 0.04);
-      border = Border.all(
-        color: Colors.black.withValues(alpha: 0.08),
-        width: 0.8,
-      );
-    } else {
-      dotColor = Colors.black.withValues(alpha: 0.08);
-    }
-
-    if (cell.isToday) {
-      border = Border.all(
-        color: Colors.black87,
-        width: 1.2,
-      );
-    }
-
-    return Tooltip(
-      message: cell.date != null
-          ? '${monthNames[cell.date!.month - 1]} ${cell.dayNumber}: ${cell.isCompleted ? "Done" : (cell.count > 0 ? "${cell.count} achieved" : "Missed")}'
-          : '',
-      child: Container(
-        width: 14,
-        height: 14,
-        decoration: BoxDecoration(
-          color: dotColor,
-          borderRadius: BorderRadius.circular(2.5),
-          border: border,
-        ),
-      ),
-    );
-  }
-
-  /// Empty state rendered when no habits are created yet.
-  Widget _buildEmptyState(BuildContext context, WidgetRef ref) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final isCompact = constraints.maxHeight < 140;
-
-        return Center(
-          child: FittedBox(
-            fit: BoxFit.scaleDown,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Container(
-                  padding: EdgeInsets.all(isCompact ? 6 : 10),
-                  decoration: BoxDecoration(
-                    color: Colors.black.withValues(alpha: 0.1),
-                    shape: BoxShape.circle,
-                  ),
-                  child: Icon(
-                    Icons.bolt_rounded,
-                    size: isCompact ? 18 : 24,
-                    color: Colors.black54,
-                  ),
-                ),
-                SizedBox(height: isCompact ? 4 : 8),
-                Text(
-                  'No habits yet',
-                  style: TextStyle(
-                    color: AppColors.textOnLight,
-                    fontWeight: FontWeight.w800,
-                    fontSize: isCompact ? 12 : 14,
-                  ),
-                ),
-                if (!isCompact) ...[
-                  const SizedBox(height: 4),
-                  const Text(
-                    'Tap \'+\' to track your first daily habit',
-                    style: TextStyle(
-                      color: Colors.black54,
-                      fontSize: 11,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ],
-                SizedBox(height: isCompact ? 6 : 10),
-                Material(
-                  color: Colors.transparent,
-                  child: InkWell(
-                    onTap: () => _showHabitFormSheet(context, ref),
-                    borderRadius: BorderRadius.circular(16),
-                    child: Container(
-                      padding: EdgeInsets.symmetric(
-                        horizontal: isCompact ? 10 : 12,
-                        vertical: isCompact ? 4 : 6,
-                      ),
-                      decoration: BoxDecoration(
-                        color: Colors.black87,
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                      child: Text(
-                        '+ Add Habit',
-                        style: TextStyle(
-                          color: AppColors.cardSage,
-                          fontSize: isCompact ? 10 : 11,
-                          fontWeight: FontWeight.w800,
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        );
-      },
-    );
-  }
-
-  /// Circular icon button for carousel navigation.
-  Widget _buildCircleButton({
-    required IconData icon,
-    required VoidCallback onTap,
-    double size = 26,
-  }) {
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(size / 2),
-        child: Container(
-          width: size,
-          height: size,
-          decoration: BoxDecoration(
-            color: Colors.black.withValues(alpha: 0.12),
-            shape: BoxShape.circle,
-          ),
-          child: Icon(icon, size: size * 0.62, color: Colors.black87),
-        ),
-      ),
-    );
-  }
-
-  /// Circular stepper icon button (+ and -).
-  Widget _buildStepperButton({
-    required IconData icon,
-    required VoidCallback onTap,
-    double size = 24,
-  }) {
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(size / 2),
-        child: Container(
-          width: size,
-          height: size,
-          decoration: BoxDecoration(
-            color: Colors.black.withValues(alpha: 0.12),
-            shape: BoxShape.circle,
-          ),
-          child: Icon(icon, size: size * 0.6, color: Colors.black87),
-        ),
       ),
     );
   }
@@ -970,11 +715,12 @@ class HabitsCard extends ConsumerWidget {
     final isEditing = habitToEdit != null;
     final titleController =
         TextEditingController(text: habitToEdit?.title ?? '');
-    final unitController = TextEditingController(text: habitToEdit?.unit ?? '');
+    final unitController =
+        TextEditingController(text: habitToEdit?.unit ?? '');
     var habitType = habitToEdit?.type ?? HabitType.binary;
-    var targetCount =
+    var targetValue =
         habitToEdit?.targetValue ?? (habitType == HabitType.numeric ? 8 : 1);
-    var selectedIcon = habitToEdit?.iconName ?? 'bolt';
+    var iconName = habitToEdit?.iconName ?? 'bolt';
 
     Navigator.of(context).push<void>(
       MaterialPageRoute(
@@ -982,58 +728,53 @@ class HabitsCard extends ConsumerWidget {
           return StatefulBuilder(
             builder: (context, setEditorState) {
               void saveHabit() {
-                final text = titleController.text.trim();
-                if (text.isEmpty) return;
-
-                final unit = unitController.text.trim().isEmpty
-                    ? null
-                    : unitController.text.trim();
-
-                if (isEditing) {
-                  final updated = habitToEdit.copyWith(
-                    title: text,
-                    type: habitType,
-                    targetValue: targetCount,
-                    unit: unit,
-                    iconName: selectedIcon,
-                  );
-                  ref.read(habitsProvider.notifier).editHabit(updated);
-                } else {
-                  final newHabit = HabitItem(
-                    id: DateTime.now().millisecondsSinceEpoch.toString(),
-                    title: text,
-                    type: habitType,
-                    targetValue: targetCount,
-                    unit: unit,
-                    iconName: selectedIcon,
-                    colorHex: '#A0D2B4',
-                    createdAt: DateTime.now(),
-                  );
-                  ref.read(habitsProvider.notifier).addHabit(newHabit);
+                final title = titleController.text.trim();
+                final unit = unitController.text.trim();
+                if (title.isNotEmpty) {
+                  if (isEditing) {
+                    final updated = habitToEdit.copyWith(
+                      title: title,
+                      type: habitType,
+                      targetValue: targetValue,
+                      unit: habitType == HabitType.numeric ? (unit.isEmpty ? null : unit) : null,
+                      iconName: iconName,
+                    );
+                    ref.read(habitsProvider.notifier).editHabit(updated);
+                  } else {
+                    final newHabit = HabitItem(
+                      id: DateTime.now().millisecondsSinceEpoch.toString(),
+                      title: title,
+                      type: habitType,
+                      targetValue: targetValue,
+                      unit: habitType == HabitType.numeric ? (unit.isEmpty ? null : unit) : null,
+                      iconName: iconName,
+                      createdAt: DateTime.now(),
+                    );
+                    ref.read(habitsProvider.notifier).addHabit(newHabit);
+                  }
+                  Navigator.of(context).pop();
                 }
-                Navigator.of(context).pop();
               }
 
               return TwoPaneKeyboardScaffold(
                 title: isEditing ? 'Edit Habit' : 'New Habit',
-                saveLabel: isEditing ? 'Save Changes' : 'Create Habit',
-                saveButtonColor: AppColors.cardSage,
-                saveTextColor: AppColors.textOnLight,
+                saveLabel: isEditing ? 'Save Changes' : 'Save Habit',
+                saveButtonColor: AppColors.tealFill,
+                saveTextColor: Colors.white,
                 onSave: saveHabit,
                 formBuilder: (context, keyboard) {
                   return HabitFormContent(
                     titleController: titleController,
                     unitController: unitController,
                     habitType: habitType,
-                    targetCount: targetCount,
-                    selectedIcon: selectedIcon,
-                    isEditing: isEditing,
+                    targetCount: targetValue,
+                    selectedIcon: iconName,
                     onTypeChanged: (type) =>
                         setEditorState(() => habitType = type),
-                    onTargetCountChanged: (count) =>
-                        setEditorState(() => targetCount = count),
+                    onTargetCountChanged: (val) =>
+                        setEditorState(() => targetValue = val),
                     onIconChanged: (icon) =>
-                        setEditorState(() => selectedIcon = icon),
+                        setEditorState(() => iconName = icon),
                     onChanged: () => setEditorState(() {}),
                   );
                 },
@@ -1041,11 +782,9 @@ class HabitsCard extends ConsumerWidget {
                   return HabitPreviewTile(
                     title: titleController.text,
                     type: habitType,
-                    targetCount: targetCount,
-                    unit: unitController.text.trim().isEmpty
-                        ? null
-                        : unitController.text.trim(),
-                    iconName: selectedIcon,
+                    targetCount: targetValue,
+                    unit: unitController.text.trim().isEmpty ? null : unitController.text.trim(),
+                    iconName: iconName,
                   );
                 },
               );
@@ -1056,8 +795,7 @@ class HabitsCard extends ConsumerWidget {
     );
   }
 
-  /// Opens the habit creation/edit flow, respecting user preference for
-  /// classic bottom sheet vs two-pane virtual keyboard editor.
+  /// Presents the Dusk Glass modal sheet for creating or editing habits.
   void _showHabitFormSheet(
     BuildContext context,
     WidgetRef ref, {
@@ -1070,24 +808,19 @@ class HabitsCard extends ConsumerWidget {
     }
 
     final isEditing = habitToEdit != null;
-    final titleController =
-        TextEditingController(text: habitToEdit?.title ?? '');
+    final titleController = TextEditingController(text: habitToEdit?.title ?? '');
     final unitController = TextEditingController(text: habitToEdit?.unit ?? '');
     var habitType = habitToEdit?.type ?? HabitType.binary;
-    var targetCount =
-        habitToEdit?.targetValue ?? (habitType == HabitType.numeric ? 8 : 1);
+    var targetCount = habitToEdit?.targetValue ?? (habitType == HabitType.numeric ? 8 : 1);
     var selectedIcon = habitToEdit?.iconName ?? 'bolt';
 
     showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
-      backgroundColor: AppColors.surface,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
+      backgroundColor: Colors.transparent,
       builder: (context) {
         return StatefulBuilder(
-          builder: (context, setModalState) {
+          builder: (context, setSheetState) {
             void saveHabit() {
               final text = titleController.text.trim();
               if (text.isEmpty) return;
@@ -1106,27 +839,32 @@ class HabitsCard extends ConsumerWidget {
                 );
                 ref.read(habitsProvider.notifier).editHabit(updated);
               } else {
-                final newHabit = HabitItem(
-                  id: DateTime.now().millisecondsSinceEpoch.toString(),
-                  title: text,
-                  type: habitType,
-                  targetValue: targetCount,
-                  unit: unit,
-                  iconName: selectedIcon,
-                  colorHex: '#A0D2B4',
-                  createdAt: DateTime.now(),
+                ref.read(habitsProvider.notifier).addHabit(
+                  HabitItem(
+                    id: DateTime.now().microsecondsSinceEpoch.toString(),
+                    title: text,
+                    type: habitType,
+                    targetValue: targetCount,
+                    unit: unit,
+                    iconName: selectedIcon,
+                    createdAt: DateTime.now(),
+                  ),
                 );
-                ref.read(habitsProvider.notifier).addHabit(newHabit);
               }
-              Navigator.pop(context);
+              Navigator.of(context).pop();
             }
 
-            return Padding(
+            return Container(
               padding: EdgeInsets.only(
+                bottom: MediaQuery.of(context).viewInsets.bottom + 20,
+                top: 20,
                 left: 20,
                 right: 20,
-                top: 20,
-                bottom: MediaQuery.of(context).viewInsets.bottom + 20,
+              ),
+              decoration: BoxDecoration(
+                color: AppColors.surface,
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
+                border: Border.all(color: AppColors.lineStrong, width: 1.0),
               ),
               child: SingleChildScrollView(
                 child: Column(
@@ -1139,64 +877,45 @@ class HabitsCard extends ConsumerWidget {
                           isEditing ? 'Edit Habit' : 'New Habit',
                           style: const TextStyle(
                             color: AppColors.textPrimary,
-                            fontWeight: FontWeight.w800,
-                            fontSize: 16,
+                            fontSize: 18,
+                            fontWeight: FontWeight.w700,
                           ),
                         ),
                         const Spacer(),
-                        IconButton(
-                          icon: const Icon(Icons.close_rounded,
-                              color: AppColors.textSecondary),
-                          onPressed: () => Navigator.pop(context),
+                        DuskGlassButton.icon(
+                          onPressed: () => Navigator.of(context).pop(),
+                          size: 32,
+                          icon: const Icon(Icons.close_rounded, size: 16, color: AppColors.textSecondary),
                         ),
                       ],
                     ),
-                    const SizedBox(height: 12),
+                    const SizedBox(height: 16),
                     HabitFormContent(
                       titleController: titleController,
                       unitController: unitController,
                       habitType: habitType,
                       targetCount: targetCount,
                       selectedIcon: selectedIcon,
+                      onTypeChanged: (type) => setSheetState(() => habitType = type),
+                      onTargetCountChanged: (count) => setSheetState(() => targetCount = count),
+                      onIconChanged: (icon) => setSheetState(() => selectedIcon = icon),
                       isEditing: isEditing,
-                      onTypeChanged: (type) =>
-                          setModalState(() => habitType = type),
-                      onTargetCountChanged: (count) =>
-                          setModalState(() => targetCount = count),
-                      onIconChanged: (icon) =>
-                          setModalState(() => selectedIcon = icon),
                     ),
-                    const SizedBox(height: 18),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: TextButton(
-                            onPressed: () => Navigator.pop(context),
-                            child: const Text('Cancel',
-                                style:
-                                    TextStyle(color: AppColors.textSecondary)),
-                          ),
+                    const SizedBox(height: 20),
+                    DuskGlassButton(
+                      onPressed: saveHabit,
+                      isPrimary: true,
+                      primaryColor: AppColors.tealFill,
+                      primaryForegroundColor: AppColors.tealInk,
+                      height: 46,
+                      label: Text(
+                        isEditing ? 'Save Changes' : 'Create Habit',
+                        style: const TextStyle(
+                          color: AppColors.tealInk,
+                          fontSize: 15,
+                          fontWeight: FontWeight.w700,
                         ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: ElevatedButton(
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: AppColors.cardSage,
-                              foregroundColor: AppColors.textOnLight,
-                              padding:
-                                  const EdgeInsets.symmetric(vertical: 12),
-                              shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12)),
-                            ),
-                            onPressed: saveHabit,
-                            child: Text(
-                              isEditing ? 'Save Changes' : 'Create Habit',
-                              style: const TextStyle(
-                                  fontWeight: FontWeight.w800, fontSize: 13),
-                            ),
-                          ),
-                        ),
-                      ],
+                      ),
                     ),
                   ],
                 ),

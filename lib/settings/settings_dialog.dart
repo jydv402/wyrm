@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:wyrm_desk/core/theme.dart';
+import 'package:wyrm_desk/display/display_state.dart';
+import 'package:wyrm_desk/home/card_layout_state.dart';
 import 'package:wyrm_desk/server/network_info.dart';
+import 'package:wyrm_desk/server/network_modal.dart';
+import 'package:wyrm_desk/settings/settings_state.dart';
+import 'package:wyrm_desk/widgets/dusk_glass_button.dart';
 
-import 'settings_state.dart';
-
-/// Modal dialog displaying application configuration options.
+/// Dusk Glass modal dialog displaying application configuration options.
 class SettingsDialog extends ConsumerWidget {
   const SettingsDialog({super.key});
 
@@ -14,7 +16,7 @@ class SettingsDialog extends ConsumerWidget {
   static Future<void> show(BuildContext context) {
     return showDialog<void>(
       context: context,
-      barrierColor: Colors.black.withValues(alpha: 0.65),
+      barrierColor: Colors.black.withValues(alpha: 0.75),
       builder: (_) => const SettingsDialog(),
     );
   }
@@ -23,6 +25,10 @@ class SettingsDialog extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final settings = ref.watch(appSettingsProvider);
     final notifier = ref.read(appSettingsProvider.notifier);
+    final displayState = ref.watch(displayProvider);
+    final layoutConfig = ref.watch(cardLayoutProvider);
+    final isNightstand = layoutConfig.clock == CardSize.nightstand;
+
     final ipAsync = ref.watch(localIpProvider);
     final ipAddress = ipAsync.value ?? '127.0.0.1';
     final serverUrl = 'http://$ipAddress:8080';
@@ -31,497 +37,277 @@ class SettingsDialog extends ConsumerWidget {
       backgroundColor: AppColors.surface,
       elevation: 0,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(24.0),
-        side: const BorderSide(color: AppColors.borderDark, width: 1.5),
+        borderRadius: BorderRadius.circular(28.0),
+        side: const BorderSide(color: AppColors.lineStrong, width: 1.0),
       ),
       child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 400),
+        constraints: const BoxConstraints(maxWidth: 440),
         child: SingleChildScrollView(
           child: Padding(
-            padding: const EdgeInsets.all(22.0),
+            padding: const EdgeInsets.all(24.0),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-              Row(
-                children: [
-                  const Expanded(
-                    child: Text(
-                      'Settings',
-                      style: TextStyle(
-                        color: AppColors.textPrimary,
-                        fontSize: 18,
-                        fontWeight: FontWeight.w700,
-                        letterSpacing: 0.2,
-                      ),
-                    ),
-                  ),
-                  IconButton(
-                    icon: const Icon(
-                      Icons.close_rounded,
-                      color: AppColors.textSecondary,
-                      size: 20,
-                    ),
-                    onPressed: () => Navigator.of(context).pop(),
-                    visualDensity: VisualDensity.compact,
-                    splashRadius: 18,
-                  ),
-                ],
-              ),
-              const SizedBox(height: 6),
-              const Text(
-                'Configure ambient display, clock preferences, and web remote.',
-                style: TextStyle(
-                  color: AppColors.textSecondary,
-                  fontSize: 13,
-                  height: 1.3,
-                ),
-              ),
-              const SizedBox(height: 18),
-
-              // Time format toggle row.
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 14,
-                ),
-                decoration: BoxDecoration(
-                  color: AppColors.surfaceElevated,
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: AppColors.borderDark, width: 1.0),
-                ),
-                child: Row(
+                // Header
+                Row(
                   children: [
-                    const Icon(
-                      Icons.schedule_rounded,
-                      size: 20,
-                      color: AppColors.accentOrange,
-                    ),
-                    const SizedBox(width: 12),
-                    const Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            '24-Hour Time',
-                            style: TextStyle(
-                              color: AppColors.textPrimary,
-                              fontWeight: FontWeight.w700,
-                              fontSize: 14,
-                            ),
-                          ),
-                          SizedBox(height: 2),
-                          Text(
-                            'Format clock as 24h instead of 12h with AM/PM',
-                            style: TextStyle(
-                              color: AppColors.textSecondary,
-                              fontSize: 11,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    Switch.adaptive(
-                      value: settings.is24HourFormat,
-                      activeThumbColor: AppColors.accentOrange,
-                      activeTrackColor: AppColors.accentOrange.withValues(
-                        alpha: 0.4,
-                      ),
-                      inactiveThumbColor: AppColors.textSecondary,
-                      inactiveTrackColor: AppColors.surface,
-                      onChanged: (val) => notifier.set24HourFormat(val),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 12),
-
-              // Card text font size counter row.
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 14,
-                ),
-                decoration: BoxDecoration(
-                  color: AppColors.surfaceElevated,
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: AppColors.borderDark, width: 1.0),
-                ),
-                child: Row(
-                  children: [
-                    const Icon(
-                      Icons.format_size_rounded,
-                      size: 20,
-                      color: AppColors.accentOrange,
-                    ),
-                    const SizedBox(width: 12),
-                    const Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Card Text Size',
-                            style: TextStyle(
-                              color: AppColors.textPrimary,
-                              fontWeight: FontWeight.w700,
-                              fontSize: 14,
-                            ),
-                          ),
-                          SizedBox(height: 2),
-                          Text(
-                            'Adjust font scale for task and habit checklists',
-                            style: TextStyle(
-                              color: AppColors.textSecondary,
-                              fontSize: 11,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    // Tactile counter style stepper.
-                    Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Material(
-                          color: Colors.transparent,
-                          child: InkWell(
-                            onTap: settings.cardFontSize > 11.0
-                                ? () => notifier.decrementCardFontSize()
-                                : null,
-                            borderRadius: BorderRadius.circular(8),
-                            child: Container(
-                              width: 32,
-                              height: 32,
-                              decoration: BoxDecoration(
-                                color: Colors.black.withValues(alpha: 0.25),
-                                borderRadius: BorderRadius.circular(8),
-                                border: Border.all(
-                                  color: AppColors.borderDark,
-                                  width: 1.0,
-                                ),
-                              ),
-                              child: Icon(
-                                Icons.remove_rounded,
-                                size: 16,
-                                color: settings.cardFontSize > 11.0
-                                    ? AppColors.textPrimary
-                                    : AppColors.textSecondary.withValues(
-                                        alpha: 0.4,
-                                      ),
-                              ),
-                            ),
-                          ),
-                        ),
-                        Container(
-                          margin: const EdgeInsets.symmetric(horizontal: 8),
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 10,
-                            vertical: 6,
-                          ),
-                          decoration: BoxDecoration(
-                            color: Colors.black.withValues(alpha: 0.15),
-                            borderRadius: BorderRadius.circular(8),
-                            border: Border.all(
-                              color: AppColors.borderDark,
-                              width: 1.0,
-                            ),
-                          ),
-                          child: Text(
-                            '${settings.cardFontSize.toInt()} pt',
-                            style: const TextStyle(
-                              color: AppColors.accentOrange,
-                              fontSize: 12,
-                              fontWeight: FontWeight.w700,
-                              fontFeatures: [FontFeature.tabularFigures()],
-                            ),
-                          ),
-                        ),
-                        Material(
-                          color: Colors.transparent,
-                          child: InkWell(
-                            onTap: settings.cardFontSize < 22.0
-                                ? () => notifier.incrementCardFontSize()
-                                : null,
-                            borderRadius: BorderRadius.circular(8),
-                            child: Container(
-                              width: 32,
-                              height: 32,
-                              decoration: BoxDecoration(
-                                color: Colors.black.withValues(alpha: 0.25),
-                                borderRadius: BorderRadius.circular(8),
-                                border: Border.all(
-                                  color: AppColors.borderDark,
-                                  width: 1.0,
-                                ),
-                              ),
-                              child: Icon(
-                                Icons.add_rounded,
-                                size: 16,
-                                color: settings.cardFontSize < 22.0
-                                    ? AppColors.textPrimary
-                                    : AppColors.textSecondary.withValues(
-                                        alpha: 0.4,
-                                      ),
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 12),
-
-              // Calendar start day toggle row.
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 14,
-                ),
-                decoration: BoxDecoration(
-                  color: AppColors.surfaceElevated,
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: AppColors.borderDark, width: 1.0),
-                ),
-                child: Row(
-                  children: [
-                    const Icon(
-                      Icons.calendar_view_week_rounded,
-                      size: 20,
-                      color: AppColors.accentOrange,
-                    ),
-                    const SizedBox(width: 12),
-                    const Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Start Week on Monday',
-                            style: TextStyle(
-                              color: AppColors.textPrimary,
-                              fontWeight: FontWeight.w700,
-                              fontSize: 14,
-                            ),
-                          ),
-                          SizedBox(height: 2),
-                          Text(
-                            'Calendar starts on Monday instead of Sunday',
-                            style: TextStyle(
-                              color: AppColors.textSecondary,
-                              fontSize: 11,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    Switch.adaptive(
-                      value: settings.startWeekOnMonday,
-                      activeThumbColor: AppColors.accentOrange,
-                      activeTrackColor: AppColors.accentOrange.withValues(
-                        alpha: 0.4,
-                      ),
-                      inactiveThumbColor: AppColors.textSecondary,
-                      inactiveTrackColor: AppColors.surface,
-                      onChanged: (val) => notifier.setStartWeekOnMonday(val),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 12),
-
-              // Classic modal bottom sheet toggle row.
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 14,
-                ),
-                decoration: BoxDecoration(
-                  color: AppColors.surfaceElevated,
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: AppColors.borderDark, width: 1.0),
-                ),
-                child: Row(
-                  children: [
-                    const Icon(
-                      Icons.vertical_align_bottom_rounded,
-                      size: 20,
-                      color: AppColors.accentOrange,
-                    ),
-                    const SizedBox(width: 12),
-                    const Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Classic Modal Sheet',
-                            style: TextStyle(
-                              color: AppColors.textPrimary,
-                              fontWeight: FontWeight.w700,
-                              fontSize: 14,
-                            ),
-                          ),
-                          SizedBox(height: 2),
-                          Text(
-                            'Use bottom sheet instead of 2-pane keyboard editor',
-                            style: TextStyle(
-                              color: AppColors.textSecondary,
-                              fontSize: 11,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    Switch.adaptive(
-                      value: settings.useClassicModalSheet,
-                      activeThumbColor: AppColors.accentOrange,
-                      activeTrackColor: AppColors.accentOrange.withValues(
-                        alpha: 0.4,
-                      ),
-                      inactiveThumbColor: AppColors.textSecondary,
-                      inactiveTrackColor: AppColors.surface,
-                      onChanged: (val) => notifier.setUseClassicModalSheet(val),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 12),
-
-              // Web Remote connection card.
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: AppColors.surfaceElevated,
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: AppColors.borderDark, width: 1.0),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    Row(
-                      children: [
-                        const Icon(
-                          Icons.wifi_tethering_rounded,
-                          size: 20,
-                          color: Color(0xFF34C759),
-                        ),
-                        const SizedBox(width: 12),
-                        const Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'Web Remote',
-                                style: TextStyle(
-                                  color: AppColors.textPrimary,
-                                  fontWeight: FontWeight.w700,
-                                  fontSize: 14,
-                                ),
-                              ),
-                              SizedBox(height: 2),
-                              Text(
-                                'Control this tablet from any phone or laptop',
-                                style: TextStyle(
-                                  color: AppColors.textSecondary,
-                                  fontSize: 11,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        InkWell(
-                          onTap: () {
-                            Clipboard.setData(ClipboardData(text: serverUrl));
-                            ScaffoldMessenger.of(context).hideCurrentSnackBar();
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text('Copied $serverUrl to clipboard'),
-                                duration: const Duration(seconds: 2),
-                                behavior: SnackBarBehavior.floating,
-                                backgroundColor: AppColors.surface,
-                              ),
-                            );
-                          },
-                          borderRadius: BorderRadius.circular(8),
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 8,
-                              vertical: 4,
-                            ),
-                            decoration: BoxDecoration(
-                              color: Colors.black.withValues(alpha: 0.2),
-                              borderRadius: BorderRadius.circular(8),
-                              border: Border.all(
-                                color: AppColors.borderDark,
-                                width: 1.0,
-                              ),
-                            ),
-                            child: const Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(
-                                  Icons.copy_rounded,
-                                  size: 12,
-                                  color: AppColors.textSecondary,
-                                ),
-                                SizedBox(width: 4),
-                                Text(
-                                  'Copy',
-                                  style: TextStyle(
-                                    color: AppColors.textSecondary,
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 12),
-
-                    // Direct address bar pill.
                     Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 8,
-                      ),
+                      width: 36,
+                      height: 36,
                       decoration: BoxDecoration(
-                        color: Colors.black.withValues(alpha: 0.3),
-                        borderRadius: BorderRadius.circular(10),
+                        color: AppColors.slateAccent.withValues(alpha: 0.14),
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: AppColors.slateAccent.withValues(alpha: 0.35),
+                          width: 1.0,
+                        ),
                       ),
-                      child: Row(
+                      child: const Icon(
+                        Icons.settings_rounded,
+                        color: AppColors.slateAccent,
+                        size: 18,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    const Expanded(
+                      child: Text(
+                        'Settings',
+                        style: TextStyle(
+                          color: AppColors.textPrimary,
+                          fontSize: 18,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                    DuskGlassButton.icon(
+                      onPressed: () => Navigator.of(context).pop(),
+                      size: 32,
+                      icon: const Icon(Icons.close_rounded, size: 16, color: AppColors.textSecondary),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 6),
+                const Text(
+                  'Configure ambient display, clock preferences, and web remote.',
+                  style: TextStyle(
+                    color: AppColors.textSecondary,
+                    fontSize: 12.5,
+                  ),
+                ),
+                const SizedBox(height: 20),
+
+                // Display Brightness Slider Row
+                _buildSettingContainer(
+                  icon: Icons.brightness_6_rounded,
+                  title: 'Brightness',
+                  subtitle: '${(displayState.brightness * 100).toInt()}% display intensity',
+                  trailing: SizedBox(
+                    width: 140,
+                    child: SliderTheme(
+                      data: SliderThemeData(
+                        trackHeight: 6,
+                        activeTrackColor: AppColors.accentOrange,
+                        inactiveTrackColor: AppColors.lineStrong,
+                        thumbColor: Colors.white,
+                        thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 9),
+                        overlayShape: SliderComponentShape.noOverlay,
+                      ),
+                      child: Slider(
+                        value: displayState.brightness.clamp(0.05, 1.0),
+                        min: 0.05,
+                        max: 1.0,
+                        onChanged: (val) {
+                          ref.read(displayProvider.notifier).setBrightness(val);
+                        },
+                      ),
+                    ),
+                  ),
+                ),
+
+                const SizedBox(height: 10),
+
+                // 24-Hour Time Format Switch
+                _buildSettingContainer(
+                  icon: Icons.schedule_rounded,
+                  title: '24-Hour Time',
+                  subtitle: 'Format clock as 24h instead of 12h',
+                  trailing: Switch.adaptive(
+                    value: settings.is24HourFormat,
+                    activeThumbColor: AppColors.accentOrange,
+                    activeTrackColor: AppColors.accentOrange.withValues(alpha: 0.35),
+                    inactiveThumbColor: AppColors.textSecondary,
+                    inactiveTrackColor: AppColors.well,
+                    onChanged: (val) => notifier.set24HourFormat(val),
+                  ),
+                ),
+
+                const SizedBox(height: 10),
+
+                // Start Week on Monday Switch
+                _buildSettingContainer(
+                  icon: Icons.calendar_view_week_rounded,
+                  title: 'Start Week on Monday',
+                  subtitle: 'Calendar starts on Monday instead of Sunday',
+                  trailing: Switch.adaptive(
+                    value: settings.startWeekOnMonday,
+                    activeThumbColor: AppColors.accentOrange,
+                    activeTrackColor: AppColors.accentOrange.withValues(alpha: 0.35),
+                    inactiveThumbColor: AppColors.textSecondary,
+                    inactiveTrackColor: AppColors.well,
+                    onChanged: (val) => notifier.setStartWeekOnMonday(val),
+                  ),
+                ),
+
+                const SizedBox(height: 10),
+
+                // Classic Modal Sheet Toggle
+                _buildSettingContainer(
+                  icon: Icons.view_sidebar_rounded,
+                  title: 'Classic Modal Sheet',
+                  subtitle: 'Use bottom sheet instead of 2-pane keyboard editor',
+                  trailing: Switch.adaptive(
+                    value: settings.useClassicModalSheet,
+                    activeThumbColor: AppColors.tealAccent,
+                    activeTrackColor: AppColors.tealAccent.withValues(alpha: 0.35),
+                    inactiveThumbColor: AppColors.textSecondary,
+                    inactiveTrackColor: AppColors.well,
+                    onChanged: (val) {
+                      ref
+                          .read(appSettingsProvider.notifier)
+                          .setUseClassicModalSheet(val);
+                    },
+                  ),
+                ),
+
+                const SizedBox(height: 10),
+
+                // Nightstand Mode Toggle
+                _buildSettingContainer(
+                  icon: Icons.bedtime_rounded,
+                  title: 'Nightstand Mode',
+                  subtitle: 'Pitch-black ultra-low glare glowing clock',
+                  trailing: Switch.adaptive(
+                    value: isNightstand,
+                    activeThumbColor: const Color(0xFFFF9500),
+                    activeTrackColor: const Color(0xFFFF9500).withValues(alpha: 0.35),
+                    inactiveThumbColor: AppColors.textSecondary,
+                    inactiveTrackColor: AppColors.well,
+                    onChanged: (val) {
+                      ref.read(cardLayoutProvider.notifier).setCardSize(
+                            DashboardCardType.clock,
+                            val ? CardSize.nightstand : CardSize.small,
+                          );
+                    },
+                  ),
+                ),
+
+                const SizedBox(height: 16),
+
+                // Web Remote Banner Card
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: AppColors.well,
+                    borderRadius: BorderRadius.circular(18),
+                    border: Border.all(color: AppColors.line, width: 1.0),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
                         children: [
-                          Container(
-                            width: 6,
-                            height: 6,
-                            decoration: const BoxDecoration(
-                              shape: BoxShape.circle,
-                              color: Color(0xFF34C759),
+                          const Icon(Icons.wifi_rounded, size: 18, color: AppColors.tealAccent),
+                          const SizedBox(width: 8),
+                          const Expanded(
+                            child: Text(
+                              'Web Remote Companion',
+                              style: TextStyle(
+                                color: AppColors.textPrimary,
+                                fontWeight: FontWeight.w700,
+                                fontSize: 14,
+                              ),
+                              overflow: TextOverflow.ellipsis,
                             ),
                           ),
                           const SizedBox(width: 8),
-                          Text(
-                            serverUrl,
-                            style: const TextStyle(
-                              color: AppColors.textPrimary,
-                              fontSize: 12,
-                              fontWeight: FontWeight.w700,
-                              fontFeatures: [FontFeature.tabularFigures()],
+                          DuskGlassButton(
+                            onPressed: () {
+                              Navigator.of(context).pop();
+                              NetworkConnectionModal.show(context);
+                            },
+                            height: 30,
+                            padding: const EdgeInsets.symmetric(horizontal: 10),
+                            label: const Text(
+                              'Show QR',
+                              style: TextStyle(color: AppColors.textPrimary, fontSize: 12, fontWeight: FontWeight.w600),
                             ),
                           ),
                         ],
                       ),
-                    ),
-                  ],
+                      const SizedBox(height: 8),
+                      Text(
+                        serverUrl,
+                        style: const TextStyle(
+                          color: AppColors.textSecondary,
+                          fontSize: 13,
+                          fontFamily: 'monospace',
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
-    ),
-  );
+    );
+  }
+
+  Widget _buildSettingContainer({
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    required Widget trailing,
+  }) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(
+        color: AppColors.well,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: AppColors.line, width: 1.0),
+      ),
+      child: Row(
+        children: [
+          Icon(icon, size: 20, color: AppColors.slateAccent),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: const TextStyle(
+                    color: AppColors.textPrimary,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                Text(
+                  subtitle,
+                  style: const TextStyle(
+                    color: AppColors.textSecondary,
+                    fontSize: 12,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 10),
+          trailing,
+        ],
+      ),
+    );
   }
 }

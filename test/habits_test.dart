@@ -384,8 +384,8 @@ void main() {
       );
 
       expect(find.text('Habits'), findsOneWidget);
-      expect(find.text('No habits yet'), findsOneWidget);
-      expect(find.text('+ Add Habit'), findsOneWidget);
+      expect(find.text('No habits for today'), findsOneWidget);
+      expect(find.text('Add a habit'), findsOneWidget);
     });
 
     testWidgets('renders Small carousel layout with active habit details and week strip',

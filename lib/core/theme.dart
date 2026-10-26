@@ -1,121 +1,153 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 
-/// Palette extracted directly from the retro-futuristic bento design reference.
-class AppColors {
-  // Base Canvas & Neutral Surfaces
-  static const Color background = Color(0xFF000000); // Void black master canvas
-  static const Color surface = Color(0xFF121418); // Dark card background
-  static const Color surfaceElevated = Color(0xFF1B1E26);
-  static const Color borderDark = Color(0xFF222631);
+/// Dusk Glass destination tone definition matching assets/web/style.css.
+class DuskTone {
+  final Color top;
+  final Color bottom;
+  final Color accent;
+  final Color fill;
+  final Color ink;
+  final Color glow;
 
-  // Bento Card Hero Colors
-  static const Color cardSage = Color(
-    0xFFA0D2B4,
-  ); // Pastel mint/sage green card
-  static const Color cardYellow = Color(0xFFFEE15F); // Warm golden yellow card
-  static const Color cardCream = Color(
-    0xFFFCF7CB,
-  ); // Pale vanilla cream pill bar
-  static const Color cardOrange = Color(
-    0xFFE06E3F,
-  ); // Burnt / safety orange card
-  static const Color cardWhite = Color(0xFFFFFFFF); // High-contrast white card
-
-  // Accents & Hardware Details
-  static const Color accentOrange = Color(
-    0xFFFF7F00,
-  ); // Visor glow / cyberware highlight
-  static const Color accentRed = Color(0xFFFF3B30);
-
-  // Typography
-  static const Color textPrimary = Color(
-    0xFFFFFFFF,
-  ); // White text on dark surfaces
-  static const Color textSecondary = Color(0xFF8E95A5);
-  static const Color textMuted = Color(0xFF535868);
-  static const Color textOnLight = Color(
-    0xFF111111,
-  ); // Deep black text on pastel cards
-}
-
-/// ThemeExtension enabling clean access to the bento color tokens via Theme.of(context).
-class BentoPalette extends ThemeExtension<BentoPalette> {
-  final Color cardSage;
-  final Color cardYellow;
-  final Color cardCream;
-  final Color cardOrange;
-  final Color cardWhite;
-  final Color textOnLight;
-  final Color accentOrange;
-
-  const BentoPalette({
-    required this.cardSage,
-    required this.cardYellow,
-    required this.cardCream,
-    required this.cardOrange,
-    required this.cardWhite,
-    required this.textOnLight,
-    required this.accentOrange,
+  const DuskTone({
+    required this.top,
+    required this.bottom,
+    required this.accent,
+    required this.fill,
+    required this.ink,
+    required this.glow,
   });
 
-  static const BentoPalette dark = BentoPalette(
-    cardSage: AppColors.cardSage,
-    cardYellow: AppColors.cardYellow,
-    cardCream: AppColors.cardCream,
-    cardOrange: AppColors.cardOrange,
-    cardWhite: AppColors.cardWhite,
-    textOnLight: AppColors.textOnLight,
-    accentOrange: AppColors.accentOrange,
-  );
+  LinearGradient get gradient => LinearGradient(
+        begin: Alignment.topCenter,
+        end: Alignment.bottomCenter,
+        colors: [top, bottom],
+      );
 
-  @override
-  BentoPalette copyWith({
-    Color? cardSage,
-    Color? cardYellow,
-    Color? cardCream,
-    Color? cardOrange,
-    Color? cardWhite,
-    Color? textOnLight,
-    Color? accentOrange,
-  }) {
-    return BentoPalette(
-      cardSage: cardSage ?? this.cardSage,
-      cardYellow: cardYellow ?? this.cardYellow,
-      cardCream: cardCream ?? this.cardCream,
-      cardOrange: cardOrange ?? this.cardOrange,
-      cardWhite: cardWhite ?? this.cardWhite,
-      textOnLight: textOnLight ?? this.textOnLight,
-      accentOrange: accentOrange ?? this.accentOrange,
-    );
-  }
-
-  @override
-  BentoPalette lerp(ThemeExtension<BentoPalette>? other, double t) {
-    if (other is! BentoPalette) return this;
-    return BentoPalette(
-      cardSage: Color.lerp(cardSage, other.cardSage, t) ?? cardSage,
-      cardYellow: Color.lerp(cardYellow, other.cardYellow, t) ?? cardYellow,
-      cardCream: Color.lerp(cardCream, other.cardCream, t) ?? cardCream,
-      cardOrange: Color.lerp(cardOrange, other.cardOrange, t) ?? cardOrange,
-      cardWhite: Color.lerp(cardWhite, other.cardWhite, t) ?? cardWhite,
-      textOnLight: Color.lerp(textOnLight, other.textOnLight, t) ?? textOnLight,
-      accentOrange:
-          Color.lerp(accentOrange, other.accentOrange, t) ?? accentOrange,
-    );
-  }
+  Color get border => accent.withValues(alpha: 0.22);
 }
 
-/// AppTheme definition configuring Flutter Material ThemeData.
+/// Palette tokens extracted directly from assets/web Dusk Glass design system.
+class AppColors {
+  // Master Canvas & Base Void
+  static const Color background = Color(0xFF020305);
+  static const Color canvasAlt = Color(0xFF0A0E11);
+  static const Color surface = Color(0xFF0E1418);
+  static const Color surfaceElevated = Color(0xFF141B20);
+  static const Color well = Color(0x4D000000); // 30% black
+
+  // Lines & Glass Alpha Tints
+  static const Color line = Color(0x1AFFFFFF); // 10% white
+  static const Color lineStrong = Color(0x29FFFFFF); // 16% white
+  static const Color glass = Color(0x0FFFFFFF); // 6% white
+  static const Color glassHover = Color(0x1CFFFFFF); // 11% white
+
+  // Typography
+  static const Color textPrimary = Color(0xFFEEF2F1);
+  static const Color textSecondary = Color(0xADE8EEEE); // 68%
+  static const Color textMuted = Color(0x75E8EEEE); // 46%
+  static const Color textOnLight = Color(0xFF111111);
+
+  // Brand Accents
+  static const Color brandDot = Color(0xFFEE7A45);
+  static const Color accentOrange = Color(0xFFF2A768);
+  static const Color accentRed = Color(0xFFFF6B55);
+
+  // Priority Colors
+  static const Color priorityHigh = Color(0xFFFF8F70);
+  static const Color priorityMedium = Color(0xFFF3C45E);
+  static const Color priorityLow = Color(0xFF8ED5B7);
+
+  // Slate Tone Colors
+  static const Color slateTop = Color(0xFF1D262D);
+  static const Color slateBottom = Color(0xFF0F1418);
+  static const Color slateAccent = Color(0xFFF2A768);
+  static const Color slateFill = Color(0xFFF2A768);
+  static const Color slateInk = Color(0xFF2A1405);
+  static const Color slateGlow = Color(0x26F2A768);
+
+  // Teal Tone Colors
+  static const Color tealTop = Color(0xFF29413A);
+  static const Color tealBottom = Color(0xFF15262A);
+  static const Color tealAccent = Color(0xFF8ED5B7);
+  static const Color tealFill = Color(0xFF8ED5B7);
+  static const Color tealInk = Color(0xFF0D2A20);
+  static const Color tealGlow = Color(0x268ED5B7);
+
+  // Gold Tone Colors
+  static const Color goldTop = Color(0xFF3B3725);
+  static const Color goldBottom = Color(0xFF1A1A13);
+  static const Color goldAccent = Color(0xFFF6E7A1);
+  static const Color goldFill = Color(0xFFF6E7A1);
+  static const Color goldInk = Color(0xFF2C2710);
+  static const Color goldGlow = Color(0x26F6E7A1);
+
+  // Rust Tone Colors
+  static const Color rustTop = Color(0xFF4A291B);
+  static const Color rustBottom = Color(0xFF22130C);
+  static const Color rustAccent = Color(0xFFF27C52);
+  static const Color rustFill = Color(0xFFDC582B);
+  static const Color rustInk = Color(0xFFFFFFFF);
+  static const Color rustGlow = Color(0x26E5693E);
+
+  // Destination Tones
+  static const DuskTone slate = DuskTone(
+    top: slateTop,
+    bottom: slateBottom,
+    accent: slateAccent,
+    fill: slateFill,
+    ink: slateInk,
+    glow: slateGlow,
+  );
+
+  static const DuskTone teal = DuskTone(
+    top: tealTop,
+    bottom: tealBottom,
+    accent: tealAccent,
+    fill: tealFill,
+    ink: tealInk,
+    glow: tealGlow,
+  );
+
+  static const DuskTone gold = DuskTone(
+    top: goldTop,
+    bottom: goldBottom,
+    accent: goldAccent,
+    fill: goldFill,
+    ink: goldInk,
+    glow: goldGlow,
+  );
+
+  static const DuskTone rust = DuskTone(
+    top: rustTop,
+    bottom: rustBottom,
+    accent: rustAccent,
+    fill: rustFill,
+    ink: rustInk,
+    glow: rustGlow,
+  );
+
+  // Legacy mappings for backwards-compatibility
+  static const Color cardSage = Color(0xFF8ED5B7);
+  static const Color cardYellow = Color(0xFFF6E7A1);
+  static const Color cardCream = Color(0xFFFCF7CB);
+  static const Color cardOrange = Color(0xFFDC582B);
+  static const Color cardWhite = Color(0xFFFFFFFF);
+  static const Color borderDark = Color(0x29FFFFFF);
+}
+
+/// AppTheme definition configuring Material ThemeData with Dusk Glass typography & tokens.
 class AppTheme {
   static ThemeData get darkTheme {
     const colorScheme = ColorScheme(
       brightness: Brightness.dark,
-      primary: AppColors.cardYellow,
-      onPrimary: AppColors.textOnLight,
-      secondary: AppColors.cardSage,
-      onSecondary: AppColors.textOnLight,
-      tertiary: AppColors.cardCream,
-      onTertiary: AppColors.textOnLight,
+      primary: AppColors.slateAccent,
+      onPrimary: AppColors.slateInk,
+      secondary: AppColors.tealAccent,
+      onSecondary: AppColors.tealInk,
+      tertiary: AppColors.goldAccent,
+      onTertiary: AppColors.goldInk,
       error: AppColors.accentRed,
       onError: Colors.white,
       surface: AppColors.surface,
@@ -127,48 +159,19 @@ class AppTheme {
       brightness: Brightness.dark,
       scaffoldBackgroundColor: AppColors.background,
       colorScheme: colorScheme,
-      cardTheme: CardThemeData(
-        color: AppColors.surface,
+      fontFamily: GoogleFonts.inter().fontFamily,
+      dialogTheme: DialogThemeData(
+        backgroundColor: AppColors.surface,
         elevation: 0,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(28),
-          side: const BorderSide(color: AppColors.borderDark, width: 1.0),
+          side: const BorderSide(color: AppColors.lineStrong, width: 1.0),
         ),
-        clipBehavior: Clip.antiAlias,
-        margin: EdgeInsets.zero,
       ),
-      chipTheme: ChipThemeData(
+      bottomSheetTheme: const BottomSheetThemeData(
         backgroundColor: Colors.transparent,
-        side: const BorderSide(color: AppColors.textOnLight, width: 1.2),
-        shape: const StadiumBorder(),
-        labelStyle: const TextStyle(
-          color: AppColors.textOnLight,
-          fontSize: 13,
-          fontWeight: FontWeight.w600,
-        ),
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+        elevation: 0,
       ),
-      elevatedButtonTheme: ElevatedButtonThemeData(
-        style: ElevatedButton.styleFrom(
-          backgroundColor: AppColors.cardYellow,
-          foregroundColor: AppColors.textOnLight,
-          elevation: 0,
-          shape: const StadiumBorder(),
-          textStyle: const TextStyle(
-            fontWeight: FontWeight.w700,
-            fontSize: 14,
-            letterSpacing: 0.5,
-          ),
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-        ),
-      ),
-      extensions: const <ThemeExtension<dynamic>>[BentoPalette.dark],
     );
   }
-}
-
-/// Convenience extension on BuildContext to quickly access the BentoPalette.
-extension BentoThemeContext on BuildContext {
-  BentoPalette get bento =>
-      Theme.of(this).extension<BentoPalette>() ?? BentoPalette.dark;
 }

@@ -138,7 +138,10 @@ class HabitItem {
 
   /// Calculates the best unbroken completion streak achieved within the reference month.
   int bestStreak([DateTime? referenceDate]) {
-    final ref = referenceDate ?? DateTime.now();
+    final ref = referenceDate ??
+        (completions.isNotEmpty
+            ? (DateTime.tryParse(completions.keys.first) ?? createdAt)
+            : createdAt);
     final prefix = '${ref.year.toString().padLeft(4, '0')}-${ref.month.toString().padLeft(2, '0')}-';
     final completedDateKeys = completions.entries
         .where((entry) => entry.value >= targetValue && entry.key.startsWith(prefix))

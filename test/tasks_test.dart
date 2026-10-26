@@ -69,7 +69,7 @@ void main() {
       expect(find.text('Tasks'), findsOneWidget);
       expect(find.byIcon(Icons.check_box_outlined), findsOneWidget);
       expect(find.text('All caught up'), findsOneWidget);
-      expect(find.text('Tap + to add a priority'), findsOneWidget);
+      expect(find.text('Tap + to add a task or priority.'), findsOneWidget);
     });
 
     testWidgets('renders populated task items with interactive checkboxes',
