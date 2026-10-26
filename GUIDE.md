@@ -232,7 +232,7 @@ are swallowed (test/sandbox friendliness), so writes can silently no-op.
   "version": 1,
   "layout":   { "clock": "small", "habits": "small", "calendar": "small", "tasks": "small" },
   "settings": { "is_24_hour_format": false, "card_font_size": 14.0,
-                "start_week_on_monday": false, "use_classic_modal_sheet": false },
+                "start_week_on_monday": false },
   "tasks":    [ /* TaskItem[]   */ ],
   "habits":   [ /* HabitItem[]  */ ],
   "calendar": [ /* CalendarMilestone[] */ ]
@@ -370,7 +370,6 @@ class AppSettingsConfig {
   final bool is24HourFormat;          // JSON: "is_24_hour_format"
   final double cardFontSize;          // JSON: "card_font_size"  (default 14.0, clamped 11–22)
   final bool startWeekOnMonday;       // JSON: "start_week_on_monday"
-  final bool useClassicModalSheet;    // JSON: "use_classic_modal_sheet"
 }
 ```
 
@@ -638,12 +637,11 @@ Non-OS on-screen keyboard for a device that shouldn't summon the system IME.
   in-app keyboard) and normal otherwise.
 - `TwoPaneKeyboardScaffold` lays out form (40% / flex 4) on the left and live preview +
   keyboard (60% / flex 6) on the right; narrow screens (< 720 px) stack vertically.
-- Toggle between this editor and the classic modal sheet via `useClassicModalSheet`.
 
 ### Settings (`lib/settings`)
-`SettingsDialog.show(context)` (from the top bar gear) exposes: 24-hour time, card text size
-stepper (11–22 pt), start-week-on-Monday, classic-modal-sheet toggle, and a **Web Remote**
-card showing/copying `http://<ip>:8080`.
+`SettingsPage` (opened from the top bar gear) exposes: Display & Brightness slider, Nightstand
+mode toggle, 24-hour time, card text size stepper (11–22 pt), start-week-on-Monday, and a
+**Web Remote** card showing/copying `http://<ip>:8080`.
 
 ---
 
@@ -789,7 +787,6 @@ the asset-token assertions in `server_test.dart` if you rename ids/classes.
 - **Card sizes:** `small`, `medium`, `fullscreen`, `nightstand` (clock only).
 - **Card ids / `data-card`:** `clock`, `habits`, `calendar`, `tasks` (+ `all` pseudo-card).
 - **Settings keys (wire):** `is24HourFormat`, `cardFontSize`, `startWeekOnMonday`.
-- **Settings keys (disk):** `is_24_hour_format`, `card_font_size`, `start_week_on_monday`,
-  `use_classic_modal_sheet`.
+- **Settings keys (disk):** `is_24_hour_format`, `card_font_size`, `start_week_on_monday`.
 - **Habit icon tokens:** `bolt`, `water_drop`, `fitness_center`, `menu_book`,
   `directions_run`, `bedtime`, `wb_sunny`, `code`, `local_cafe`, `check_circle`, `favorite`.

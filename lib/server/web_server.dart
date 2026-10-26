@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/services.dart';
+import 'package:qr/qr.dart';
 import 'package:shelf/shelf.dart';
 import 'package:shelf/shelf_io.dart' as shelf_io;
 import 'package:shelf_router/shelf_router.dart';
@@ -13,6 +14,7 @@ import 'package:wyrm_desk/calendar/calendar_state.dart';
 import 'package:wyrm_desk/display/display_state.dart';
 import 'package:wyrm_desk/habits/habits.dart';
 import 'package:wyrm_desk/home/card_layout_state.dart';
+import 'package:wyrm_desk/server/network_info.dart';
 import 'package:wyrm_desk/settings/settings_state.dart';
 import 'package:wyrm_desk/tasks/task_model.dart';
 
@@ -36,6 +38,7 @@ class ShelfWebServer {
   final CalendarState Function()? getCalendarConfig;
   final HabitsState Function()? getHabitsConfig;
   final DisplayState Function()? getDisplayConfig;
+  final bool Function()? getNetworkModalConfig;
 
   // ---------------------------------------------------------------------------
   // Action callbacks: Executed in response to client mutations.
@@ -56,6 +59,7 @@ class ShelfWebServer {
   final void Function(String id, int delta, [DateTime? date])? onStepHabit;
   final void Function(String id)? onDeleteHabit;
   final void Function(DashboardCardType card)? onScrollToCard;
+  final void Function(bool open)? onToggleNetworkModal;
 
   // ---------------------------------------------------------------------------
   // Testing overrides: In-memory string/byte mocks used by headless unit tests.
@@ -66,6 +70,7 @@ class ShelfWebServer {
   final List<int>? faviconOverride;
 
   HttpServer? _server;
+  String _ipAddress = '127.0.0.1';
   final Set<WebSocketChannel> _activeClients = <WebSocketChannel>{};
 
   ShelfWebServer({
@@ -75,6 +80,7 @@ class ShelfWebServer {
     this.getCalendarConfig,
     this.getHabitsConfig,
     this.getDisplayConfig,
+    this.getNetworkModalConfig,
     required this.onSetCardSize,
     required this.onSet24HourFormat,
     this.onSetCardFontSize,
@@ -91,6 +97,7 @@ class ShelfWebServer {
     this.onStepHabit,
     this.onDeleteHabit,
     this.onScrollToCard,
+    this.onToggleNetworkModal,
     this.htmlOverride,
     this.cssOverride,
     this.jsOverride,
@@ -103,6 +110,7 @@ class ShelfWebServer {
 
   /// Starts the embedded HTTP and WebSocket server on the designated TCP port.
   Future<HttpServer> start({int port = defaultPort}) async {
+    _ipAddress = await NetworkInfo.getLocalIpAddress();
     final router = Router();
 
     // --- Static Web Client Assets ---
@@ -136,6 +144,9 @@ class ShelfWebServer {
     router.post('/api/habits/toggle', _handlePostToggleHabit);
     router.post('/api/habits/step', _handlePostStepHabit);
     router.post('/api/habits/delete', _handlePostDeleteHabit);
+    router.post('/api/modal/network', _handlePostToggleNetworkModal);
+    router.get('/api/qr', _handleGetQrSvg);
+    router.get('/api/qr.svg', _handleGetQrSvg);
 
     // --- WebSocket Real-Time Channel ---
     router.get(
@@ -200,6 +211,7 @@ class ShelfWebServer {
     CalendarState? calendar,
     HabitsState? habits,
     DisplayState? display,
+    bool? networkModalOpen,
     String? type,
   }) {
     final activeLayout = layout ?? getLayoutConfig();
@@ -208,6 +220,7 @@ class ShelfWebServer {
     final activeCalendar = calendar ?? (getCalendarConfig != null ? getCalendarConfig!() : null);
     final activeHabits = habits ?? (getHabitsConfig != null ? getHabitsConfig!() : const HabitsState());
     final activeDisplay = display ?? (getDisplayConfig != null ? getDisplayConfig!() : const DisplayState());
+    final activeModalOpen = networkModalOpen ?? (getNetworkModalConfig != null ? getNetworkModalConfig!() : false);
 
     return {
       'type': ?type,
@@ -218,6 +231,9 @@ class ShelfWebServer {
         'startWeekOnMonday': activeSettings.startWeekOnMonday,
       },
       'display': activeDisplay.toWireJson(),
+      'networkModalOpen': activeModalOpen,
+      'serverUrl': 'http://$_ipAddress:${port ?? defaultPort}',
+      'ipAddress': _ipAddress,
       'tasks': activeTasks.map((t) => t.toJson()).toList(),
       'calendar': _serializeCalendarState(activeCalendar, activeSettings.startWeekOnMonday),
       'habits': activeHabits.habits.map((h) => h.toJson()).toList(),
@@ -232,6 +248,7 @@ class ShelfWebServer {
     CalendarState? calendar,
     HabitsState? habits,
     DisplayState? display,
+    bool? networkModalOpen,
   }) {
     final payload = jsonEncode(_buildStateSnapshot(
       layout: layout,
@@ -240,6 +257,7 @@ class ShelfWebServer {
       calendar: calendar,
       habits: habits,
       display: display,
+      networkModalOpen: networkModalOpen,
       type: 'state_update',
     ));
 
@@ -348,6 +366,9 @@ class ShelfWebServer {
               break;
             case 'scroll_to_card':
               _executeScroll(data['card'] as String?);
+              break;
+            case 'toggle_network_modal':
+              _executeToggleNetworkModal(data['open'] as bool?);
               break;
             case 'ping':
               final timestamp = data['timestamp'] ?? DateTime.now().millisecondsSinceEpoch;
@@ -562,6 +583,17 @@ class ShelfWebServer {
     return null;
   }
 
+  /// Opens, closes, or toggles the NetworkConnectionModal on the tablet screen.
+  bool _executeToggleNetworkModal([bool? open]) {
+    if (onToggleNetworkModal != null) {
+      final current = getNetworkModalConfig != null ? getNetworkModalConfig!() : false;
+      final next = open ?? !current;
+      onToggleNetworkModal!(next);
+      return true;
+    }
+    return false;
+  }
+
   // ===========================================================================
   // SECTION 5: REST API HANDLERS
   // ===========================================================================
@@ -738,6 +770,62 @@ class ShelfWebServer {
       }
     } catch (_) {}
     return _jsonError('Invalid delete habit payload');
+  }
+
+  Future<Response> _handlePostToggleNetworkModal(Request request) async {
+    try {
+      final data = await _readJsonBody(request);
+      final open = data['open'] as bool?;
+      if (_executeToggleNetworkModal(open)) {
+        final current = getNetworkModalConfig != null ? getNetworkModalConfig!() : (open ?? true);
+        return _jsonOk({'open': current});
+      }
+    } catch (_) {
+      if (_executeToggleNetworkModal(null)) {
+        final current = getNetworkModalConfig != null ? getNetworkModalConfig!() : true;
+        return _jsonOk({'open': current});
+      }
+    }
+    return _jsonError('Invalid modal payload');
+  }
+
+  /// Generates a crisp vector SVG QR code representation of the server URL or custom data payload.
+  Future<Response> _handleGetQrSvg(Request request) async {
+    try {
+      final requestedData = request.url.queryParameters['data'];
+      final ip = await NetworkInfo.getLocalIpAddress();
+      final currentPort = port ?? defaultPort;
+      final data = (requestedData != null && requestedData.isNotEmpty)
+          ? requestedData
+          : 'http://$ip:$currentPort';
+
+      final qrCode = QrCode.fromData(
+        data: data,
+        errorCorrectLevel: QrErrorCorrectLevel.M,
+      );
+      final qrImage = QrImage(qrCode);
+      final count = qrImage.moduleCount;
+      final buffer = StringBuffer();
+      buffer.write('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 $count $count" shape-rendering="crispEdges">');
+      buffer.write('<rect width="$count" height="$count" fill="#ffffff"/>');
+      for (int r = 0; r < count; r++) {
+        for (int c = 0; c < count; c++) {
+          if (qrImage.isDark(r, c)) {
+            buffer.write('<rect x="$c" y="$r" width="1" height="1" fill="#020305"/>');
+          }
+        }
+      }
+      buffer.write('</svg>');
+      return Response.ok(
+        buffer.toString(),
+        headers: {
+          'Content-Type': 'image/svg+xml; charset=utf-8',
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+        },
+      );
+    } catch (e) {
+      return Response.internalServerError(body: 'Failed to generate QR code: $e');
+    }
   }
 
   // ===========================================================================

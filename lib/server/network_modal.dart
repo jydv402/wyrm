@@ -6,17 +6,63 @@ import 'package:wyrm_desk/core/theme.dart';
 import 'package:wyrm_desk/server/network_info.dart';
 import 'package:wyrm_desk/widgets/dusk_glass_button.dart';
 
+/// Provider tracking whether the NetworkConnectionModal is currently open on the tablet.
+final networkModalOpenProvider =
+    NotifierProvider<NetworkModalNotifier, bool>(NetworkModalNotifier.new);
+
+class NetworkModalNotifier extends Notifier<bool> {
+  @override
+  bool build() => false;
+
+  void setOpen(bool open) {
+    if (state != open) state = open;
+  }
+
+  void toggle() {
+    state = !state;
+  }
+}
+
 /// Dusk Glass modal dialog displaying web remote URL and scannable QR code.
 class NetworkConnectionModal extends ConsumerWidget {
   const NetworkConnectionModal({super.key});
 
+  static bool _isOpen = false;
+  static BuildContext? _dialogContext;
+
+  /// Whether the connection modal is currently visible on screen.
+  static bool get isOpen => _isOpen;
+
   /// Displays the connection modal.
-  static Future<void> show(BuildContext context) {
-    return showDialog<void>(
-      context: context,
-      barrierColor: Colors.black.withValues(alpha: 0.75),
-      builder: (_) => const NetworkConnectionModal(),
-    );
+  static Future<void> show(BuildContext context, [WidgetRef? ref]) async {
+    if (_isOpen) return;
+    _isOpen = true;
+    ref?.read(networkModalOpenProvider.notifier).setOpen(true);
+    try {
+      await showDialog<void>(
+        context: context,
+        barrierColor: Colors.black.withValues(alpha: 0.75),
+        builder: (dialogCtx) {
+          _dialogContext = dialogCtx;
+          return const NetworkConnectionModal();
+        },
+      );
+    } finally {
+      _isOpen = false;
+      _dialogContext = null;
+      ref?.read(networkModalOpenProvider.notifier).setOpen(false);
+    }
+  }
+
+  /// Closes the connection modal if currently open.
+  static void hide([WidgetRef? ref]) {
+    if (!_isOpen) return;
+    if (_dialogContext != null && _dialogContext!.mounted) {
+      Navigator.of(_dialogContext!).pop();
+    }
+    _isOpen = false;
+    _dialogContext = null;
+    ref?.read(networkModalOpenProvider.notifier).setOpen(false);
   }
 
   @override

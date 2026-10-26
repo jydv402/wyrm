@@ -21,12 +21,14 @@ void main() {
     late List<CalendarMilestone> activeMilestones;
     late List<HabitItem> activeHabits;
     late DisplayState activeDisplay;
+    late bool activeNetworkModal;
     DashboardCardType? lastScrolledCard;
 
     setUp(() async {
       activeLayout = const CardLayoutConfig();
       activeSettings = const AppSettingsConfig();
       activeDisplay = const DisplayState();
+      activeNetworkModal = false;
       lastScrolledCard = null;
       activeHabits = [
         HabitItem(
@@ -171,6 +173,10 @@ void main() {
         onScrollToCard: (card) {
           lastScrolledCard = card;
         },
+        getNetworkModalConfig: () => activeNetworkModal,
+        onToggleNetworkModal: ([bool? open]) {
+          activeNetworkModal = open ?? !activeNetworkModal;
+        },
         htmlOverride: '<!DOCTYPE html><html><body>Wyrm Web Test</body></html>',
         cssOverride: 'body { background: #000; }',
         jsOverride: 'console.log("Wyrm JS");',
@@ -263,6 +269,8 @@ void main() {
 
       final data = jsonDecode(response.body) as Map<String, dynamic>;
       expect(data['status'], 'online');
+      expect(data['serverUrl'], isNotNull);
+      expect(data['ipAddress'], isNotNull);
       expect(data['layout']['clock'], 'small');
       expect(data['settings']['is24HourFormat'], false);
       expect(data['settings']['cardFontSize'], 14.0);
@@ -716,11 +724,16 @@ void main() {
       expect(components, contains('TaskComposer'));
       expect(components, contains('HabitComposer'));
       expect(components, contains('MonthGrid'));
+      expect(components, contains('NetworkModalButton'));
+      expect(components, contains('NetworkModal'));
+      expect(components, contains('qr:'));
 
       final css = await cssFile.readAsString();
       expect(css, contains('--t-accent'));
       expect(css, contains('.app'));
       expect(css, contains('.nav-rail'));
+      expect(css, contains('.modal-backdrop'));
+      expect(css, contains('.modal-card'));
 
       final js = await jsFile.readAsString();
       expect(js, contains('WyrmStateStore'));
@@ -737,6 +750,8 @@ void main() {
       expect(js, contains('deleteHabit'));
       expect(js, contains('scrollToCard'));
       expect(js, contains('setBrightness'));
+      expect(js, contains('toggleNetworkModal'));
+      expect(js, contains('networkModalOpen'));
     });
 
     test('POST /api/calendar/milestones accepts dd/mm/yyyy date format', () async {
@@ -755,6 +770,77 @@ void main() {
       expect(created.targetDate.month, 12);
       expect(created.targetDate.day, 25);
       expect(created.isPinned, isTrue);
+    });
+
+    test('POST /api/modal/network toggles modal visibility and syncs state', () async {
+      expect(activeNetworkModal, isFalse);
+
+      // Toggle to open
+      var response = await http.post(
+        Uri.parse('http://127.0.0.1:${server.port}/api/modal/network'),
+        headers: {'Content-Type': 'application/json'},
+      );
+      expect(response.statusCode, 200);
+      var body = jsonDecode(response.body);
+      expect(body['success'], isTrue);
+      expect(body['open'], isTrue);
+      expect(activeNetworkModal, isTrue);
+
+      // Verify status endpoint reflects new state
+      final statusResp = await http.get(Uri.parse('http://127.0.0.1:${server.port}/api/status'));
+      expect(statusResp.statusCode, 200);
+      final statusBody = jsonDecode(statusResp.body);
+      expect(statusBody['networkModalOpen'], isTrue);
+
+      // Explicitly set to false
+      response = await http.post(
+        Uri.parse('http://127.0.0.1:${server.port}/api/modal/network'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'open': false}),
+      );
+      expect(response.statusCode, 200);
+      body = jsonDecode(response.body);
+      expect(body['success'], isTrue);
+      expect(body['open'], isFalse);
+      expect(activeNetworkModal, isFalse);
+    });
+
+    test('WebSocket toggle_network_modal command toggles modal visibility', () async {
+      expect(activeNetworkModal, isFalse);
+
+      final channel = IOWebSocketChannel.connect(
+        Uri.parse('ws://127.0.0.1:${server.port}/ws'),
+      );
+      final initialSnapshot = await channel.stream.first;
+      final parsed = jsonDecode(initialSnapshot as String) as Map<String, dynamic>;
+      expect(parsed['type'], equals('snapshot'));
+      expect(parsed['networkModalOpen'], isFalse);
+
+      channel.sink.add(jsonEncode({
+        'type': 'toggle_network_modal',
+        'open': true,
+      }));
+
+      // Allow async processing
+      await Future<void>.delayed(const Duration(milliseconds: 50));
+      expect(activeNetworkModal, isTrue);
+
+      await channel.sink.close();
+    });
+
+    test('GET /api/qr returns valid SVG QR code', () async {
+      final response = await http.get(Uri.parse('http://127.0.0.1:${server.port}/api/qr'));
+      expect(response.statusCode, 200);
+      expect(response.headers['content-type'], contains('image/svg+xml'));
+      expect(response.body, startsWith('<svg'));
+      expect(response.body, contains('</svg>'));
+      expect(response.body, contains('<rect'));
+
+      // Test with custom data
+      final customResp = await http.get(Uri.parse('http://127.0.0.1:${server.port}/api/qr?data=https://custom.remote.url'));
+      expect(customResp.statusCode, 200);
+      expect(customResp.headers['content-type'], contains('image/svg+xml'));
+      expect(customResp.body, startsWith('<svg'));
     });
   });
 }

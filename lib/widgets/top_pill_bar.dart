@@ -121,7 +121,7 @@ class _ServerNetworkPill extends ConsumerWidget {
     return Material(
       color: Colors.transparent,
       child: InkWell(
-        onTap: () => NetworkConnectionModal.show(context),
+        onTap: () => NetworkConnectionModal.show(context, ref),
         borderRadius: BorderRadius.circular(999),
         child: Container(
           height: 40,

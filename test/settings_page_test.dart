@@ -17,6 +17,8 @@ void main() {
         tester.view.physicalSize = const Size(1280, 800);
         tester.view.devicePixelRatio = 1.0;
         addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+        addTearDown(tester.view.resetDevicePixelRatio);
 
         await tester.pumpWidget(
           ProviderScope(
@@ -38,7 +40,7 @@ void main() {
         // Section Headers
         expect(find.text('Display & Brightness'), findsOneWidget);
         expect(find.text('Clock & Calendar'), findsOneWidget);
-        expect(find.text('Card Appearance & Editor'), findsOneWidget);
+        expect(find.text('Card Appearance'), findsOneWidget);
         expect(find.text('Web Remote Companion'), findsOneWidget);
 
         // Sections Content
@@ -53,7 +55,6 @@ void main() {
         expect(find.text('Time Format'), findsOneWidget);
         expect(find.text('Week Starts On'), findsOneWidget);
         expect(find.text('Card Font Size'), findsOneWidget);
-        expect(find.text('Classic Modal Sheet'), findsOneWidget);
         expect(find.text('Server Running'), findsOneWidget);
         expect(find.text('http://192.168.1.50:8080'), findsOneWidget);
         expect(find.text('Show QR'), findsOneWidget);
@@ -66,6 +67,8 @@ void main() {
         tester.view.physicalSize = const Size(1280, 800);
         tester.view.devicePixelRatio = 1.0;
         addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+        addTearDown(tester.view.resetDevicePixelRatio);
 
         final container = ProviderContainer(
           overrides: [
@@ -104,6 +107,7 @@ void main() {
       tester.view.physicalSize = const Size(1280, 800);
       tester.view.devicePixelRatio = 1.0;
       addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
 
       final container = ProviderContainer(
         overrides: [
@@ -135,12 +139,13 @@ void main() {
       expect(container.read(appSettingsProvider).startWeekOnMonday, false);
     });
 
-    testWidgets('toggles nightstand mode and classic modal sheet switches', (
+    testWidgets('toggles nightstand mode switch', (
       WidgetTester tester,
     ) async {
       tester.view.physicalSize = const Size(1280, 800);
       tester.view.devicePixelRatio = 1.0;
       addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
 
       final container = ProviderContainer(
         overrides: [
@@ -161,23 +166,15 @@ void main() {
         container.read(cardLayoutProvider).clock,
         isNot(CardSize.nightstand),
       );
-      expect(container.read(appSettingsProvider).useClassicModalSheet, false);
 
-      // Find switches
+      // Find switch
       final switches = find.byType(Switch);
-      expect(switches, findsNWidgets(2));
+      expect(switches, findsOneWidget);
 
       // Toggle Nightstand Switch
       await tester.tap(switches.first);
       await tester.pumpAndSettle();
       expect(container.read(cardLayoutProvider).clock, CardSize.nightstand);
-
-      // Toggle Classic Modal Sheet Switch
-      await tester.ensureVisible(switches.last);
-      await tester.pumpAndSettle();
-      await tester.tap(switches.last);
-      await tester.pumpAndSettle();
-      expect(container.read(appSettingsProvider).useClassicModalSheet, true);
     });
 
     testWidgets('adjusts brightness slider and updates displayProvider state', (
@@ -186,6 +183,7 @@ void main() {
       tester.view.physicalSize = const Size(1280, 800);
       tester.view.devicePixelRatio = 1.0;
       addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
 
       final container = ProviderContainer(
         overrides: [
@@ -222,6 +220,7 @@ void main() {
       tester.view.physicalSize = const Size(1280, 800);
       tester.view.devicePixelRatio = 1.0;
       addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
 
       await tester.pumpWidget(
         ProviderScope(
@@ -253,6 +252,7 @@ void main() {
       tester.view.physicalSize = const Size(500, 800);
       tester.view.devicePixelRatio = 1.0;
       addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
 
       await tester.pumpWidget(
         ProviderScope(
@@ -266,7 +266,7 @@ void main() {
 
       expect(find.text('Display & Brightness'), findsOneWidget);
       expect(find.text('Clock & Calendar'), findsOneWidget);
-      expect(find.text('Card Appearance & Editor'), findsOneWidget);
+      expect(find.text('Card Appearance'), findsOneWidget);
       expect(find.text('Web Remote Companion'), findsOneWidget);
     });
     testWidgets(
@@ -275,6 +275,8 @@ void main() {
         tester.view.physicalSize = const Size(1280, 800);
         tester.view.devicePixelRatio = 1.0;
         addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+        addTearDown(tester.view.resetDevicePixelRatio);
 
         await tester.pumpWidget(
           ProviderScope(

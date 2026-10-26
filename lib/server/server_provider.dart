@@ -4,6 +4,7 @@ import 'package:wyrm_desk/calendar/calendar_state.dart';
 import 'package:wyrm_desk/display/display.dart';
 import 'package:wyrm_desk/habits/habits.dart';
 import 'package:wyrm_desk/home/card_layout_state.dart';
+import 'package:wyrm_desk/server/network_modal.dart';
 import 'package:wyrm_desk/server/web_server.dart';
 import 'package:wyrm_desk/settings/settings_state.dart';
 import 'package:wyrm_desk/tasks/task_model.dart';
@@ -18,6 +19,7 @@ final webServerProvider = Provider<ShelfWebServer>((ref) {
     getCalendarConfig: () => ref.read(calendarProvider),
     getHabitsConfig: () => ref.read(habitsProvider),
     getDisplayConfig: () => ref.read(displayProvider),
+    getNetworkModalConfig: () => ref.read(networkModalOpenProvider),
     onSetCardSize: (type, size) {
       ref.read(cardLayoutProvider.notifier).setCardSize(type, size);
     },
@@ -76,6 +78,9 @@ final webServerProvider = Provider<ShelfWebServer>((ref) {
     onScrollToCard: (card) {
       ref.read(cardScrollRequestProvider.notifier).requestScroll(card);
     },
+    onToggleNetworkModal: (open) {
+      ref.read(networkModalOpenProvider.notifier).setOpen(open);
+    },
   );
 
   // Auto-start the server on application startup.
@@ -112,6 +117,11 @@ final webServerProvider = Provider<ShelfWebServer>((ref) {
   // Synchronize display brightness changes to connected web clients.
   ref.listen<DisplayState>(displayProvider, (previous, next) {
     server.broadcastState(display: next);
+  });
+
+  // Synchronize network connection modal state changes to connected web clients.
+  ref.listen<bool>(networkModalOpenProvider, (previous, next) {
+    server.broadcastState(networkModalOpen: next);
   });
 
   ref.onDispose(() {

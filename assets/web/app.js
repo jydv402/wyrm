@@ -17,6 +17,9 @@ class WyrmStateStore {
       layout: { clock: 'small', habits: 'small', calendar: 'small', tasks: 'small' },
       settings: { is24HourFormat: false, cardFontSize: 13.0, startWeekOnMonday: false },
       display: { brightness: 1.0 },
+      networkModalOpen: false,
+      serverUrl: '',
+      ipAddress: '',
 
       tasks: [],
       habits: [],
@@ -33,6 +36,9 @@ class WyrmStateStore {
     if (data.layout) Object.assign(this.state.layout, data.layout);
     if (data.settings) Object.assign(this.state.settings, data.settings);
     if (data.display) Object.assign(this.state.display, data.display);
+    if (data.networkModalOpen !== undefined) this.state.networkModalOpen = !!data.networkModalOpen;
+    if (data.serverUrl !== undefined) this.state.serverUrl = data.serverUrl;
+    if (data.ipAddress !== undefined) this.state.ipAddress = data.ipAddress;
     if (Array.isArray(data.tasks)) this.state.tasks = data.tasks;
     if (Array.isArray(data.habits)) this.state.habits = data.habits;
     if (data.calendar) Object.assign(this.state.calendar, data.calendar);
@@ -319,6 +325,11 @@ function createWyrmActions(store, ws) {
       state.settings.startWeekOnMonday = startMon;
       post('/api/settings', { startWeekOnMonday: startMon }, 'set_settings');
     },
+    toggleNetworkModal(open) {
+      const next = typeof open === 'boolean' ? open : !state.networkModalOpen;
+      state.networkModalOpen = next;
+      post('/api/modal/network', { open: next }, 'toggle_network_modal');
+    },
   };
 
   return actions;
@@ -357,6 +368,7 @@ window.wyrmRemote = {
   setAllCardsSize: (size) => wyrm.setAllCardsSize(size),
   scrollToCard: (card) => wyrm.scrollToCard(card),
   toggleStartWeekOnMonday: (val) => wyrm.setStartWeekOnMonday(val),
+  toggleNetworkModal: (val) => wyrm.toggleNetworkModal(val),
   createMilestone: (title, date, pinned) => wyrm.createMilestone({ title, date, pinned: !!pinned }),
   deleteMilestone: (id) => wyrm.deleteMilestone(id),
   togglePinMilestone: (id) => wyrm.togglePinMilestone(id),

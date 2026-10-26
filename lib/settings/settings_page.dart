@@ -66,7 +66,7 @@ class SettingsPage extends ConsumerWidget {
                   Expanded(
                     child: Center(
                       child: ConstrainedBox(
-                        constraints: const BoxConstraints(maxWidth: 820),
+                        constraints: const BoxConstraints(maxWidth: 860),
                         child: _buildContentPane(
                           context: context,
                           ref: ref,
@@ -193,7 +193,7 @@ class SettingsPage extends ConsumerWidget {
 
           const SizedBox(height: 16),
 
-          // Section 3: Card Appearance & Editor
+          // Section 3: Card Appearance
           _buildAppearanceSection(settings: settings, notifier: notifier),
 
           const SizedBox(height: 16),
@@ -201,6 +201,7 @@ class SettingsPage extends ConsumerWidget {
           // Section 4: Web Remote Companion
           _buildNetworkSection(
             context: context,
+            ref: ref,
             ipAddress: ipAddress,
             serverUrl: serverUrl,
           ),
@@ -389,7 +390,7 @@ class SettingsPage extends ConsumerWidget {
     );
   }
 
-  /// Section 3: Card Appearance & Editor panel
+  /// Section 3: Card Appearance panel
   Widget _buildAppearanceSection({
     required AppSettingsConfig settings,
     required AppSettingsNotifier notifier,
@@ -403,8 +404,8 @@ class SettingsPage extends ConsumerWidget {
         children: [
           _buildSectionHeader(
             icon: Icons.palette_rounded,
-            title: 'Card Appearance & Editor',
-            subtitle: 'Typography scale and input editor modal preferences',
+            title: 'Card Appearance',
+            subtitle: 'Typography scale for tasks, habits, and cards',
           ),
           const SizedBox(height: 18),
 
@@ -528,23 +529,6 @@ class SettingsPage extends ConsumerWidget {
               ],
             ),
           ),
-
-          const SizedBox(height: 14),
-
-          // Classic Modal Sheet vs 2-Pane Editor
-          _buildSettingRow(
-            icon: Icons.view_sidebar_rounded,
-            title: 'Classic Modal Sheet',
-            subtitle: 'Use bottom sheet instead of 2-pane keyboard editor',
-            trailing: Switch.adaptive(
-              value: settings.useClassicModalSheet,
-              activeThumbColor: AppColors.glacierAccent,
-              activeTrackColor: AppColors.glacierAccent.withValues(alpha: 0.35),
-              inactiveThumbColor: AppColors.textSecondary,
-              inactiveTrackColor: AppColors.well,
-              onChanged: (val) => notifier.setUseClassicModalSheet(val),
-            ),
-          ),
         ],
       ),
     );
@@ -553,6 +537,7 @@ class SettingsPage extends ConsumerWidget {
   /// Section 4: Web Remote Companion panel
   Widget _buildNetworkSection({
     required BuildContext context,
+    required WidgetRef ref,
     required String ipAddress,
     required String serverUrl,
   }) {
@@ -610,7 +595,7 @@ class SettingsPage extends ConsumerWidget {
                       ),
                     ),
                     DuskGlassButton(
-                      onPressed: () => NetworkConnectionModal.show(context),
+                      onPressed: () => NetworkConnectionModal.show(context, ref),
                       height: 32,
                       padding: const EdgeInsets.symmetric(horizontal: 12),
                       label: const Row(

@@ -6,8 +6,6 @@ import 'package:wyrm_desk/habits/habit_form_content.dart';
 import 'package:wyrm_desk/habits/habits.dart';
 import 'package:wyrm_desk/home/card_layout_state.dart';
 import 'package:wyrm_desk/in_app_keyboard/in_app_keyboard.dart';
-import 'package:wyrm_desk/server/network_info.dart';
-import 'package:wyrm_desk/settings/settings_page.dart';
 import 'package:wyrm_desk/settings/settings_state.dart';
 import 'package:wyrm_desk/tasks/task_form_content.dart';
 import 'package:wyrm_desk/tasks/tasks.dart';
@@ -37,55 +35,6 @@ class _TestHabitsNotifier extends HabitsNotifier {
 }
 
 void main() {
-  group('Settings useClassicModalSheet Configuration', () {
-    test('serializes and deserializes use_classic_modal_sheet correctly', () {
-      const config = AppSettingsConfig(useClassicModalSheet: true);
-      final json = config.toJson();
-      expect(json['use_classic_modal_sheet'], true);
-
-      final deserialized = AppSettingsConfig.fromJson(json);
-      expect(deserialized.useClassicModalSheet, true);
-
-      final toggled = deserialized.copyWith(useClassicModalSheet: false);
-      expect(toggled.useClassicModalSheet, false);
-    });
-
-    testWidgets('SettingsPage renders Classic Modal Sheet toggle switch',
-        (WidgetTester tester) async {
-      tester.view.physicalSize = const Size(1280, 800);
-      tester.view.devicePixelRatio = 1.0;
-      addTearDown(tester.view.resetPhysicalSize);
-
-      await tester.pumpWidget(
-        ProviderScope(
-          overrides: [
-            localIpProvider.overrideWith((ref) => Future.value('127.0.0.1')),
-            appSettingsProvider.overrideWith(
-              () => _FakeAppSettingsNotifier(
-                const AppSettingsConfig(useClassicModalSheet: false),
-              ),
-            ),
-          ],
-          child: const MaterialApp(
-            home: Scaffold(
-              body: SettingsPage(),
-            ),
-          ),
-        ),
-      );
-      await tester.pumpAndSettle();
-
-      expect(find.text('Classic Modal Sheet'), findsOneWidget);
-      expect(
-        find.text('Use bottom sheet instead of 2-pane keyboard editor'),
-        findsOneWidget,
-      );
-
-      final switches = find.byType(Switch);
-      expect(switches, findsWidgets);
-    });
-  });
-
   group('TwoPaneKeyboardScaffold Component', () {
     testWidgets('renders 40/60 split with form on left and preview on right',
         (WidgetTester tester) async {
@@ -300,7 +249,7 @@ void main() {
           overrides: [
             appSettingsProvider.overrideWith(
               () => _FakeAppSettingsNotifier(
-                const AppSettingsConfig(useClassicModalSheet: false),
+                const AppSettingsConfig(),
               ),
             ),
             tasksProvider.overrideWith(() => _TestTasksNotifier([])),
@@ -339,7 +288,7 @@ void main() {
           overrides: [
             appSettingsProvider.overrideWith(
               () => _FakeAppSettingsNotifier(
-                const AppSettingsConfig(useClassicModalSheet: false),
+                const AppSettingsConfig(),
               ),
             ),
             habitsProvider.overrideWith(() => _TestHabitsNotifier([])),

@@ -15,7 +15,7 @@
  * Components get state and actions through inject('wyrm'), see createWyrmActions().
  */
 (function () {
-  const { ref, computed, inject } = Vue;
+  const { ref, computed, inject, onMounted, onUnmounted } = Vue;
 
   const components = {};
   const directives = {};
@@ -45,6 +45,8 @@
     checkbox: '<rect x="3.5" y="3.5" width="17" height="17" rx="4.5"/><path d="m8.2 12.3 2.7 2.7 5-5.5"/>',
     gear: '<path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/>',
     wifi: '<path d="M2.5 9a15 15 0 0 1 19 0"/><path d="M5.8 12.6a10.5 10.5 0 0 1 12.4 0"/><path d="M9 16.1a5.5 5.5 0 0 1 6 0"/><path d="M12 19.5h.01"/>',
+    qr: '<rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><path d="M7 7h.01M18 7h.01M7 18h.01M14 14h3v3h-3zM17 17v4M14 21h7M21 14v3"/>',
+    copy: '<rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>',
   };
 
   components.UiIcon = {
@@ -315,6 +317,130 @@
       </ui-button>`,
   };
 
+  components.NetworkModalButton = {
+    name: 'NetworkModalButton',
+    setup() {
+      const wyrm = inject('wyrm');
+      const on = computed(() => !!wyrm.state.networkModalOpen);
+      return { wyrm, on };
+    },
+    template: `
+      <ui-button size="icon" icon="qr" :active="on" :aria-pressed="on"
+                 aria-label="Toggle QR Code Modal"
+                 title="Toggle QR Code Modal"
+                 @click="wyrm.toggleNetworkModal()" />`,
+  };
+
+  components.NetworkModal = {
+    name: 'NetworkModal',
+    emits: ['close'],
+    setup(props, { emit }) {
+      const wyrm = inject('wyrm');
+      const copied = ref(false);
+      const qrSvg = ref('');
+      let copyTimer = null;
+
+      const connectionUrl = computed(() => {
+        const loc = typeof window !== 'undefined' ? window.location : null;
+        const origin = (loc && loc.origin && loc.origin !== 'null') ? loc.origin : '';
+        const isLoopback = !origin || origin.includes('localhost') || origin.includes('127.0.0.1');
+
+        if (origin && !isLoopback) {
+          return origin;
+        }
+        if (wyrm.state.serverUrl && !wyrm.state.serverUrl.includes('127.0.0.1')) {
+          return wyrm.state.serverUrl;
+        }
+        return origin || wyrm.state.serverUrl || 'http://127.0.0.1:8080';
+      });
+
+      const qrSrc = computed(() => {
+        return '/api/qr?data=' + encodeURIComponent(connectionUrl.value);
+      });
+
+      async function fetchQrSvg(url) {
+        try {
+          const res = await fetch('/api/qr?data=' + encodeURIComponent(url));
+          if (res.ok) {
+            const text = await res.text();
+            if (text && text.includes('<svg')) {
+              qrSvg.value = text;
+            }
+          }
+        } catch (_) {}
+      }
+
+      async function copyUrl() {
+        try {
+          if (navigator && navigator.clipboard && navigator.clipboard.writeText) {
+            await navigator.clipboard.writeText(connectionUrl.value);
+            copied.value = true;
+            clearTimeout(copyTimer);
+            copyTimer = setTimeout(() => {
+              copied.value = false;
+            }, 2000);
+          }
+        } catch (_) {}
+      }
+
+      function onKeydown(e) {
+        if (e.key === 'Escape') {
+          emit('close');
+        }
+      }
+
+      onMounted(() => {
+        window.addEventListener('keydown', onKeydown);
+        fetchQrSvg(connectionUrl.value);
+      });
+
+      onUnmounted(() => {
+        window.removeEventListener('keydown', onKeydown);
+        clearTimeout(copyTimer);
+      });
+
+      return { wyrm, copied, connectionUrl, qrSrc, qrSvg, copyUrl };
+    },
+    template: `
+      <teleport to="body">
+        <div class="modal-backdrop" @click.self="$emit('close')">
+          <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="network-modal-title">
+            <div class="modal-card__header">
+              <div class="modal-card__icon-box">
+                <ui-icon name="wifi" :size="20" />
+              </div>
+              <div class="modal-card__titles">
+                <h2 id="network-modal-title" class="modal-card__title">Web Remote</h2>
+                <p class="modal-card__subtitle">Connect from your phone or laptop</p>
+              </div>
+              <ui-button size="icon" icon="x" aria-label="Close" @click="$emit('close')" />
+            </div>
+
+            <div class="modal-card__body">
+              <div class="modal-card__qr-box">
+                <div v-if="qrSvg" class="modal-card__qr-svg" v-html="qrSvg"></div>
+                <img v-else :src="qrSrc" alt="Web Remote QR Code" class="modal-card__qr-img" width="180" height="180" />
+              </div>
+
+              <div class="modal-card__url-box">
+                <span class="modal-card__url-label">Address</span>
+                <div class="modal-card__url-row">
+                  <code class="modal-card__url-text">{{ connectionUrl }}</code>
+                  <ui-button size="sm" :icon="copied ? 'check' : 'copy'" @click="copyUrl">
+                    {{ copied ? 'Copied' : 'Copy' }}
+                  </ui-button>
+                </div>
+              </div>
+
+              <p class="modal-card__hint">
+                Scan with your phone camera to open Wyrm Desk in your mobile browser.
+              </p>
+            </div>
+          </div>
+        </div>
+      </teleport>`,
+  };
+
   components.TopBar = {
     name: 'TopBar',
     props: { title: String, subtitle: String },
@@ -326,6 +452,7 @@
         </div>
         <div class="topbar__actions">
           <connection-badge />
+          <network-modal-button />
           <nightstand-toggle />
         </div>
       </ui-panel>`,
@@ -906,7 +1033,9 @@
         }
       });
 
-      return { current, night, subtitle };
+      const networkModalOpen = computed(() => !!wyrm.state.networkModalOpen);
+
+      return { wyrm, current, night, subtitle, networkModalOpen };
     },
     template: `
       <div class="app" :class="{ 'is-nightstand': night }" :data-view="current.id" :data-tone="current.tone">
@@ -920,6 +1049,7 @@
             </transition>
           </main>
         </div>
+        <network-modal v-if="networkModalOpen" @close="wyrm.toggleNetworkModal(false)" />
       </div>`,
   };
 

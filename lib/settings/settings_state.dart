@@ -12,14 +12,10 @@ class AppSettingsConfig {
   /// Whether the calendar week starts on Monday (false defaults to Sunday).
   final bool startWeekOnMonday;
 
-  /// Whether to use the classic modal bottom sheet instead of the 2-pane virtual keyboard editor.
-  final bool useClassicModalSheet;
-
   const AppSettingsConfig({
     this.is24HourFormat = false,
     this.cardFontSize = 14.0,
     this.startWeekOnMonday = false,
-    this.useClassicModalSheet = false,
   });
 
   /// Returns a copy of the configuration with specified overrides.
@@ -27,13 +23,11 @@ class AppSettingsConfig {
     bool? is24HourFormat,
     double? cardFontSize,
     bool? startWeekOnMonday,
-    bool? useClassicModalSheet,
   }) {
     return AppSettingsConfig(
       is24HourFormat: is24HourFormat ?? this.is24HourFormat,
       cardFontSize: cardFontSize ?? this.cardFontSize,
       startWeekOnMonday: startWeekOnMonday ?? this.startWeekOnMonday,
-      useClassicModalSheet: useClassicModalSheet ?? this.useClassicModalSheet,
     );
   }
 
@@ -43,7 +37,6 @@ class AppSettingsConfig {
       'is_24_hour_format': is24HourFormat,
       'card_font_size': cardFontSize,
       'start_week_on_monday': startWeekOnMonday,
-      'use_classic_modal_sheet': useClassicModalSheet,
     };
   }
 
@@ -53,7 +46,6 @@ class AppSettingsConfig {
       is24HourFormat: json['is_24_hour_format'] as bool? ?? false,
       cardFontSize: (json['card_font_size'] as num?)?.toDouble() ?? 14.0,
       startWeekOnMonday: json['start_week_on_monday'] as bool? ?? false,
-      useClassicModalSheet: json['use_classic_modal_sheet'] as bool? ?? false,
     );
   }
 }
@@ -125,18 +117,6 @@ class AppSettingsNotifier extends Notifier<AppSettingsConfig> {
     final updated = state.copyWith(startWeekOnMonday: value);
     state = updated;
     AppSettingsStorage.saveSettings(updated);
-  }
-
-  /// Sets whether the app uses the classic modal bottom sheet instead of the 2-pane keyboard editor.
-  void setUseClassicModalSheet(bool value) {
-    final updated = state.copyWith(useClassicModalSheet: value);
-    state = updated;
-    AppSettingsStorage.saveSettings(updated);
-  }
-
-  /// Toggles between classic modal bottom sheet and the 2-pane keyboard editor.
-  void toggleUseClassicModalSheet() {
-    setUseClassicModalSheet(!state.useClassicModalSheet);
   }
 }
 

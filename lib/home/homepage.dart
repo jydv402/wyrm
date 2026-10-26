@@ -6,6 +6,7 @@ import 'package:wyrm_desk/calendar/calendar.dart';
 import 'package:wyrm_desk/clock/clock.dart';
 import 'package:wyrm_desk/core/theme.dart';
 import 'package:wyrm_desk/habits/habits.dart';
+import 'package:wyrm_desk/server/network_modal.dart';
 import 'package:wyrm_desk/tasks/tasks.dart';
 import 'package:wyrm_desk/widgets/top_pill_bar.dart';
 
@@ -150,6 +151,15 @@ class _HomePageState extends ConsumerState<HomePage>
     ref.listen<CardScrollRequest?>(cardScrollRequestProvider, (previous, next) {
       if (next != null) {
         _scrollToCard(next.card);
+      }
+    });
+
+    // Listen for network modal requests originating from the web remote companion.
+    ref.listen<bool>(networkModalOpenProvider, (previous, next) {
+      if (next && !NetworkConnectionModal.isOpen) {
+        NetworkConnectionModal.show(context, ref);
+      } else if (!next && NetworkConnectionModal.isOpen) {
+        NetworkConnectionModal.hide(ref);
       }
     });
 
