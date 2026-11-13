@@ -1,43 +1,46 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:wyrm_desk/in_app_keyboard/in_app_keyboard.dart';
 
 void main() {
   group('InAppKeyboardController Unit Tests', () {
-    test('inserts lowercase and uppercase text based on shift and caps lock', () {
-      final controller = InAppKeyboardController();
-      final textEditingController = TextEditingController();
-      final focusNode = FocusNode();
+    test(
+      'inserts lowercase and uppercase text based on shift and caps lock',
+      () {
+        final controller = InAppKeyboardController();
+        final textEditingController = TextEditingController();
+        final focusNode = FocusNode();
 
-      controller.attach(
-        textController: textEditingController,
-        focusNode: focusNode,
-      );
+        controller.attach(
+          textController: textEditingController,
+          focusNode: focusNode,
+        );
 
-      controller.insertText('h');
-      expect(textEditingController.text, 'h');
+        controller.insertText('h');
+        expect(textEditingController.text, 'h');
 
-      controller.toggleShift();
-      expect(controller.isShifted, true);
-      controller.insertText('i');
-      expect(textEditingController.text, 'hI');
-      expect(controller.isShifted, false);
+        controller.toggleShift();
+        expect(controller.isShifted, true);
+        controller.insertText('i');
+        expect(textEditingController.text, 'hI');
+        expect(controller.isShifted, false);
 
-      controller.toggleCapsLock();
-      expect(controller.isCapsLock, true);
-      expect(controller.isShifted, true);
-      controller.insertText('a');
-      controller.insertText('b');
-      expect(textEditingController.text, 'hIAB');
+        controller.toggleCapsLock();
+        expect(controller.isCapsLock, true);
+        expect(controller.isShifted, true);
+        controller.insertText('a');
+        controller.insertText('b');
+        expect(textEditingController.text, 'hIAB');
 
-      controller.toggleCapsLock();
-      expect(controller.isCapsLock, false);
-      expect(controller.isShifted, false);
+        controller.toggleCapsLock();
+        expect(controller.isCapsLock, false);
+        expect(controller.isShifted, false);
 
-      textEditingController.dispose();
-      focusNode.dispose();
-      controller.dispose();
-    });
+        textEditingController.dispose();
+        focusNode.dispose();
+        controller.dispose();
+      },
+    );
 
     test('backspace deletes single characters and selected ranges', () {
       final controller = InAppKeyboardController();
@@ -49,12 +52,16 @@ void main() {
         focusNode: focusNode,
       );
 
-      textEditingController.selection = const TextSelection.collapsed(offset: 5);
+      textEditingController.selection = const TextSelection.collapsed(
+        offset: 5,
+      );
       controller.backspace();
       expect(textEditingController.text, 'Hell');
 
-      textEditingController.selection =
-          const TextSelection(baseOffset: 1, extentOffset: 3);
+      textEditingController.selection = const TextSelection(
+        baseOffset: 1,
+        extentOffset: 3,
+      );
       controller.backspace();
       expect(textEditingController.text, 'Hl');
 
@@ -76,7 +83,9 @@ void main() {
         focusNode: focusNode,
       );
 
-      textEditingController.selection = const TextSelection.collapsed(offset: 3);
+      textEditingController.selection = const TextSelection.collapsed(
+        offset: 3,
+      );
       controller.moveCursorLeft();
       expect(textEditingController.selection.baseOffset, 2);
 
@@ -91,31 +100,35 @@ void main() {
       controller.dispose();
     });
 
-    test('automatically sets numpad mode when numeric input type is attached', () {
-      final controller = InAppKeyboardController();
-      final textEditingController = TextEditingController();
-      final focusNode = FocusNode();
+    test(
+      'automatically sets numpad mode when numeric input type is attached',
+      () {
+        final controller = InAppKeyboardController();
+        final textEditingController = TextEditingController();
+        final focusNode = FocusNode();
 
-      controller.attach(
-        textController: textEditingController,
-        focusNode: focusNode,
-        inputType: TextInputType.number,
-      );
+        controller.attach(
+          textController: textEditingController,
+          focusNode: focusNode,
+          inputType: TextInputType.number,
+        );
 
-      expect(controller.mode, VirtualKeyboardMode.numpad);
+        expect(controller.mode, VirtualKeyboardMode.numpad);
 
-      controller.setMode(VirtualKeyboardMode.letters);
-      expect(controller.mode, VirtualKeyboardMode.letters);
+        controller.setMode(VirtualKeyboardMode.letters);
+        expect(controller.mode, VirtualKeyboardMode.letters);
 
-      textEditingController.dispose();
-      focusNode.dispose();
-      controller.dispose();
-    });
+        textEditingController.dispose();
+        focusNode.dispose();
+        controller.dispose();
+      },
+    );
   });
 
   group('InAppKeyboardWidget UI Tests', () {
-    testWidgets('renders virtual keyboard and types into scoped text field',
-        (WidgetTester tester) async {
+    testWidgets('renders virtual keyboard and types into scoped text field', (
+      WidgetTester tester,
+    ) async {
       tester.view.physicalSize = const Size(1280, 800);
       tester.view.devicePixelRatio = 1.0;
       addTearDown(tester.view.resetPhysicalSize);
@@ -187,39 +200,39 @@ void main() {
       keyboardController.dispose();
     });
 
-    testWidgets('InAppKeyboardTextField sets readOnly when inside scope and false when outside',
-        (WidgetTester tester) async {
-      final controller = InAppKeyboardController();
+    testWidgets(
+      'InAppKeyboardTextField sets readOnly when inside scope and false when outside',
+      (WidgetTester tester) async {
+        final controller = InAppKeyboardController();
 
-      await tester.pumpWidget(
-        MaterialApp(
-          home: InAppKeyboardScope(
-            controller: controller,
-            child: const Scaffold(
-              body: InAppKeyboardTextField(),
+        await tester.pumpWidget(
+          MaterialApp(
+            home: InAppKeyboardScope(
+              controller: controller,
+              child: const Scaffold(body: InAppKeyboardTextField()),
             ),
           ),
-        ),
-      );
-      await tester.pumpAndSettle();
+        );
+        await tester.pumpAndSettle();
 
-      final scopedTextField = tester.widget<TextField>(find.byType(TextField));
-      expect(scopedTextField.readOnly, true);
-      expect(scopedTextField.showCursor, true);
+        final scopedTextField = tester.widget<TextField>(
+          find.byType(TextField),
+        );
+        expect(scopedTextField.readOnly, true);
+        expect(scopedTextField.showCursor, true);
 
-      await tester.pumpWidget(
-        const MaterialApp(
-          home: Scaffold(
-            body: InAppKeyboardTextField(),
-          ),
-        ),
-      );
-      await tester.pumpAndSettle();
+        await tester.pumpWidget(
+          const MaterialApp(home: Scaffold(body: InAppKeyboardTextField())),
+        );
+        await tester.pumpAndSettle();
 
-      final unscopedTextField = tester.widget<TextField>(find.byType(TextField));
-      expect(unscopedTextField.readOnly, false);
+        final unscopedTextField = tester.widget<TextField>(
+          find.byType(TextField),
+        );
+        expect(unscopedTextField.readOnly, false);
 
-      controller.dispose();
-    });
+        controller.dispose();
+      },
+    );
   });
 }

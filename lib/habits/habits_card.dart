@@ -1,5 +1,6 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:wyrm_desk/core/date_names.dart';
 import 'package:wyrm_desk/core/theme.dart';
 import 'package:wyrm_desk/habits/habit_form_content.dart';
 import 'package:wyrm_desk/habits/habit_model.dart';
@@ -25,17 +26,16 @@ class HabitsCard extends ConsumerWidget {
     this.currentSize = CardSize.small,
   });
 
-  static const monthNames = [
-    'January', 'February', 'March', 'April', 'May', 'June',
-    'July', 'August', 'September', 'October', 'November', 'December'
-  ];
-
   static IconData resolveIcon(String? name) {
-    return resolveHabitIcon(name);
+    return resolveHabitIcon(name) ?? Icons.bolt_rounded;
   }
 
   static DateTime getWeekStart(DateTime referenceDate, bool startWeekOnMonday) {
-    final ref = DateTime(referenceDate.year, referenceDate.month, referenceDate.day);
+    final ref = DateTime(
+      referenceDate.year,
+      referenceDate.month,
+      referenceDate.day,
+    );
     if (!startWeekOnMonday) {
       final daysToSubtract = ref.weekday % 7;
       return ref.subtract(Duration(days: daysToSubtract));
@@ -133,9 +133,14 @@ class HabitsCard extends ConsumerWidget {
             Row(
               children: [
                 DuskGlassButton.icon(
-                  onPressed: () => ref.read(habitsProvider.notifier).cycleCarousel(-1),
+                  onPressed: () =>
+                      ref.read(habitsProvider.notifier).cycleCarousel(-1),
                   size: isUltraCompact ? 22 : (isCompactHeight ? 26 : 30),
-                  icon: const Icon(Icons.chevron_left_rounded, size: 16, color: AppColors.textPrimary),
+                  icon: const Icon(
+                    Icons.chevron_left_rounded,
+                    size: 16,
+                    color: AppColors.textPrimary,
+                  ),
                 ),
                 const SizedBox(width: 4),
                 Container(
@@ -149,8 +154,8 @@ class HabitsCard extends ConsumerWidget {
                       width: 1.0,
                     ),
                   ),
-                  child: Icon(
-                    resolveIcon(activeHabit.iconName),
+                  child: buildHabitGlyph(
+                    activeHabit.iconName,
                     size: isUltraCompact ? 12 : 15,
                     color: AppColors.tealAccent,
                   ),
@@ -163,7 +168,9 @@ class HabitsCard extends ConsumerWidget {
                     style: TextStyle(
                       color: AppColors.textPrimary,
                       fontWeight: FontWeight.w700,
-                      fontSize: isUltraCompact ? 12 : (isCompactHeight ? 13.5 : 15),
+                      fontSize: isUltraCompact
+                          ? 12
+                          : (isCompactHeight ? 13.5 : 15),
                     ),
                   ),
                 ),
@@ -177,9 +184,14 @@ class HabitsCard extends ConsumerWidget {
                 ),
                 const SizedBox(width: 4),
                 DuskGlassButton.icon(
-                  onPressed: () => ref.read(habitsProvider.notifier).cycleCarousel(1),
+                  onPressed: () =>
+                      ref.read(habitsProvider.notifier).cycleCarousel(1),
                   size: isUltraCompact ? 22 : (isCompactHeight ? 26 : 30),
-                  icon: const Icon(Icons.chevron_right_rounded, size: 16, color: AppColors.textPrimary),
+                  icon: const Icon(
+                    Icons.chevron_right_rounded,
+                    size: 16,
+                    color: AppColors.textPrimary,
+                  ),
                 ),
               ],
             ),
@@ -191,14 +203,18 @@ class HabitsCard extends ConsumerWidget {
               children: [
                 if (activeHabit.type == HabitType.numeric)
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 3,
+                    ),
                     decoration: BoxDecoration(
                       color: AppColors.well,
                       borderRadius: BorderRadius.circular(8),
                       border: Border.all(color: AppColors.line, width: 1.0),
                     ),
                     child: Text(
-                      '${activeHabit.completionCountOn(today)}/${activeHabit.targetValue} ${activeHabit.unit ?? ""}'.trim(),
+                      '${activeHabit.completionCountOn(today)}/${activeHabit.targetValue} ${activeHabit.unit ?? ""}'
+                          .trim(),
                       style: const TextStyle(
                         color: AppColors.textPrimary,
                         fontSize: 11,
@@ -212,21 +228,29 @@ class HabitsCard extends ConsumerWidget {
                 // Done / Quick Action Button
                 if (activeHabit.type == HabitType.binary)
                   DuskGlassButton(
-                    onPressed: () => ref.read(habitsProvider.notifier).toggleCompletion(activeHabit.id, today),
+                    onPressed: () => ref
+                        .read(habitsProvider.notifier)
+                        .toggleCompletion(activeHabit.id, today),
                     height: isUltraCompact ? 24 : 30,
                     padding: const EdgeInsets.symmetric(horizontal: 10),
                     isPrimary: isDoneToday,
                     primaryColor: AppColors.teal.fill,
                     primaryForegroundColor: AppColors.tealInk,
                     icon: Icon(
-                      isDoneToday ? Icons.check_circle_rounded : Icons.radio_button_unchecked_rounded,
+                      isDoneToday
+                          ? Icons.check_circle_rounded
+                          : Icons.radio_button_unchecked_rounded,
                       size: 14,
-                      color: isDoneToday ? AppColors.tealInk : AppColors.textPrimary,
+                      color: isDoneToday
+                          ? AppColors.tealInk
+                          : AppColors.textPrimary,
                     ),
                     label: Text(
                       isDoneToday ? 'Done' : 'Mark done',
                       style: TextStyle(
-                        color: isDoneToday ? AppColors.tealInk : AppColors.textPrimary,
+                        color: isDoneToday
+                            ? AppColors.tealInk
+                            : AppColors.textPrimary,
                         fontSize: 11,
                         fontWeight: FontWeight.w700,
                       ),
@@ -237,15 +261,27 @@ class HabitsCard extends ConsumerWidget {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       DuskGlassButton.icon(
-                        onPressed: () => ref.read(habitsProvider.notifier).stepCompletion(activeHabit.id, -1, today),
+                        onPressed: () => ref
+                            .read(habitsProvider.notifier)
+                            .stepCompletion(activeHabit.id, -1, today),
                         size: isUltraCompact ? 24 : 30,
-                        icon: const Icon(Icons.remove_rounded, size: 14, color: AppColors.textPrimary),
+                        icon: const Icon(
+                          Icons.remove_rounded,
+                          size: 14,
+                          color: AppColors.textPrimary,
+                        ),
                       ),
                       const SizedBox(width: 4),
                       DuskGlassButton.icon(
-                        onPressed: () => ref.read(habitsProvider.notifier).stepCompletion(activeHabit.id, 1, today),
+                        onPressed: () => ref
+                            .read(habitsProvider.notifier)
+                            .stepCompletion(activeHabit.id, 1, today),
                         size: isUltraCompact ? 24 : 30,
-                        icon: const Icon(Icons.add_rounded, size: 14, color: AppColors.textPrimary),
+                        icon: const Icon(
+                          Icons.add_rounded,
+                          size: 14,
+                          color: AppColors.textPrimary,
+                        ),
                       ),
                     ],
                   ),
@@ -270,10 +306,7 @@ class HabitsCard extends ConsumerWidget {
           return FittedBox(
             fit: BoxFit.scaleDown,
             alignment: Alignment.topCenter,
-            child: SizedBox(
-              width: constraints.maxWidth,
-              child: content,
-            ),
+            child: SizedBox(width: constraints.maxWidth, child: content),
           );
         }
 
@@ -298,7 +331,8 @@ class HabitsCard extends ConsumerWidget {
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: List.generate(7, (index) {
         final dayDate = weekStart.add(Duration(days: index));
-        final isToday = dayDate.year == today.year &&
+        final isToday =
+            dayDate.year == today.year &&
             dayDate.month == today.month &&
             dayDate.day == today.day;
         final isCompleted = habit.isCompletedOn(dayDate);
@@ -306,9 +340,13 @@ class HabitsCard extends ConsumerWidget {
         return InkWell(
           onTap: () {
             if (habit.type == HabitType.binary) {
-              ref.read(habitsProvider.notifier).toggleCompletion(habit.id, dayDate);
+              ref
+                  .read(habitsProvider.notifier)
+                  .toggleCompletion(habit.id, dayDate);
             } else {
-              ref.read(habitsProvider.notifier).stepCompletion(habit.id, 1, dayDate);
+              ref
+                  .read(habitsProvider.notifier)
+                  .stepCompletion(habit.id, 1, dayDate);
             }
           },
           borderRadius: BorderRadius.circular(20),
@@ -330,14 +368,14 @@ class HabitsCard extends ConsumerWidget {
                   width: 28,
                   height: 28,
                   decoration: BoxDecoration(
-                    color: isCompleted
-                        ? AppColors.tealFill
-                        : AppColors.well,
+                    color: isCompleted ? AppColors.tealFill : AppColors.well,
                     shape: BoxShape.circle,
                     border: Border.all(
                       color: isCompleted
                           ? Colors.transparent
-                          : (isToday ? AppColors.tealAccent : AppColors.lineStrong),
+                          : (isToday
+                                ? AppColors.tealAccent
+                                : AppColors.lineStrong),
                       width: isToday ? 1.5 : 1.0,
                     ),
                     boxShadow: isCompleted
@@ -351,19 +389,23 @@ class HabitsCard extends ConsumerWidget {
                         : null,
                   ),
                   child: isCompleted
-                      ? const Icon(Icons.check_rounded, size: 16, color: AppColors.tealInk)
+                      ? const Icon(
+                          Icons.check_rounded,
+                          size: 16,
+                          color: AppColors.tealInk,
+                        )
                       : (isToday
-                          ? Center(
-                              child: Container(
-                                width: 4,
-                                height: 4,
-                                decoration: const BoxDecoration(
-                                  color: AppColors.tealAccent,
-                                  shape: BoxShape.circle,
+                            ? Center(
+                                child: Container(
+                                  width: 4,
+                                  height: 4,
+                                  decoration: const BoxDecoration(
+                                    color: AppColors.tealAccent,
+                                    shape: BoxShape.circle,
+                                  ),
                                 ),
-                              ),
-                            )
-                          : null),
+                              )
+                            : null),
                 ),
               ],
             ),
@@ -510,8 +552,8 @@ class HabitsCard extends ConsumerWidget {
                         width: 1.0,
                       ),
                     ),
-                    child: Icon(
-                      resolveIcon(habit.iconName),
+                    child: buildHabitGlyph(
+                      habit.iconName,
                       size: 22,
                       color: AppColors.tealAccent,
                     ),
@@ -543,15 +585,25 @@ class HabitsCard extends ConsumerWidget {
                     ),
                   ),
                   DuskGlassButton.icon(
-                    onPressed: () => _showHabitFormSheet(context, ref, habitToEdit: habit),
+                    onPressed: () =>
+                        _showHabitFormSheet(context, ref, habitToEdit: habit),
                     size: 34,
-                    icon: const Icon(Icons.edit_outlined, size: 16, color: AppColors.textSecondary),
+                    icon: const Icon(
+                      Icons.edit_outlined,
+                      size: 16,
+                      color: AppColors.textSecondary,
+                    ),
                   ),
                   const SizedBox(width: 6),
                   DuskGlassButton.icon(
-                    onPressed: () => ref.read(habitsProvider.notifier).deleteHabit(habit.id),
+                    onPressed: () =>
+                        ref.read(habitsProvider.notifier).deleteHabit(habit.id),
                     size: 34,
-                    icon: const Icon(Icons.delete_outline_rounded, size: 16, color: AppColors.accentRed),
+                    icon: const Icon(
+                      Icons.delete_outline_rounded,
+                      size: 16,
+                      color: AppColors.accentRed,
+                    ),
                   ),
                 ],
               ),
@@ -672,14 +724,22 @@ class HabitsCard extends ConsumerWidget {
                             } else if (cell.isCompleted) {
                               dotColor = AppColors.tealAccent;
                             } else if (cell.count > 0) {
-                              dotColor = AppColors.tealAccent.withValues(alpha: 0.4);
+                              dotColor = AppColors.tealAccent.withValues(
+                                alpha: 0.4,
+                              );
                             } else {
                               dotColor = AppColors.glass;
-                              border = Border.all(color: AppColors.line, width: 1.0);
+                              border = Border.all(
+                                color: AppColors.line,
+                                width: 1.0,
+                              );
                             }
 
                             if (cell.isToday) {
-                              border = Border.all(color: AppColors.textPrimary, width: 1.2);
+                              border = Border.all(
+                                color: AppColors.textPrimary,
+                                width: 1.2,
+                              );
                             }
 
                             return Container(
@@ -713,10 +773,10 @@ class HabitsCard extends ConsumerWidget {
     HabitItem? habitToEdit,
   }) {
     final isEditing = habitToEdit != null;
-    final titleController =
-        TextEditingController(text: habitToEdit?.title ?? '');
-    final unitController =
-        TextEditingController(text: habitToEdit?.unit ?? '');
+    final titleController = TextEditingController(
+      text: habitToEdit?.title ?? '',
+    );
+    final unitController = TextEditingController(text: habitToEdit?.unit ?? '');
     var habitType = habitToEdit?.type ?? HabitType.binary;
     var targetValue =
         habitToEdit?.targetValue ?? (habitType == HabitType.numeric ? 8 : 1);
@@ -736,7 +796,9 @@ class HabitsCard extends ConsumerWidget {
                       title: title,
                       type: habitType,
                       targetValue: targetValue,
-                      unit: habitType == HabitType.numeric ? (unit.isEmpty ? null : unit) : null,
+                      unit: habitType == HabitType.numeric
+                          ? (unit.isEmpty ? null : unit)
+                          : null,
                       iconName: iconName,
                     );
                     ref.read(habitsProvider.notifier).editHabit(updated);
@@ -746,7 +808,9 @@ class HabitsCard extends ConsumerWidget {
                       title: title,
                       type: habitType,
                       targetValue: targetValue,
-                      unit: habitType == HabitType.numeric ? (unit.isEmpty ? null : unit) : null,
+                      unit: habitType == HabitType.numeric
+                          ? (unit.isEmpty ? null : unit)
+                          : null,
                       iconName: iconName,
                       createdAt: DateTime.now(),
                     );
@@ -783,7 +847,9 @@ class HabitsCard extends ConsumerWidget {
                     title: titleController.text,
                     type: habitType,
                     targetCount: targetValue,
-                    unit: unitController.text.trim().isEmpty ? null : unitController.text.trim(),
+                    unit: unitController.text.trim().isEmpty
+                        ? null
+                        : unitController.text.trim(),
                     iconName: iconName,
                   );
                 },

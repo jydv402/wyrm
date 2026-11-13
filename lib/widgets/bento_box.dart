@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 /// Reusable base container matching the bento box corner radiuses and styling.
 class BentoBox extends StatelessWidget {

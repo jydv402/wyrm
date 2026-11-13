@@ -15,7 +15,7 @@ class WyrmStateStore {
       latencyMs: null,
 
       layout: { clock: 'small', habits: 'small', calendar: 'small', tasks: 'small' },
-      settings: { is24HourFormat: false, cardFontSize: 13.0, startWeekOnMonday: false },
+      settings: { is24HourFormat: false, cardFontSize: 14.0, startWeekOnMonday: false },
       display: { brightness: 1.0 },
       networkModalOpen: false,
       serverUrl: '',
@@ -25,23 +25,69 @@ class WyrmStateStore {
       habits: [],
       calendar: { selectedDate: null, viewMonth: new Date().toISOString(), milestones: [] },
     });
+
+    // Optimistic mutations are tracked per state section so a broadcast that
+    // echoes the pre-change value (stale) cannot clobber the newer local
+    // change. Entries expire so the server always wins again shortly after.
+    this.pending = [];
   }
+
+  /** How long an optimistic mutation stays authoritative without an echo (ms). */
+  static get PENDING_TTL_MS() { return 5000; }
 
   getState() {
     return this.state;
   }
 
+  /**
+   * Records a section as optimistically changed, unless one is already
+   * pending — the first captured value must stay the pre-change snapshot so
+   * repeated actions on the same section keep detecting stale echoes.
+   */
+  markPendingOnce(key, oldValue) {
+    if (this.pending.some((p) => p.key === key)) return;
+    this.pending.push({ key, oldValue: JSON.stringify(oldValue), sentAt: Date.now() });
+  }
+
   mergeSnapshot(data) {
     if (!data) return;
-    if (data.layout) Object.assign(this.state.layout, data.layout);
-    if (data.settings) Object.assign(this.state.settings, data.settings);
-    if (data.display) Object.assign(this.state.display, data.display);
-    if (data.networkModalOpen !== undefined) this.state.networkModalOpen = !!data.networkModalOpen;
+    const now = Date.now();
+    this.pending = this.pending.filter((p) => now - p.sentAt < WyrmStateStore.PENDING_TTL_MS);
+
+    // Reconcile: a broadcast matching the pre-optimistic value is a stale
+    // echo of our own pending change — keep the optimistic value. Any other
+    // broadcast (ack echo or a tablet-side change) wins and clears pending.
+    const apply = (key, incoming, merge) => {
+      if (incoming === undefined) return;
+      const index = this.pending.findIndex((p) => p.key === key);
+      if (index !== -1) {
+        if (JSON.stringify(incoming) === this.pending[index].oldValue) return;
+        this.pending.splice(index, 1);
+      }
+      merge();
+    };
+
+    apply('layout', data.layout, () => Object.assign(this.state.layout, data.layout));
+    apply('settings', data.settings, () => Object.assign(this.state.settings, data.settings));
+    apply('display', data.display, () => Object.assign(this.state.display, data.display));
+    apply('networkModalOpen', data.networkModalOpen, () => {
+      this.state.networkModalOpen = !!data.networkModalOpen;
+    });
     if (data.serverUrl !== undefined) this.state.serverUrl = data.serverUrl;
     if (data.ipAddress !== undefined) this.state.ipAddress = data.ipAddress;
-    if (Array.isArray(data.tasks)) this.state.tasks = data.tasks;
-    if (Array.isArray(data.habits)) this.state.habits = data.habits;
-    if (data.calendar) Object.assign(this.state.calendar, data.calendar);
+    apply('tasks', data.tasks, () => {
+      if (Array.isArray(data.tasks)) this.state.tasks = data.tasks;
+    });
+    apply('habits', data.habits, () => {
+      if (Array.isArray(data.habits)) {
+        this.state.habits = data.habits.map((h) => ({
+          ...h,
+          targetValue: h.targetValue ?? h.target_value ?? 1,
+          iconName: h.iconName ?? h.icon_name ?? 'bolt',
+        }));
+      }
+    });
+    apply('calendar', data.calendar, () => Object.assign(this.state.calendar, data.calendar));
   }
 }
 
@@ -192,17 +238,16 @@ function createWyrmActions(store, ws) {
       state.currentChannel = name;
     },
     setCardSize(card, size) {
+      store.markPendingOnce('layout', state.layout);
       state.layout[card] = size;
       post('/api/layout', { card, size }, 'set_layout');
     },
     setAllCardsSize(size) {
-      CARDS.forEach((card) => {
-        state.layout[card] = size;
-        post('/api/layout', { card, size }, 'set_layout');
-      });
+      CARDS.forEach((card) => actions.setCardSize(card, size));
     },
     toggleNightstand() {
-      actions.setCardSize('clock', state.layout.clock === 'nightstand' ? 'fullscreen' : 'nightstand');
+      // Returning from nightstand goes back to the default small deck, not fullscreen.
+      actions.setCardSize('clock', state.layout.clock === 'nightstand' ? 'small' : 'nightstand');
     },
     scrollToCard(card) {
       post('/api/scroll', { card }, 'scroll_to_card');
@@ -217,16 +262,21 @@ function createWyrmActions(store, ws) {
     },
     toggleTask(id) {
       const t = state.tasks.find((item) => item.id === id);
-      if (t) t.isCompleted = !t.isCompleted;
+      if (t) {
+        store.markPendingOnce('tasks', state.tasks);
+        t.isCompleted = !t.isCompleted;
+      }
       post('/api/tasks/toggle', { id }, 'toggle_task');
     },
     deleteTask(id) {
+      store.markPendingOnce('tasks', state.tasks);
       state.tasks = state.tasks.filter((item) => item.id !== id);
       post('/api/tasks/delete', { id }, 'delete_task');
     },
     setFontSize(delta) {
-      const current = state.settings.cardFontSize || 13.0;
-      const next = Math.min(22.0, Math.max(9.0, current + delta));
+      store.markPendingOnce('settings', state.settings);
+      const current = state.settings.cardFontSize || 14.0;
+      const next = Math.min(22.0, Math.max(11.0, current + delta));
       state.settings.cardFontSize = next;
       post('/api/settings', { cardFontSize: next }, 'set_settings');
     },
@@ -235,17 +285,19 @@ function createWyrmActions(store, ws) {
     createHabit({ title, type = 'binary', target = 1, glyph }) {
       const clean = (title || '').trim();
       if (!clean) return false;
-      const icon = glyph || draft.glyph;
+      const icon = glyph || draft.glyph || '💧';
+      const count = type === 'numeric' ? (target || 1) : 1;
       post(
         '/api/habits',
-        { title: clean, habit_type: type, target: type === 'numeric' ? (target || 1) : 1, glyph: icon, icon_name: icon },
+        { title: clean, habit_type: type, target: count, target_value: count, targetValue: count, glyph: icon, icon_name: icon },
         'create_habit'
       );
       return true;
     },
     isHabitCompletedToday(habit) {
       if (!habit || !habit.completions) return false;
-      return (habit.completions[dateKey()] || 0) >= (habit.targetValue || 1);
+      const target = habit.targetValue ?? habit.target_value ?? 1;
+      return (habit.completions[dateKey()] || 0) >= target;
     },
     getHabitTodayValue(habit) {
       if (!habit || !habit.completions) return 0;
@@ -253,7 +305,8 @@ function createWyrmActions(store, ws) {
     },
     habitDayCompleted(habit, key) {
       if (!habit || !habit.completions) return false;
-      return (habit.completions[key] || 0) >= (habit.targetValue || 1);
+      const target = habit.targetValue ?? habit.target_value ?? 1;
+      return (habit.completions[key] || 0) >= target;
     },
     toggleHabit(id) {
       post('/api/habits/toggle', { id, date: dateKey() }, 'toggle_habit');
@@ -262,6 +315,7 @@ function createWyrmActions(store, ws) {
       post('/api/habits/step', { id, delta, date: dateKey() }, 'step_habit');
     },
     deleteHabit(id) {
+      store.markPendingOnce('habits', state.habits);
       state.habits = state.habits.filter((h) => h.id !== id);
       post('/api/habits/delete', { id }, 'delete_habit');
     },
@@ -276,10 +330,14 @@ function createWyrmActions(store, ws) {
     },
     togglePinMilestone(id) {
       const ms = state.calendar.milestones.find((m) => m.id === id);
-      if (ms) ms.isPinned = !ms.isPinned;
+      if (ms) {
+        store.markPendingOnce('calendar', state.calendar);
+        ms.isPinned = !ms.isPinned;
+      }
       post('/api/calendar/milestones/pin', { id }, 'toggle_pin_milestone');
     },
     deleteMilestone(id) {
+      store.markPendingOnce('calendar', state.calendar);
       state.calendar.milestones = state.calendar.milestones.filter((m) => m.id !== id);
       post('/api/calendar/milestones/delete', { id }, 'delete_milestone');
     },
@@ -307,6 +365,7 @@ function createWyrmActions(store, ws) {
     setBrightness(value) {
       const numVal = typeof value === 'number' ? value : parseFloat(value);
       if (isNaN(numVal)) return;
+      store.markPendingOnce('display', state.display);
       state.display.brightness = numVal;
       brightPending = numVal;
       if (brightTimer) return;
@@ -318,17 +377,35 @@ function createWyrmActions(store, ws) {
       }, wait);
     },
     set24HourFormat(is24) {
+      store.markPendingOnce('settings', state.settings);
       state.settings.is24HourFormat = is24;
       post('/api/settings', { is24HourFormat: is24 }, 'set_settings');
     },
     setStartWeekOnMonday(startMon) {
+      store.markPendingOnce('settings', state.settings);
       state.settings.startWeekOnMonday = startMon;
       post('/api/settings', { startWeekOnMonday: startMon }, 'set_settings');
     },
     toggleNetworkModal(open) {
       const next = typeof open === 'boolean' ? open : !state.networkModalOpen;
+      store.markPendingOnce('networkModalOpen', state.networkModalOpen);
       state.networkModalOpen = next;
       post('/api/modal/network', { open: next }, 'toggle_network_modal');
+    },
+    exportBackup() {
+      window.location.href = '/api/backup/export';
+    },
+    async importBackup(jsonString) {
+      const res = await fetch('/api/backup/import', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: jsonString,
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || 'Import failed with HTTP ' + res.status);
+      }
+      return await res.json();
     },
   };
 
@@ -379,4 +456,6 @@ window.wyrmRemote = {
   stepHabit: (id, delta) => wyrm.stepHabit(id, delta),
   deleteHabit: (id) => wyrm.deleteHabit(id),
   setBrightness: (val) => wyrm.setBrightness(val),
+  exportBackup: () => wyrm.exportBackup(),
+  importBackup: (json) => wyrm.importBackup(json),
 };

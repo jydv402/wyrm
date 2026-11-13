@@ -56,11 +56,12 @@ class HabitsNotifier extends Notifier<HabitsState> {
 
   Future<void> _initializeFromDisk() async {
     final loaded = await AppDatabase.loadHabits();
-    final currentMonthHabits = loaded.map((h) => h.copyWith(
-      completions: HabitItem.filterCurrentMonth(h.completions),
-    )).toList();
+    // Full completion history is kept in memory; month scoping happens at
+    // render time (streak/heatmap math filters by date-key prefix), so
+    // stripping here would permanently delete prior-month history on every
+    // launch and any later save would write the loss back to disk.
     state = state.copyWith(
-      habits: currentMonthHabits,
+      habits: loaded,
       selectedCarouselIndex: 0,
     );
   }
@@ -158,6 +159,11 @@ class HabitsNotifier extends Notifier<HabitsState> {
     if (state.habits.isEmpty) return;
     final clamped = index.clamp(0, state.habits.length - 1);
     state = state.copyWith(selectedCarouselIndex: clamped);
+  }
+
+  /// Reloads habits from disk.
+  Future<void> reloadFromDisk() async {
+    await _initializeFromDisk();
   }
 }
 

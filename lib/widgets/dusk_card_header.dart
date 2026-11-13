@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:wyrm_desk/core/theme.dart';
 import 'package:wyrm_desk/home/card_layout_state.dart';
 import 'package:wyrm_desk/widgets/card_edit_button.dart';
@@ -46,11 +46,7 @@ class DuskCardHeader extends StatelessWidget {
         if (iconWidget != null)
           iconWidget!
         else if (icon != null)
-          Icon(
-            icon,
-            size: 20,
-            color: domainAccent,
-          ),
+          Icon(icon, size: 20, color: domainAccent),
 
         if (icon != null || iconWidget != null) const SizedBox(width: 10),
 
@@ -66,10 +62,7 @@ class DuskCardHeader extends StatelessWidget {
         ),
 
         // Optional auxiliary badge
-        if (badge != null) ...[
-          const SizedBox(width: 10),
-          badge!,
-        ],
+        if (badge != null) ...[const SizedBox(width: 10), badge!],
 
         const Spacer(),
 
@@ -87,7 +80,9 @@ class DuskCardHeader extends StatelessWidget {
             icon: Icon(
               Icons.add_rounded,
               size: 20,
-              color: addForegroundColor ?? (addColor != null ? Colors.black : AppColors.textPrimary),
+              color:
+                  addForegroundColor ??
+                  (addColor != null ? Colors.black : AppColors.textPrimary),
             ),
           ),
         ],

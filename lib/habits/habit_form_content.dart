@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:wyrm_desk/core/theme.dart';
 import 'package:wyrm_desk/habits/habit_model.dart';
 import 'package:wyrm_desk/in_app_keyboard/in_app_keyboard_text_field.dart';
@@ -18,9 +18,47 @@ const List<String> habitGlyphKeys = [
   'favorite',
 ];
 
-/// Resolves an IconData glyph from an iconName token string.
-IconData resolveHabitIcon(String? name) {
-  switch (name) {
+/// Bidirectional emoji and token mapping dictionaries.
+const Map<String, String> emojiToHabitIcon = {
+  '💧': 'water_drop',
+  '📖': 'menu_book',
+  '🏋️': 'fitness_center',
+  '🏋': 'fitness_center',
+  '❤️': 'favorite',
+  '❤': 'favorite',
+  '⚡': 'bolt',
+  '🔥': 'bolt',
+  '💻': 'code',
+  '☀️': 'wb_sunny',
+  '☀': 'wb_sunny',
+  '🌙': 'bedtime',
+  '🎯': 'check_circle',
+  '🌿': 'spa',
+  '☕': 'local_cafe',
+  '🏃': 'directions_run',
+};
+
+const Map<String, String> habitIconToEmoji = {
+  'water_drop': '💧',
+  'menu_book': '📖',
+  'fitness_center': '🏋️',
+  'favorite': '❤️',
+  'bolt': '⚡',
+  'code': '💻',
+  'wb_sunny': '☀️',
+  'bedtime': '🌙',
+  'check_circle': '🎯',
+  'spa': '🌿',
+  'local_cafe': '☕',
+  'directions_run': '🏃',
+};
+
+/// Resolves an IconData glyph from an iconName token string or preset emoji.
+/// Returns null if the name represents an unmapped custom emoji/character.
+IconData? resolveHabitIcon(String? name) {
+  if (name == null || name.isEmpty) return Icons.bolt_rounded;
+  final mapped = emojiToHabitIcon[name] ?? name;
+  switch (mapped) {
     case 'water_drop':
       return Icons.water_drop_rounded;
     case 'fitness_center':
@@ -41,10 +79,26 @@ IconData resolveHabitIcon(String? name) {
       return Icons.check_circle_rounded;
     case 'favorite':
       return Icons.favorite_rounded;
+    case 'spa':
+      return Icons.spa_rounded;
     case 'bolt':
-    default:
       return Icons.bolt_rounded;
+    default:
+      return null;
   }
+}
+
+/// Renders a habit glyph as a vector Material Icon or native Text emoji.
+Widget buildHabitGlyph(String? iconName, {required double size, Color? color}) {
+  final iconData = resolveHabitIcon(iconName);
+  if (iconData != null) {
+    return Icon(iconData, size: size, color: color);
+  }
+  return Text(
+    iconName ?? '⚡',
+    style: TextStyle(fontSize: size * 0.9, height: 1.0),
+    textAlign: TextAlign.center,
+  );
 }
 
 /// Reusable, adaptive form content for creating and editing habits.
@@ -99,8 +153,10 @@ class HabitFormContent extends StatelessWidget {
             hintStyle: const TextStyle(color: AppColors.textSecondary),
             filled: true,
             fillColor: Colors.white.withValues(alpha: 0.06),
-            contentPadding:
-                const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 14,
+              vertical: 12,
+            ),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
               borderSide: BorderSide.none,
@@ -213,7 +269,10 @@ class HabitFormContent extends StatelessWidget {
                 },
               ),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 6,
+                ),
                 decoration: BoxDecoration(
                   color: Colors.white.withValues(alpha: 0.06),
                   borderRadius: BorderRadius.circular(8),
@@ -242,14 +301,18 @@ class HabitFormContent extends StatelessWidget {
                 child: InAppKeyboardTextField(
                   controller: unitController,
                   style: const TextStyle(
-                      color: AppColors.textPrimary, fontSize: 13),
+                    color: AppColors.textPrimary,
+                    fontSize: 13,
+                  ),
                   decoration: InputDecoration(
                     hintText: 'Unit (e.g. cups, mins)',
                     hintStyle: const TextStyle(color: AppColors.textSecondary),
                     filled: true,
                     fillColor: Colors.white.withValues(alpha: 0.06),
                     contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 10, vertical: 8),
+                      horizontal: 10,
+                      vertical: 8,
+                    ),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(8),
                       borderSide: BorderSide.none,
@@ -294,10 +357,11 @@ class HabitFormContent extends StatelessWidget {
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: Icon(
-                  resolveHabitIcon(iconKey),
+                  resolveHabitIcon(iconKey) ?? Icons.bolt_rounded,
                   size: 18,
-                  color:
-                      isSelected ? AppColors.textOnLight : AppColors.textPrimary,
+                  color: isSelected
+                      ? AppColors.textOnLight
+                      : AppColors.textPrimary,
                 ),
               ),
             );
@@ -355,8 +419,8 @@ class HabitPreviewTile extends StatelessWidget {
                   color: Colors.black.withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(10),
                 ),
-                child: Icon(
-                  resolveHabitIcon(iconName),
+                child: buildHabitGlyph(
+                  iconName,
                   size: 20,
                   color: AppColors.textOnLight,
                 ),

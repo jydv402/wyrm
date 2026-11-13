@@ -1,5 +1,6 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:wyrm_desk/core/theme.dart';
+
 import 'in_app_keyboard_controller.dart';
 import 'in_app_keyboard_scope.dart';
 
@@ -51,10 +52,7 @@ class InAppKeyboardWidget extends StatelessWidget {
     );
   }
 
-  Widget _buildLayoutForMode(
-    BuildContext context,
-    InAppKeyboardController kb,
-  ) {
+  Widget _buildLayoutForMode(BuildContext context, InAppKeyboardController kb) {
     switch (kb.mode) {
       case VirtualKeyboardMode.letters:
         return _buildLettersLayout(context, kb);
@@ -210,12 +208,14 @@ class InAppKeyboardWidget extends StatelessWidget {
         Expanded(
           child: Row(
             children: row1
-                .map((char) => Expanded(
-                      child: _KeyButton(
-                        label: char,
-                        onTap: () => kb.insertText(char),
-                      ),
-                    ))
+                .map(
+                  (char) => Expanded(
+                    child: _KeyButton(
+                      label: char,
+                      onTap: () => kb.insertText(char),
+                    ),
+                  ),
+                )
                 .toList(),
           ),
         ),
@@ -223,12 +223,14 @@ class InAppKeyboardWidget extends StatelessWidget {
         Expanded(
           child: Row(
             children: row2
-                .map((char) => Expanded(
-                      child: _KeyButton(
-                        label: char,
-                        onTap: () => kb.insertText(char),
-                      ),
-                    ))
+                .map(
+                  (char) => Expanded(
+                    child: _KeyButton(
+                      label: char,
+                      onTap: () => kb.insertText(char),
+                    ),
+                  ),
+                )
                 .toList(),
           ),
         ),
@@ -236,13 +238,15 @@ class InAppKeyboardWidget extends StatelessWidget {
         Expanded(
           child: Row(
             children: [
-              ...row3.map((char) => Expanded(
-                    flex: 2,
-                    child: _KeyButton(
-                      label: char,
-                      onTap: () => kb.insertText(char),
-                    ),
-                  )),
+              ...row3.map(
+                (char) => Expanded(
+                  flex: 2,
+                  child: _KeyButton(
+                    label: char,
+                    onTap: () => kb.insertText(char),
+                  ),
+                ),
+              ),
               Expanded(
                 flex: 3,
                 child: _ActionKeyButton(
@@ -349,10 +353,7 @@ class InAppKeyboardWidget extends StatelessWidget {
               _buildNumpadKey('8', kb),
               _buildNumpadKey('9', kb),
               Expanded(
-                child: _ActionKeyButton(
-                  label: 'Clear',
-                  onTap: kb.clear,
-                ),
+                child: _ActionKeyButton(label: 'Clear', onTap: kb.clear),
               ),
             ],
           ),
@@ -467,14 +468,14 @@ class _ActionKeyButton extends StatelessWidget {
     final bgColor = isAccent
         ? AppColors.cardSage
         : isActive
-            ? (activeColor ?? AppColors.accentOrange).withValues(alpha: 0.3)
-            : Colors.white.withValues(alpha: 0.04);
+        ? (activeColor ?? AppColors.accentOrange).withValues(alpha: 0.3)
+        : Colors.white.withValues(alpha: 0.04);
 
     final fgColor = isAccent
         ? AppColors.textOnLight
         : isActive
-            ? (activeColor ?? AppColors.accentOrange)
-            : AppColors.textSecondary;
+        ? (activeColor ?? AppColors.accentOrange)
+        : AppColors.textSecondary;
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 2.0),
@@ -500,12 +501,7 @@ class _ActionKeyButton extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.center,
               mainAxisSize: MainAxisSize.min,
               children: [
-                if (icon != null)
-                  Icon(
-                    icon,
-                    size: 16,
-                    color: fgColor,
-                  ),
+                if (icon != null) Icon(icon, size: 16, color: fgColor),
                 if (icon != null && label != null) const SizedBox(width: 4),
                 if (label != null)
                   Text(

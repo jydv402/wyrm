@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:wyrm_desk/core/theme.dart';
 
 /// Dusk Glass segmented control with an animated gliding thumb pill.
@@ -80,8 +80,12 @@ class DuskGlassSegmentedControl<T> extends StatelessWidget {
                         child: AnimatedDefaultTextStyle(
                           duration: const Duration(milliseconds: 200),
                           style: TextStyle(
-                            color: isSelected ? thumbTextColor : AppColors.textSecondary,
-                            fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                            color: isSelected
+                                ? thumbTextColor
+                                : AppColors.textSecondary,
+                            fontWeight: isSelected
+                                ? FontWeight.w700
+                                : FontWeight.w500,
                             fontSize: 13.5,
                           ),
                           child: Text(

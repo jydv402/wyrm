@@ -59,16 +59,26 @@ final clockPeriodProvider = Provider.autoDispose<String?>((ref) {
   return time.hour >= 12 ? 'PM' : 'AM';
 });
 
-/// Granular provider calculating remaining time until midnight, updating only once per minute.
-final timeLeftTodayProvider = Provider.autoDispose<String>((ref) {
-  final time = ref.watch(clockTimeProvider).value ?? DateTime.now();
+/// Computes the hours and minutes remaining until midnight of [time]'s civil day.
+({int hours, int minutes}) timeLeftUntilMidnight(DateTime time) {
   final endOfDay = DateTime(time.year, time.month, time.day + 1);
   final difference = endOfDay.difference(time);
+  return (hours: difference.inHours, minutes: difference.inMinutes % 60);
+}
 
-  final hoursLeft = difference.inHours;
-  final minutesLeft = difference.inMinutes % 60;
+/// Granular provider emitting the raw countdown parts until midnight,
+/// rebuilding only once per minute alongside the clock minute tick.
+final timeLeftTodayPartsProvider =
+    Provider.autoDispose<({int hours, int minutes})>((ref) {
+  final time = ref.watch(clockTimeProvider).value ?? DateTime.now();
+  return timeLeftUntilMidnight(time);
+});
 
-  return '${hoursLeft}h ${minutesLeft}m left today';
+/// Granular provider calculating the formatted remaining time until midnight,
+/// updating only once per minute.
+final timeLeftTodayProvider = Provider.autoDispose<String>((ref) {
+  final left = ref.watch(timeLeftTodayPartsProvider);
+  return '${left.hours}h ${left.minutes}m left today';
 });
 
 /// Discrete stepping angles in radians for analogue clock hands.

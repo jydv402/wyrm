@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:wyrm_desk/calendar/calendar_state.dart';
+import 'package:wyrm_desk/core/core.dart';
 import 'package:wyrm_desk/display/display.dart';
 import 'package:wyrm_desk/habits/habits.dart';
 import 'package:wyrm_desk/home/card_layout_state.dart';
@@ -80,6 +81,9 @@ final webServerProvider = Provider<ShelfWebServer>((ref) {
     },
     onToggleNetworkModal: (open) {
       ref.read(networkModalOpenProvider.notifier).setOpen(open);
+    },
+    onImportDatabase: (jsonString) async {
+      return await ref.read(databaseServiceProvider).importAndReloadJson(jsonString);
     },
   );
 

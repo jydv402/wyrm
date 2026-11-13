@@ -634,6 +634,33 @@ void main() {
       expect(activeHabits.last.iconName, 'run');
     });
 
+    test('POST /api/habits maps preset emojis to tokens and preserves custom emojis', () async {
+      final response1 = await http.post(
+        Uri.parse('http://127.0.0.1:${server.port}/api/habits'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'title': 'Drink Water Emoji',
+          'habit_type': 'numeric',
+          'target_value': 8,
+          'glyph': '💧',
+        }),
+      );
+      expect(response1.statusCode, 200);
+      expect(activeHabits.last.iconName, 'water_drop');
+
+      final response2 = await http.post(
+        Uri.parse('http://127.0.0.1:${server.port}/api/habits'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'title': 'Eat Fruit',
+          'habit_type': 'binary',
+          'glyph': '🍎',
+        }),
+      );
+      expect(response2.statusCode, 200);
+      expect(activeHabits.last.iconName, '🍎');
+    });
+
     test('WebSocket create_habit creates habit with custom glyph', () async {
       final channel = IOWebSocketChannel.connect(
         Uri.parse('ws://127.0.0.1:${server.port}/ws'),
@@ -752,6 +779,9 @@ void main() {
       expect(js, contains('setBrightness'));
       expect(js, contains('toggleNetworkModal'));
       expect(js, contains('networkModalOpen'));
+      expect(js, contains('exportBackup'));
+      expect(js, contains('importBackup'));
+      expect(components, contains('database'));
     });
 
     test('POST /api/calendar/milestones accepts dd/mm/yyyy date format', () async {
@@ -841,6 +871,54 @@ void main() {
       expect(customResp.statusCode, 200);
       expect(customResp.headers['content-type'], contains('image/svg+xml'));
       expect(customResp.body, startsWith('<svg'));
+    });
+
+
+    test('GET /api/backup/export downloads full database json attachment', () async {
+      final response = await http.get(Uri.parse('http://127.0.0.1:${server.port}/api/backup/export'));
+      expect(response.statusCode, 200);
+      expect(response.headers['content-type'], contains('application/json'));
+      expect(response.headers['content-disposition'], contains('attachment'));
+      expect(response.headers['content-disposition'], contains('wyrm_backup.json'));
+      final json = jsonDecode(response.body);
+      expect(json, isA<Map<String, dynamic>>());
+    });
+
+    test('POST /api/backup/import accepts valid database json payload', () async {
+      final payload = jsonEncode({
+        'version': 1,
+        'layout': {'clock': 'medium', 'habits': 'medium', 'calendar': 'small', 'tasks': 'small'},
+        'settings': {'is_24_hour_format': true, 'card_font_size': 14.0, 'start_week_on_monday': true},
+        'tasks': [],
+        'habits': [],
+        'calendar': [],
+        'display': {'brightness': 0.8},
+      });
+
+      final response = await http.post(
+        Uri.parse('http://127.0.0.1:${server.port}/api/backup/import'),
+        headers: {'Content-Type': 'application/json'},
+        body: payload,
+      );
+      expect(response.statusCode, 200);
+      final json = jsonDecode(response.body);
+      expect(json['status'], 'ok');
+    });
+
+    test('POST /api/backup/import rejects empty and corrupted payloads', () async {
+      final emptyResp = await http.post(
+        Uri.parse('http://127.0.0.1:${server.port}/api/backup/import'),
+        headers: {'Content-Type': 'application/json'},
+        body: '  ',
+      );
+      expect(emptyResp.statusCode, 400);
+
+      final corruptResp = await http.post(
+        Uri.parse('http://127.0.0.1:${server.port}/api/backup/import'),
+        headers: {'Content-Type': 'application/json'},
+        body: 'not a json map',
+      );
+      expect(corruptResp.statusCode, 400);
     });
   });
 }

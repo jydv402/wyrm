@@ -1,5 +1,6 @@
 import 'dart:async';
-import 'package:flutter/material.dart';
+
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:wyrm_desk/calendar/calendar.dart';
@@ -171,9 +172,7 @@ class _HomePageState extends ConsumerState<HomePage>
           // Ambient Dusk Glass Backdrop Radial Glows
           if (!isNightstand)
             const Positioned.fill(
-              child: IgnorePointer(
-                child: _DuskAmbientBackdrop(),
-              ),
+              child: IgnorePointer(child: _DuskAmbientBackdrop()),
             ),
 
           SafeArea(
@@ -188,7 +187,9 @@ class _HomePageState extends ConsumerState<HomePage>
                     duration: const Duration(milliseconds: 380),
                     curve: Curves.easeInOutCubic,
                     height: isNightstand ? 0.0 : 54.0,
-                    margin: EdgeInsets.only(bottom: isNightstand ? 0.0 : widget.spacing),
+                    margin: EdgeInsets.only(
+                      bottom: isNightstand ? 0.0 : widget.spacing,
+                    ),
                     clipBehavior: Clip.hardEdge,
                     decoration: const BoxDecoration(),
                     child: widget.topBar ?? const TopPillBar(),
@@ -401,9 +402,7 @@ class _DuskAmbientBackdrop extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return CustomPaint(
-      painter: _DuskBackdropPainter(),
-    );
+    return CustomPaint(painter: _DuskBackdropPainter());
   }
 }
 
@@ -411,10 +410,7 @@ class _DuskBackdropPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     // Void base canvas
-    canvas.drawRect(
-      Offset.zero & size,
-      Paint()..color = AppColors.background,
-    );
+    canvas.drawRect(Offset.zero & size, Paint()..color = AppColors.background);
 
     // Glow 1: Top-Left Slate / Peach glow
     final glow1Paint = Paint()

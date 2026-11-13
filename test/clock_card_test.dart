@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -22,57 +22,51 @@ class _TestAppSettingsNotifier extends AppSettingsNotifier {
 }
 
 void main() {
-  testWidgets(
-    'ClockContainer renders DigitalClockSmall in small size mode',
-    (WidgetTester tester) async {
-      await tester.pumpWidget(
-        const ProviderScope(
-          child: MaterialApp(
-            home: Scaffold(
-              body: SizedBox(
-                width: 200,
-                height: 500,
-                child: ClockContainer(
-                  currentSize: CardSize.small,
-                ),
-              ),
+  testWidgets('ClockContainer renders DigitalClockSmall in small size mode', (
+    WidgetTester tester,
+  ) async {
+    await tester.pumpWidget(
+      const ProviderScope(
+        child: MaterialApp(
+          home: Scaffold(
+            body: SizedBox(
+              width: 200,
+              height: 500,
+              child: ClockContainer(currentSize: CardSize.small),
             ),
           ),
         ),
-      );
+      ),
+    );
 
-      expect(find.byType(DigitalClockSmall), findsOneWidget);
-      expect(find.byType(DigitalClockMedium), findsNothing);
-      expect(find.byType(AnalogClock), findsNothing);
-      expect(find.text('Clock'), findsOneWidget);
-      expect(find.byIcon(Icons.schedule_rounded), findsOneWidget);
-    },
-  );
+    expect(find.byType(DigitalClockSmall), findsOneWidget);
+    expect(find.byType(DigitalClockMedium), findsNothing);
+    expect(find.byType(AnalogClock), findsNothing);
+    expect(find.text('Clock'), findsOneWidget);
+    expect(find.byIcon(Icons.schedule_rounded), findsOneWidget);
+  });
 
-  testWidgets(
-    'ClockContainer renders DigitalClockMedium in medium size mode',
-    (WidgetTester tester) async {
-      await tester.pumpWidget(
-        const ProviderScope(
-          child: MaterialApp(
-            home: Scaffold(
-              body: SizedBox(
-                width: 600,
-                height: 500,
-                child: ClockContainer(
-                  currentSize: CardSize.medium,
-                ),
-              ),
+  testWidgets('ClockContainer renders DigitalClockMedium in medium size mode', (
+    WidgetTester tester,
+  ) async {
+    await tester.pumpWidget(
+      const ProviderScope(
+        child: MaterialApp(
+          home: Scaffold(
+            body: SizedBox(
+              width: 600,
+              height: 500,
+              child: ClockContainer(currentSize: CardSize.medium),
             ),
           ),
         ),
-      );
+      ),
+    );
 
-      expect(find.byType(DigitalClockMedium), findsOneWidget);
-      expect(find.byType(DigitalClockSmall), findsNothing);
-      expect(find.byType(AnalogClock), findsNothing);
-    },
-  );
+    expect(find.byType(DigitalClockMedium), findsOneWidget);
+    expect(find.byType(DigitalClockSmall), findsNothing);
+    expect(find.byType(AnalogClock), findsNothing);
+  });
 
   testWidgets(
     'ClockContainer renders dual AnalogClock and DigitalClockMedium in fullscreen mode',
@@ -84,9 +78,7 @@ void main() {
               body: SizedBox(
                 width: 1200,
                 height: 600,
-                child: ClockContainer(
-                  currentSize: CardSize.fullscreen,
-                ),
+                child: ClockContainer(currentSize: CardSize.fullscreen),
               ),
             ),
           ),
@@ -133,23 +125,18 @@ void main() {
     },
   );
 
-  testWidgets(
-    'TopPillBar renders header_text.svg brand wordmark on the left',
-    (WidgetTester tester) async {
-      await tester.pumpWidget(
-        const ProviderScope(
-          child: MaterialApp(
-            home: Scaffold(
-              body: TopPillBar(),
-            ),
-          ),
-        ),
-      );
+  testWidgets('TopPillBar renders header_text.svg brand wordmark on the left', (
+    WidgetTester tester,
+  ) async {
+    await tester.pumpWidget(
+      const ProviderScope(
+        child: MaterialApp(home: Scaffold(body: TopPillBar())),
+      ),
+    );
 
-      expect(find.byType(SvgPicture), findsOneWidget);
-      expect(find.byType(TopPillBar), findsOneWidget);
-    },
-  );
+    expect(find.byType(SvgPicture), findsOneWidget);
+    expect(find.byType(TopPillBar), findsOneWidget);
+  });
 
   testWidgets(
     'ClockContainer renders custom child when child override is provided',
@@ -161,9 +148,7 @@ void main() {
               body: SizedBox(
                 width: 300,
                 height: 400,
-                child: ClockContainer(
-                  child: Text('Custom Clock'),
-                ),
+                child: ClockContainer(child: Text('Custom Clock')),
               ),
             ),
           ),
@@ -184,7 +169,9 @@ void main() {
       await tester.pumpWidget(
         ProviderScope(
           overrides: [
-            clockTimeProvider.overrideWith((ref) => Stream.value(fixedDateTime)),
+            clockTimeProvider.overrideWith(
+              (ref) => Stream.value(fixedDateTime),
+            ),
             appSettingsProvider.overrideWith(
               () => _TestAppSettingsNotifier(is24Hour: false),
             ),
@@ -221,58 +208,53 @@ void main() {
     },
   );
 
-  testWidgets(
-    'AnalogClock renders cleanly with custom size parameter',
-    (WidgetTester tester) async {
-      await tester.pumpWidget(
-        const ProviderScope(
-          child: MaterialApp(
-            home: Scaffold(
-              body: Center(
-                child: AnalogClock(size: 250),
-              ),
-            ),
-          ),
+  testWidgets('AnalogClock renders cleanly with custom size parameter', (
+    WidgetTester tester,
+  ) async {
+    await tester.pumpWidget(
+      const ProviderScope(
+        child: MaterialApp(
+          home: Scaffold(body: Center(child: AnalogClock(size: 250))),
         ),
-      );
+      ),
+    );
 
-      final clockFinder = find.byType(AnalogClock);
-      expect(clockFinder, findsOneWidget);
-      expect(tester.getSize(clockFinder), const Size(250, 250));
-    },
-  );
+    final clockFinder = find.byType(AnalogClock);
+    expect(clockFinder, findsOneWidget);
+    expect(tester.getSize(clockFinder), const Size(250, 250));
+  });
 
-  test(
-    'clockHoursProvider, clockMinutesProvider, and clockSecondsProvider format accurately',
-    () async {
-      final sampleTime = DateTime(2026, 9, 17, 9, 5, 7);
+  test('clockHoursProvider, clockMinutesProvider, and clockSecondsProvider format accurately', () async {
+    final sampleTime = DateTime(2026, 9, 17, 9, 5, 7);
 
-      final container12h = ProviderContainer(
-        overrides: [
-          clockTimeProvider.overrideWith((ref) => Stream.value(sampleTime)),
-          appSettingsProvider.overrideWith(
-            () => _TestAppSettingsNotifier(is24Hour: false),
-          ),
-        ],
-      );
-      addTearDown(container12h.dispose);
+    final container12h = ProviderContainer(
+      overrides: [
+        clockTimeProvider.overrideWith((ref) => Stream.value(sampleTime)),
+        appSettingsProvider.overrideWith(
+          () => _TestAppSettingsNotifier(is24Hour: false),
+        ),
+      ],
+    );
+    addTearDown(container12h.dispose);
 
-      // Keep active listener so autoDispose does not immediately terminate.
-      final subscription = container12h.listen(clockTimeProvider, (_, _) {});
-      await container12h.read(clockTimeProvider.future);
+    // Keep active listener so autoDispose does not immediately terminate.
+    final subscription = container12h.listen(clockTimeProvider, (_, _) {});
+    await container12h.read(clockTimeProvider.future);
 
-      expect(container12h.read(clockHoursProvider), '09');
-      expect(container12h.read(clockMinutesProvider), '05');
-      expect(container12h.read(clockSecondsProvider), '07');
-      expect(container12h.read(clockPeriodProvider), 'AM');
-      expect(container12h.read(timeLeftTodayProvider), '14h 54m left today');
+    expect(container12h.read(clockHoursProvider), '09');
+    expect(container12h.read(clockMinutesProvider), '05');
+    expect(container12h.read(clockSecondsProvider), '07');
+    expect(container12h.read(clockPeriodProvider), 'AM');
+    expect(container12h.read(timeLeftTodayProvider), '14h 54m left today');
 
-      final angles = container12h.read(analogueAnglesProvider);
-      expect(angles.secondAngle, closeTo((7 / 60.0) * 2 * 3.141592653589793, 0.001));
+    final angles = container12h.read(analogueAnglesProvider);
+    expect(
+      angles.secondAngle,
+      closeTo((7 / 60.0) * 2 * 3.141592653589793, 0.001),
+    );
 
-      subscription.close();
-    },
-  );
+    subscription.close();
+  });
 
   test(
     'timeLeftTodayProvider calculates remaining time until midnight accurately',
@@ -301,20 +283,15 @@ void main() {
     },
   );
 
-  test(
-    'CardLayoutConfig handles nightstand serialization accurately',
-    () {
-      const config = CardLayoutConfig(
-        clock: CardSize.nightstand,
-      );
+  test('CardLayoutConfig handles nightstand serialization accurately', () {
+    const config = CardLayoutConfig(clock: CardSize.nightstand);
 
-      final json = config.toJson();
-      expect(json['clock'], 'nightstand');
+    final json = config.toJson();
+    expect(json['clock'], 'nightstand');
 
-      final restored = CardLayoutConfig.fromJson(json);
-      expect(restored.clock, CardSize.nightstand);
-    },
-  );
+    final restored = CardLayoutConfig.fromJson(json);
+    expect(restored.clock, CardSize.nightstand);
+  });
 
   test('clockBackgroundAssetProvider maps hour ranges accurately', () async {
     final hoursToExpected = {
@@ -369,9 +346,7 @@ void main() {
               body: SizedBox(
                 width: 300,
                 height: 400,
-                child: ClockContainer(
-                  currentSize: CardSize.small,
-                ),
+                child: ClockContainer(currentSize: CardSize.small),
               ),
             ),
           ),
@@ -383,6 +358,12 @@ void main() {
         if (widget is Image && widget.image is AssetImage) {
           final asset = widget.image as AssetImage;
           return asset.assetName == 'assets/card_bg/clock/clock_2.png';
+        }
+        if (widget is Image && widget.image is ResizeImage) {
+          final inner = (widget.image as ResizeImage).imageProvider;
+          if (inner is AssetImage) {
+            return inner.assetName == 'assets/card_bg/clock/clock_2.png';
+          }
         }
         return false;
       });
@@ -399,9 +380,7 @@ void main() {
               body: SizedBox(
                 width: 300,
                 height: 400,
-                child: ClockContainer(
-                  currentSize: CardSize.nightstand,
-                ),
+                child: ClockContainer(currentSize: CardSize.nightstand),
               ),
             ),
           ),

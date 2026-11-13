@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:wyrm_desk/core/theme.dart';
 
 /// Base Dusk Glass surface container featuring tone gradients, 1px glowing edge,
@@ -31,10 +31,7 @@ class DuskGlassPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final border = customBorder ?? Border.all(
-      color: tone.border,
-      width: 1.0,
-    );
+    final border = customBorder ?? Border.all(color: tone.border, width: 1.0);
 
     final gradient = customGradient ?? tone.gradient;
 
@@ -102,10 +99,7 @@ class DuskGlassPanel extends StatelessWidget {
           ),
 
           // Main child content
-          Padding(
-            padding: padding,
-            child: child,
-          ),
+          Padding(padding: padding, child: child),
         ],
       ),
     );

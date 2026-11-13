@@ -78,6 +78,11 @@ class DisplayNotifier extends Notifier<DisplayState> {
   void _applyToDevice() {
     DisplayService.apply(brightness: state.brightness);
   }
+
+  /// Reloads display configuration from disk and re-applies brightness.
+  Future<void> reloadFromDisk() async {
+    await _initializeFromDisk();
+  }
 }
 
 /// Riverpod provider exposing the tablet display state.

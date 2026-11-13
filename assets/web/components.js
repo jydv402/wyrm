@@ -47,6 +47,7 @@
     wifi: '<path d="M2.5 9a15 15 0 0 1 19 0"/><path d="M5.8 12.6a10.5 10.5 0 0 1 12.4 0"/><path d="M9 16.1a5.5 5.5 0 0 1 6 0"/><path d="M12 19.5h.01"/>',
     qr: '<rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><path d="M7 7h.01M18 7h.01M7 18h.01M14 14h3v3h-3zM17 17v4M14 21h7M21 14v3"/>',
     copy: '<rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>',
+    database: '<ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/>',
   };
 
   components.UiIcon = {
@@ -469,8 +470,11 @@
     setup(props) {
       const wyrm = inject('wyrm');
       const tone = computed(() => {
-        const p = String(props.task.priority || 'medium').toLowerCase();
-        return p.startsWith('h') ? 'high' : p.startsWith('l') ? 'low' : 'medium';
+        const p = String(props.task.priority || '').toLowerCase();
+        if (p.startsWith('h')) return 'high';
+        if (p.startsWith('m')) return 'medium';
+        if (p.startsWith('l')) return 'low';
+        return null; // normal/unknown — the tablet hides the pill too
       });
       const label = computed(() => ({ high: 'High', medium: 'Medium', low: 'Low' }[tone.value]));
       return { wyrm, tone, label };
@@ -483,7 +487,7 @@
           <ui-icon v-if="task.isCompleted" name="check" :size="16" :stroke="2.8" />
         </button>
         <span class="task__title">{{ task.title }}</span>
-        <status-pill :tone="tone">{{ label }}</status-pill>
+        <status-pill v-if="tone" :tone="tone">{{ label }}</status-pill>
         <ui-button size="icon" variant="danger" icon="x" :aria-label="'Delete ' + task.title"
                       @click="wyrm.deleteTask(task.id)" />
       </li>`,
@@ -494,13 +498,14 @@
     setup() {
       const wyrm = inject('wyrm');
       const title = ref('');
-      const priority = ref('medium');
+      const priority = ref('normal');
       const options = [
-        { value: 'high', label: 'High' },
-        { value: 'medium', label: 'Medium' },
+        { value: 'normal', label: 'Normal' },
         { value: 'low', label: 'Low' },
+        { value: 'medium', label: 'Medium' },
+        { value: 'high', label: 'High' },
       ];
-      const fontLabel = computed(() => (wyrm.state.settings.cardFontSize || 13).toFixed(0) + ' pt');
+      const fontLabel = computed(() => (wyrm.state.settings.cardFontSize || 14).toFixed(0) + ' pt');
       function submit() {
         if (wyrm.addTask(title.value, priority.value)) title.value = '';
       }
@@ -521,16 +526,85 @@
   };
 
   /* ---- Habits ---- */
+  const EMOJI_TO_ICON = {
+    '💧': 'water_drop',
+    '📖': 'menu_book',
+    '🏋️': 'fitness_center',
+    '🏋': 'fitness_center',
+    '❤️': 'favorite',
+    '❤': 'favorite',
+    '🔥': 'bolt',
+    '⚡': 'bolt',
+    '💻': 'code',
+    '☀️': 'wb_sunny',
+    '☀': 'wb_sunny',
+    '🌙': 'bedtime',
+    '🎯': 'check_circle',
+    '🌿': 'spa',
+    '☕': 'local_cafe',
+    '🏃': 'directions_run',
+  };
+
+  const ICON_TO_EMOJI = {
+    'water_drop': '💧',
+    'menu_book': '📖',
+    'fitness_center': '🏋️',
+    'favorite': '❤️',
+    'bolt': '⚡',
+    'code': '💻',
+    'wb_sunny': '☀️',
+    'bedtime': '🌙',
+    'check_circle': '🎯',
+    'spa': '🌿',
+    'local_cafe': '☕',
+    'directions_run': '🏃',
+  };
+
+  function habitGlyphToEmoji(raw) {
+    if (!raw) return '⚡';
+    return ICON_TO_EMOJI[raw] || raw;
+  }
+
   components.GlyphPicker = {
     name: 'GlyphPicker',
     props: { modelValue: String },
     emits: ['update:modelValue'],
-    data: () => ({ glyphs: ['💧', '📖', '🏋️', '❤️', '🔥', '💻', '☀️', '🌙', '🎯', '🌿'] }),
+    setup(props, { emit }) {
+      const presets = ['💧', '📖', '🏋️', '❤️', '🔥', '💻', '☀️', '🌙', '🎯', '🌿', '☕', '🏃'];
+      const customEmoji = ref('');
+
+      const isCustom = computed(() => {
+        return props.modelValue && !presets.includes(props.modelValue);
+      });
+
+      function selectPreset(g) {
+        customEmoji.value = '';
+        emit('update:modelValue', g);
+      }
+
+      function onCustomInput(e) {
+        const val = (e.target.value || '').trim();
+        customEmoji.value = val;
+        if (val) {
+          emit('update:modelValue', val);
+        }
+      }
+
+      return { presets, customEmoji, isCustom, selectPreset, onCustomInput };
+    },
     template: `
-      <div class="glyphs" role="radiogroup" aria-label="Icon">
-        <button v-for="g in glyphs" :key="g" type="button" role="radio" class="glyph glass"
-                :class="{ 'is-on': g === modelValue }" :aria-checked="g === modelValue"
-                @click="$emit('update:modelValue', g)">{{ g }}</button>
+      <div class="glyph-picker">
+        <div class="glyphs" role="radiogroup" aria-label="Icon presets">
+          <button v-for="g in presets" :key="g" type="button" role="radio" class="glyph glass"
+                  :class="{ 'is-on': g === modelValue }" :aria-checked="g === modelValue"
+                  @click="selectPreset(g)">{{ g }}</button>
+        </div>
+        <div class="glyph-custom-row">
+          <input class="glyph-custom glass" :value="isCustom ? modelValue : customEmoji"
+                 placeholder="Or type/paste custom emoji (e.g. 🍎)"
+                 aria-label="Custom emoji"
+                 @input="onCustomInput" />
+        </div>
       </div>`,
   };
 
@@ -619,15 +693,22 @@
         const n = props.habit.currentStreak || 0;
         return n ? n + '-day streak' : 'No streak yet';
       });
-      const progress = computed(
-        () => wyrm.getHabitTodayValue(props.habit) + ' of ' + props.habit.targetValue + ' ' + (props.habit.unit || 'units')
-      );
-      return { wyrm, done, isBinary, streak, progress };
+      const habitGlyph = computed(() => {
+        const raw = props.habit.iconName || props.habit.icon_name;
+        return habitGlyphToEmoji(raw);
+      });
+      const progress = computed(() => {
+        const current = wyrm.getHabitTodayValue(props.habit);
+        const target = props.habit.targetValue || props.habit.target_value || 1;
+        const unit = (props.habit.unit || '').trim();
+        return unit ? `${current} of ${target} ${unit}` : `${current} of ${target}`;
+      });
+      return { wyrm, done, isBinary, streak, habitGlyph, progress };
     },
     template: `
       <ui-panel class="habit" :class="{ 'is-done': done }">
         <div class="habit__top">
-          <span class="habit__glyph glass">{{ habit.iconName || '⚡' }}</span>
+          <span class="habit__glyph glass">{{ habitGlyph }}</span>
           <div class="habit__heading">
             <h3 class="habit__title">{{ habit.title }}</h3>
             <status-pill :tone="habit.currentStreak ? 'accent' : 'neutral'">{{ streak }}</status-pill>
@@ -963,6 +1044,40 @@
           ? wyrm.state.display.brightness
           : 1.0
       );
+      const fileInput = ref(null);
+      const importing = ref(false);
+      const backupMessage = ref('');
+      const backupSuccess = ref(true);
+
+      function exportBackup() {
+        wyrm.exportBackup();
+      }
+
+      function triggerFileInput() {
+        if (fileInput.value) {
+          fileInput.value.value = '';
+          fileInput.value.click();
+        }
+      }
+
+      async function onFileSelected(e) {
+        const file = e.target.files && e.target.files[0];
+        if (!file) return;
+        importing.value = true;
+        backupMessage.value = '';
+        try {
+          const text = await file.text();
+          await wyrm.importBackup(text);
+          backupSuccess.value = true;
+          backupMessage.value = 'Backup imported and dashboard updated!';
+        } catch (err) {
+          backupSuccess.value = false;
+          backupMessage.value = err.message || 'Failed to import backup.';
+        } finally {
+          importing.value = false;
+        }
+      }
+
       return {
         wyrm,
         brightness,
@@ -975,6 +1090,13 @@
           { value: false, label: 'Sunday' },
           { value: true, label: 'Monday' },
         ],
+        fileInput,
+        importing,
+        backupMessage,
+        backupSuccess,
+        exportBackup,
+        triggerFileInput,
+        onFileSelected,
       };
     },
     template: `
@@ -999,6 +1121,24 @@
             <segmented-control :model-value="!!wyrm.state.settings.startWeekOnMonday" :options="weekOptions"
                                aria-label="First day of the week" @update:model-value="(v) => wyrm.setStartWeekOnMonday(v)" />
           </setting-row>
+        </ui-panel>
+
+        <ui-panel>
+          <panel-head title="Data & backup" subtitle="Transfer or restore dashboard data" icon="database" />
+          <setting-row label="Export backup" hint="Download a complete snapshot of all cards, tasks, and settings as JSON">
+            <button class="btn btn--secondary btn--sm" type="button" @click="exportBackup">
+              Download JSON
+            </button>
+          </setting-row>
+          <setting-row label="Restore backup" hint="Replace tablet data with an uploaded JSON backup file">
+            <input type="file" ref="fileInput" accept=".json,application/json" style="display: none" @change="onFileSelected" />
+            <button class="btn btn--secondary btn--sm" type="button" @click="triggerFileInput" :disabled="importing">
+              {{ importing ? 'Importing…' : 'Upload JSON' }}
+            </button>
+          </setting-row>
+          <div v-if="backupMessage" :class="['backup-status', backupSuccess ? 'backup-status--success' : 'backup-status--error']" style="margin-top: 10px; font-size: 13px; padding: 8px 12px; border-radius: 6px; background: rgba(255,255,255,0.06); color: var(--text);">
+            {{ backupMessage }}
+          </div>
         </ui-panel>
       </div>`,
   };

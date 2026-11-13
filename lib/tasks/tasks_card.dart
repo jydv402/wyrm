@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:wyrm_desk/core/theme.dart';
 import 'package:wyrm_desk/home/card_layout_state.dart';
@@ -444,10 +444,21 @@ class _TasksImageBackdrop extends StatelessWidget {
     return Stack(
       fit: StackFit.expand,
       children: [
-        Image.asset(
-          'assets/card_bg/task/task_bg.png',
-          fit: BoxFit.cover,
-          alignment: Alignment.center,
+        LayoutBuilder(
+          builder: (context, constraints) {
+            final dpr = MediaQuery.devicePixelRatioOf(context);
+            // Decode at the larger on-screen dimension so BoxFit.cover
+            // stays sharp without decoding the full multi-megabyte asset.
+            final longest = constraints.maxWidth >= constraints.maxHeight
+                ? constraints.maxWidth
+                : constraints.maxHeight;
+            return Image.asset(
+              'assets/card_bg/task/task_bg.png',
+              fit: BoxFit.cover,
+              alignment: Alignment.center,
+              cacheWidth: (longest * dpr).round(),
+            );
+          },
         ),
         DecoratedBox(
           decoration: BoxDecoration(

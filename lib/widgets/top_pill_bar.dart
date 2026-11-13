@@ -1,9 +1,11 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:wyrm_desk/core/theme.dart';
 import 'package:wyrm_desk/server/network_info.dart';
 import 'package:wyrm_desk/server/network_modal.dart';
+import 'package:wyrm_desk/server/server_provider.dart';
+import 'package:wyrm_desk/server/web_server.dart';
 import 'package:wyrm_desk/settings/settings.dart';
 import 'package:wyrm_desk/widgets/dusk_glass_button.dart';
 
@@ -116,7 +118,9 @@ class _ServerNetworkPill extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final ipAsync = ref.watch(localIpProvider);
     final ipAddress = ipAsync.value ?? '127.0.0.1';
-    final serverUrl = '$ipAddress:8080';
+    final server = ref.watch(webServerProvider);
+    final serverPort = server.port ?? ShelfWebServer.defaultPort;
+    final serverUrl = '$ipAddress:$serverPort';
 
     return Material(
       color: Colors.transparent,

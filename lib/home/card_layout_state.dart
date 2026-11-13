@@ -15,20 +15,6 @@ enum CardSize {
   /// Expands to full screen with pitch black canvas and amber nightstand theme.
   nightstand;
 
-  /// Returns the next size in the cycle progression.
-  CardSize get next {
-    switch (this) {
-      case CardSize.small:
-        return CardSize.medium;
-      case CardSize.medium:
-        return CardSize.fullscreen;
-      case CardSize.fullscreen:
-        return CardSize.nightstand;
-      case CardSize.nightstand:
-        return CardSize.small;
-    }
-  }
-
   /// Resolves the human-readable display label.
   String get label {
     switch (this) {
@@ -188,15 +174,6 @@ class CardLayoutNotifier extends Notifier<CardLayoutConfig> {
     state = loaded;
   }
 
-  /// Advances the size of the given card to the next progression tier.
-  void cycleCardSize(DashboardCardType type) {
-    final currentSize = state.sizeFor(type);
-    final nextSize = currentSize.next;
-    final updatedConfig = state.withSize(type, nextSize);
-    state = updatedConfig;
-    CardLayoutStorage.saveConfig(updatedConfig);
-  }
-
   /// Sets an explicit size for the given card.
   void setCardSize(DashboardCardType type, CardSize size) {
     final updatedConfig = state.withSize(type, size);
@@ -204,11 +181,9 @@ class CardLayoutNotifier extends Notifier<CardLayoutConfig> {
     CardLayoutStorage.saveConfig(updatedConfig);
   }
 
-  /// Resets all cards back to the default small layout.
-  void restoreDefaultLayout() {
-    const defaultConfig = CardLayoutConfig();
-    state = defaultConfig;
-    CardLayoutStorage.saveConfig(defaultConfig);
+  /// Reloads layout configuration from disk.
+  Future<void> reloadFromDisk() async {
+    await _initializeFromDisk();
   }
 }
 

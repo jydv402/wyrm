@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:wyrm_desk/core/theme.dart';
 
 /// Interactive Dusk Glass button with tactile press scaling and subtle glowing borders.
@@ -89,7 +89,9 @@ class _DuskGlassButtonState extends State<DuskGlassButton> {
       );
       shadow = null;
     } else {
-      bgColor = isEnabled ? AppColors.glass : AppColors.glass.withValues(alpha: 0.02);
+      bgColor = isEnabled
+          ? AppColors.glass
+          : AppColors.glass.withValues(alpha: 0.02);
       border = Border.all(
         color: isEnabled ? AppColors.lineStrong : AppColors.line,
         width: 1.0,
@@ -124,7 +126,9 @@ class _DuskGlassButtonState extends State<DuskGlassButton> {
             decoration: BoxDecoration(
               color: bgColor,
               shape: isCircle ? BoxShape.circle : BoxShape.rectangle,
-              borderRadius: isCircle ? null : BorderRadius.circular(widget.borderRadius),
+              borderRadius: isCircle
+                  ? null
+                  : BorderRadius.circular(widget.borderRadius),
               border: border,
               boxShadow: shadow,
             ),

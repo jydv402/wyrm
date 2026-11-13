@@ -1,11 +1,7 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 /// Keyboard layout modes supported by the virtual keyboard.
-enum VirtualKeyboardMode {
-  letters,
-  symbols,
-  numpad,
-}
+enum VirtualKeyboardMode { letters, symbols, numpad }
 
 /// Controller managing virtual keyboard state, text insertion, cursor manipulation,
 /// and active text editing field attachments.
@@ -32,7 +28,8 @@ class InAppKeyboardController extends ChangeNotifier {
     required FocusNode focusNode,
     TextInputType inputType = TextInputType.text,
   }) {
-    if (_activeTextController == textController && _activeFocusNode == focusNode) {
+    if (_activeTextController == textController &&
+        _activeFocusNode == focusNode) {
       return;
     }
     _activeTextController = textController;
@@ -41,7 +38,11 @@ class InAppKeyboardController extends ChangeNotifier {
 
     if (inputType == TextInputType.number ||
         inputType == TextInputType.phone ||
-        inputType == const TextInputType.numberWithOptions(decimal: true, signed: true)) {
+        inputType ==
+            const TextInputType.numberWithOptions(
+              decimal: true,
+              signed: true,
+            )) {
       _mode = VirtualKeyboardMode.numpad;
     } else if (_mode == VirtualKeyboardMode.numpad) {
       _mode = VirtualKeyboardMode.letters;

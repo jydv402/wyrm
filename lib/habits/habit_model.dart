@@ -68,22 +68,6 @@ class HabitItem {
     required this.createdAt,
   });
 
-  /// Filters completion records to retain only entries for the target month.
-  static Map<String, int> filterCurrentMonth(
-    Map<String, int> completions, {
-    DateTime? forDate,
-  }) {
-    final target = forDate ?? DateTime.now();
-    final prefix = '${target.year.toString().padLeft(4, '0')}-${target.month.toString().padLeft(2, '0')}-';
-    final result = <String, int>{};
-    completions.forEach((key, value) {
-      if (key.startsWith(prefix)) {
-        result[key] = value;
-      }
-    });
-    return result;
-  }
-
   /// Normalizes any DateTime instance to a standard ISO YYYY-MM-DD key.
   static String dateKey(DateTime date) {
     final y = date.year.toString().padLeft(4, '0');
@@ -407,8 +391,10 @@ class HabitItem {
       'title': title,
       'type': type.name,
       'target_value': targetValue,
+      'targetValue': targetValue,
       'unit': unit,
       'icon_name': iconName,
+      'iconName': iconName,
       'color_hex': colorHex,
       'completions': completions,
       'created_at': createdAt.toIso8601String(),

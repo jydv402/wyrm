@@ -1,14 +1,17 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:wyrm_desk/core/theme.dart';
 import 'package:wyrm_desk/server/network_info.dart';
+import 'package:wyrm_desk/server/server_provider.dart';
+import 'package:wyrm_desk/server/web_server.dart';
 import 'package:wyrm_desk/widgets/dusk_glass_button.dart';
 
 /// Provider tracking whether the NetworkConnectionModal is currently open on the tablet.
-final networkModalOpenProvider =
-    NotifierProvider<NetworkModalNotifier, bool>(NetworkModalNotifier.new);
+final networkModalOpenProvider = NotifierProvider<NetworkModalNotifier, bool>(
+  NetworkModalNotifier.new,
+);
 
 class NetworkModalNotifier extends Notifier<bool> {
   @override
@@ -69,7 +72,9 @@ class NetworkConnectionModal extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final ipAsync = ref.watch(localIpProvider);
     final ipAddress = ipAsync.value ?? '127.0.0.1';
-    final serverUrl = 'http://$ipAddress:8080';
+    final server = ref.watch(webServerProvider);
+    final serverPort = server.port ?? ShelfWebServer.defaultPort;
+    final serverUrl = 'http://$ipAddress:$serverPort';
 
     return Dialog(
       backgroundColor: AppColors.surface,
@@ -132,7 +137,11 @@ class NetworkConnectionModal extends ConsumerWidget {
                   DuskGlassButton.icon(
                     onPressed: () => Navigator.of(context).pop(),
                     size: 32.0,
-                    icon: const Icon(Icons.close_rounded, size: 16, color: AppColors.textSecondary),
+                    icon: const Icon(
+                      Icons.close_rounded,
+                      size: 16,
+                      color: AppColors.textSecondary,
+                    ),
                   ),
                 ],
               ),
@@ -167,7 +176,10 @@ class NetworkConnectionModal extends ConsumerWidget {
 
               // URL copy bar
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 10,
+                ),
                 decoration: BoxDecoration(
                   color: AppColors.well,
                   borderRadius: BorderRadius.circular(16),
@@ -175,7 +187,11 @@ class NetworkConnectionModal extends ConsumerWidget {
                 ),
                 child: Row(
                   children: [
-                    const Icon(Icons.link_rounded, size: 18, color: AppColors.textMuted),
+                    const Icon(
+                      Icons.link_rounded,
+                      size: 18,
+                      color: AppColors.textMuted,
+                    ),
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
@@ -223,10 +239,7 @@ class NetworkConnectionModal extends ConsumerWidget {
               const Center(
                 child: Text(
                   'Make sure your device is on the same local Wi-Fi.',
-                  style: TextStyle(
-                    color: AppColors.textMuted,
-                    fontSize: 12,
-                  ),
+                  style: TextStyle(color: AppColors.textMuted, fontSize: 12),
                   textAlign: TextAlign.center,
                 ),
               ),

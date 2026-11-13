@@ -1,8 +1,9 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:wyrm_desk/calendar/calendar_state.dart';
 import 'package:wyrm_desk/calendar/milestone_form_content.dart';
+import 'package:wyrm_desk/core/date_names.dart';
 import 'package:wyrm_desk/core/theme.dart';
 import 'package:wyrm_desk/home/card_layout_state.dart';
 import 'package:wyrm_desk/in_app_keyboard/in_app_keyboard.dart';
@@ -25,13 +26,24 @@ class CalendarCard extends ConsumerWidget {
     this.currentSize = CardSize.small,
   });
 
-  static const List<String> monthNames = [
-    'January', 'February', 'March', 'April', 'May', 'June',
-    'July', 'August', 'September', 'October', 'November', 'December'
+  static const List<String> weekdayLabelsSunday = [
+    'S',
+    'M',
+    'T',
+    'W',
+    'T',
+    'F',
+    'S',
   ];
-
-  static const List<String> weekdayLabelsSunday = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
-  static const List<String> weekdayLabelsMonday = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
+  static const List<String> weekdayLabelsMonday = [
+    'M',
+    'T',
+    'W',
+    'T',
+    'F',
+    'S',
+    'S',
+  ];
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -152,10 +164,12 @@ class CalendarCard extends ConsumerWidget {
     CalendarState state,
   ) {
     final today = CalendarState.todayMidnight;
-    final isSelectedToday = state.selectedDate.year == today.year &&
+    final isSelectedToday =
+        state.selectedDate.year == today.year &&
         state.selectedDate.month == today.month &&
         state.selectedDate.day == today.day;
-    final isMarkerOnToday = isSelectedToday &&
+    final isMarkerOnToday =
+        isSelectedToday &&
         state.viewMonth.year == today.year &&
         state.viewMonth.month == today.month;
 
@@ -168,7 +182,9 @@ class CalendarCard extends ConsumerWidget {
       builder: (context, constraints) {
         final isCompact = constraints.maxWidth < 360;
         final btnHeight = isCompact ? 32.0 : 38.0;
-        final btnPadding = EdgeInsets.symmetric(horizontal: isCompact ? 8.0 : 12.0);
+        final btnPadding = EdgeInsets.symmetric(
+          horizontal: isCompact ? 8.0 : 12.0,
+        );
         final chevronSize = isCompact ? 32.0 : 38.0;
 
         return Row(
@@ -225,7 +241,8 @@ class CalendarCard extends ConsumerWidget {
               SizedBox(width: isCompact ? 4 : 6),
               // Today button
               DuskGlassButton(
-                onPressed: () => ref.read(calendarProvider.notifier).resetToToday(),
+                onPressed: () =>
+                    ref.read(calendarProvider.notifier).resetToToday(),
                 height: btnHeight,
                 padding: btnPadding,
                 label: const Text(
@@ -243,7 +260,8 @@ class CalendarCard extends ConsumerWidget {
 
             // Travel button
             DuskGlassButton(
-              onPressed: () => _openTravelDatePicker(context, ref, state.selectedDate),
+              onPressed: () =>
+                  _openTravelDatePicker(context, ref, state.selectedDate),
               height: btnHeight,
               padding: btnPadding,
               label: const Text(
@@ -262,7 +280,11 @@ class CalendarCard extends ConsumerWidget {
             DuskGlassButton.icon(
               onPressed: () => ref.read(calendarProvider.notifier).prevMonth(),
               size: chevronSize,
-              icon: Icon(Icons.chevron_left_rounded, size: isCompact ? 16 : 18, color: AppColors.textPrimary),
+              icon: Icon(
+                Icons.chevron_left_rounded,
+                size: isCompact ? 16 : 18,
+                color: AppColors.textPrimary,
+              ),
             ),
 
             SizedBox(width: isCompact ? 4 : 6),
@@ -271,7 +293,11 @@ class CalendarCard extends ConsumerWidget {
             DuskGlassButton.icon(
               onPressed: () => ref.read(calendarProvider.notifier).nextMonth(),
               size: chevronSize,
-              icon: Icon(Icons.chevron_right_rounded, size: isCompact ? 16 : 18, color: AppColors.textPrimary),
+              icon: Icon(
+                Icons.chevron_right_rounded,
+                size: isCompact ? 16 : 18,
+                color: AppColors.textPrimary,
+              ),
             ),
           ],
         );
@@ -318,7 +344,9 @@ class CalendarCard extends ConsumerWidget {
     bool startWeekOnMonday, {
     required bool isSmall,
   }) {
-    final weekdayLabels = startWeekOnMonday ? weekdayLabelsMonday : weekdayLabelsSunday;
+    final weekdayLabels = startWeekOnMonday
+        ? weekdayLabelsMonday
+        : weekdayLabelsSunday;
     final year = state.viewMonth.year;
     final month = state.viewMonth.month;
 
@@ -384,18 +412,23 @@ class CalendarCard extends ConsumerWidget {
                         cellDate = DateTime(year, month, displayDay);
                       }
 
-                      final isSelected = cellDate.year == state.selectedDate.year &&
+                      final isSelected =
+                          cellDate.year == state.selectedDate.year &&
                           cellDate.month == state.selectedDate.month &&
                           cellDate.day == state.selectedDate.day;
 
-                      final hasMilestone = state.milestonesForDate(cellDate).isNotEmpty;
+                      final hasMilestone = state
+                          .milestonesForDate(cellDate)
+                          .isNotEmpty;
 
                       return Expanded(
                         child: Padding(
                           padding: const EdgeInsets.symmetric(horizontal: 3.0),
                           child: InkWell(
                             onTap: () {
-                              ref.read(calendarProvider.notifier).selectDate(cellDate);
+                              ref
+                                  .read(calendarProvider.notifier)
+                                  .selectDate(cellDate);
                             },
                             borderRadius: BorderRadius.circular(12),
                             child: AnimatedContainer(
@@ -404,21 +437,23 @@ class CalendarCard extends ConsumerWidget {
                                 color: isSelected
                                     ? AppColors.goldFill
                                     : (isPrevMonth || isNextMonth
-                                        ? Colors.white.withValues(alpha: 0.02)
-                                        : AppColors.glass),
+                                          ? Colors.white.withValues(alpha: 0.02)
+                                          : AppColors.glass),
                                 borderRadius: BorderRadius.circular(12),
                                 border: Border.all(
                                   color: isSelected
                                       ? Colors.transparent
                                       : (isPrevMonth || isNextMonth
-                                          ? Colors.transparent
-                                          : AppColors.line),
+                                            ? Colors.transparent
+                                            : AppColors.line),
                                   width: 1.0,
                                 ),
                                 boxShadow: isSelected
                                     ? [
                                         BoxShadow(
-                                          color: AppColors.goldFill.withValues(alpha: 0.5),
+                                          color: AppColors.goldFill.withValues(
+                                            alpha: 0.5,
+                                          ),
                                           blurRadius: 14,
                                           offset: const Offset(0, 3),
                                         ),
@@ -437,10 +472,12 @@ class CalendarCard extends ConsumerWidget {
                                           color: isSelected
                                               ? AppColors.goldInk
                                               : (isPrevMonth || isNextMonth
-                                                  ? AppColors.textMuted
-                                                  : AppColors.textPrimary),
+                                                    ? AppColors.textMuted
+                                                    : AppColors.textPrimary),
                                           fontSize: 14.5,
-                                          fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
+                                          fontWeight: isSelected
+                                              ? FontWeight.w800
+                                              : FontWeight.w600,
                                         ),
                                       ),
                                       if (isSelected || hasMilestone)
@@ -522,10 +559,18 @@ class CalendarCard extends ConsumerWidget {
                     onPressed: () => _showAddMilestoneSheet(context, ref),
                     height: 34,
                     padding: const EdgeInsets.symmetric(horizontal: 12),
-                    icon: const Icon(Icons.add_rounded, size: 16, color: AppColors.textPrimary),
+                    icon: const Icon(
+                      Icons.add_rounded,
+                      size: 16,
+                      color: AppColors.textPrimary,
+                    ),
                     label: const Text(
                       'Add',
-                      style: TextStyle(color: AppColors.textPrimary, fontSize: 13, fontWeight: FontWeight.w600),
+                      style: TextStyle(
+                        color: AppColors.textPrimary,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
                   ),
                 ],
@@ -536,7 +581,10 @@ class CalendarCard extends ConsumerWidget {
                     ? const Center(
                         child: Text(
                           'No milestones recorded yet.\nTap Add to track an upcoming event.',
-                          style: TextStyle(color: AppColors.textSecondary, fontSize: 13),
+                          style: TextStyle(
+                            color: AppColors.textSecondary,
+                            fontSize: 13,
+                          ),
                           textAlign: TextAlign.center,
                         ),
                       )
@@ -546,14 +594,18 @@ class CalendarCard extends ConsumerWidget {
                         separatorBuilder: (_, _) => const SizedBox(height: 8),
                         itemBuilder: (context, index) {
                           final milestone = state.milestones[index];
-                          final formattedDate = DateFormat('MMM d, yyyy').format(milestone.targetDate);
+                          final formattedDate = DateFormat('MMM d, yyyy')
+                              .format(milestone.targetDate);
 
                           return Container(
                             padding: const EdgeInsets.all(12),
                             decoration: BoxDecoration(
                               color: AppColors.well,
                               borderRadius: BorderRadius.circular(16),
-                              border: Border.all(color: AppColors.line, width: 1.0),
+                              border: Border.all(
+                                color: AppColors.line,
+                                width: 1.0,
+                              ),
                             ),
                             child: Row(
                               children: [
@@ -561,15 +613,22 @@ class CalendarCard extends ConsumerWidget {
                                   width: 32,
                                   height: 32,
                                   decoration: BoxDecoration(
-                                    color: AppColors.goldAccent.withValues(alpha: 0.12),
+                                    color: AppColors.goldAccent.withValues(
+                                      alpha: 0.12,
+                                    ),
                                     shape: BoxShape.circle,
                                   ),
-                                  child: const Icon(Icons.flag_rounded, size: 16, color: AppColors.goldAccent),
+                                  child: const Icon(
+                                    Icons.flag_rounded,
+                                    size: 16,
+                                    color: AppColors.goldAccent,
+                                  ),
                                 ),
                                 const SizedBox(width: 10),
                                 Expanded(
                                   child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     children: [
                                       Text(
                                         milestone.title,
@@ -599,9 +658,15 @@ class CalendarCard extends ConsumerWidget {
                                 ),
                                 const SizedBox(width: 4),
                                 DuskGlassButton.icon(
-                                  onPressed: () => ref.read(calendarProvider.notifier).deleteMilestone(milestone.id),
+                                  onPressed: () => ref
+                                      .read(calendarProvider.notifier)
+                                      .deleteMilestone(milestone.id),
                                   size: 28,
-                                  icon: const Icon(Icons.close_rounded, size: 14, color: AppColors.textSecondary),
+                                  icon: const Icon(
+                                    Icons.close_rounded,
+                                    size: 14,
+                                    color: AppColors.textSecondary,
+                                  ),
                                 ),
                               ],
                             ),
@@ -635,7 +700,9 @@ class CalendarCard extends ConsumerWidget {
               void saveMilestone() {
                 final title = titleController.text.trim();
                 if (title.isNotEmpty) {
-                  ref.read(calendarProvider.notifier).addMilestone(
+                  ref
+                      .read(calendarProvider.notifier)
+                      .addMilestone(
                         title,
                         selectedTargetDate,
                         isPinned: isPinned,
@@ -678,7 +745,11 @@ class CalendarCard extends ConsumerWidget {
   }
 
   /// Opens the 2-pane virtual keyboard editor for adding a milestone.
-  void _showAddMilestoneSheet(BuildContext context, WidgetRef ref, {DateTime? initialDate}) {
+  void _showAddMilestoneSheet(
+    BuildContext context,
+    WidgetRef ref, {
+    DateTime? initialDate,
+  }) {
     _openMilestoneTwoPaneEditor(context, ref, initialDate: initialDate);
   }
 }

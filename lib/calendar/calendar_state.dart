@@ -219,6 +219,11 @@ class CalendarNotifier extends Notifier<CalendarState> {
     state = state.copyWith(milestones: updated);
     await AppDatabase.saveCalendarMilestones(updated);
   }
+
+  /// Reloads calendar milestones from disk.
+  Future<void> reloadFromDisk() async {
+    await _initializeFromDisk();
+  }
 }
 
 /// Riverpod provider exposing calendar state and operations.

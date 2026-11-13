@@ -1,7 +1,8 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:wyrm_desk/calendar/calendar.dart';
+import 'package:wyrm_desk/core/date_names.dart';
 import 'package:wyrm_desk/home/card_layout_state.dart';
 import 'package:wyrm_desk/settings/settings_state.dart';
 
@@ -117,7 +118,10 @@ void main() {
       final notifier = container.read(calendarProvider.notifier);
 
       notifier.selectDate(DateTime(2026, 11, 20));
-      expect(container.read(calendarProvider).selectedDate, DateTime(2026, 11, 20));
+      expect(
+        container.read(calendarProvider).selectedDate,
+        DateTime(2026, 11, 20),
+      );
       expect(container.read(calendarProvider).viewMonth, DateTime(2026, 11, 1));
     });
 
@@ -152,7 +156,11 @@ void main() {
       addTearDown(container.dispose);
       final notifier = container.read(calendarProvider.notifier);
 
-      await notifier.addMilestone('Launch', DateTime(2026, 10, 1), isPinned: false);
+      await notifier.addMilestone(
+        'Launch',
+        DateTime(2026, 10, 1),
+        isPinned: false,
+      );
       expect(container.read(calendarProvider).milestones.length, 1);
       expect(container.read(calendarProvider).milestones.first.title, 'Launch');
       expect(container.read(calendarProvider).milestones.first.isPinned, false);
@@ -168,53 +176,56 @@ void main() {
   });
 
   group('CalendarCard Widget', () {
-    testWidgets('renders Small layout with header, month navigation, and Sunday start',
-        (WidgetTester tester) async {
-      final initialDate = DateTime(2026, 9, 19);
-      final notifier = _TestCalendarNotifier(
-        CalendarState(
-          selectedDate: initialDate,
-          viewMonth: DateTime(2026, 9, 1),
-        ),
-      );
+    testWidgets(
+      'renders Small layout with header, month navigation, and Sunday start',
+      (WidgetTester tester) async {
+        final initialDate = DateTime(2026, 9, 19);
+        final notifier = _TestCalendarNotifier(
+          CalendarState(
+            selectedDate: initialDate,
+            viewMonth: DateTime(2026, 9, 1),
+          ),
+        );
 
-      await tester.pumpWidget(
-        ProviderScope(
-          overrides: [
-            calendarProvider.overrideWith(() => notifier),
-            appSettingsProvider.overrideWith(
-              () => _TestSettingsNotifier(
-                const AppSettingsConfig(startWeekOnMonday: false),
+        await tester.pumpWidget(
+          ProviderScope(
+            overrides: [
+              calendarProvider.overrideWith(() => notifier),
+              appSettingsProvider.overrideWith(
+                () => _TestSettingsNotifier(
+                  const AppSettingsConfig(startWeekOnMonday: false),
+                ),
               ),
-            ),
-          ],
-          child: const MaterialApp(
-            home: Scaffold(
-              body: SizedBox(
-                width: 340,
-                height: 440,
-                child: CalendarCard(currentSize: CardSize.small),
+            ],
+            child: const MaterialApp(
+              home: Scaffold(
+                body: SizedBox(
+                  width: 340,
+                  height: 440,
+                  child: CalendarCard(currentSize: CardSize.small),
+                ),
               ),
             ),
           ),
-        ),
-      );
+        );
 
-      expect(find.text('Calendar'), findsOneWidget);
-      expect(find.text('September 2026'), findsOneWidget);
+        expect(find.text('Calendar'), findsOneWidget);
+        expect(find.text('September 2026'), findsOneWidget);
 
-      // Verify Sunday start has 'S' as first weekday label
-      expect(find.text('S'), findsWidgets);
+        // Verify Sunday start has 'S' as first weekday label
+        expect(find.text('S'), findsWidgets);
 
-      // Tap next month chevron
-      await tester.tap(find.byIcon(Icons.chevron_right_rounded));
-      await tester.pump();
+        // Tap next month chevron
+        await tester.tap(find.byIcon(Icons.chevron_right_rounded));
+        await tester.pump();
 
-      expect(find.text('October 2026'), findsOneWidget);
-    });
+        expect(find.text('October 2026'), findsOneWidget);
+      },
+    );
 
-    testWidgets('renders Monday start when configured in settings',
-        (WidgetTester tester) async {
+    testWidgets('renders Monday start when configured in settings', (
+      WidgetTester tester,
+    ) async {
       final initialDate = DateTime(2026, 9, 19);
       final notifier = _TestCalendarNotifier(
         CalendarState(
@@ -249,109 +260,110 @@ void main() {
       expect(find.text('M'), findsWidgets);
     });
 
-    testWidgets('renders Medium dual-pane layout with temporal inspector and progress bars',
-        (WidgetTester tester) async {
-      final initialDate = CalendarState.todayMidnight;
-      final milestone = CalendarMilestone(
-        id: 'ms_test',
-        title: 'Demo Milestone',
-        targetDate: initialDate.add(const Duration(days: 6)),
-        isPinned: true,
-        createdAt: DateTime.now(),
-      );
+    testWidgets(
+      'renders Medium dual-pane layout with temporal inspector and progress bars',
+      (WidgetTester tester) async {
+        final initialDate = CalendarState.todayMidnight;
+        final milestone = CalendarMilestone(
+          id: 'ms_test',
+          title: 'Demo Milestone',
+          targetDate: initialDate.add(const Duration(days: 6)),
+          isPinned: true,
+          createdAt: DateTime.now(),
+        );
 
-      final notifier = _TestCalendarNotifier(
-        CalendarState(
-          selectedDate: initialDate,
-          viewMonth: DateTime(initialDate.year, initialDate.month, 1),
-          milestones: [milestone],
-        ),
-      );
+        final notifier = _TestCalendarNotifier(
+          CalendarState(
+            selectedDate: initialDate,
+            viewMonth: DateTime(initialDate.year, initialDate.month, 1),
+            milestones: [milestone],
+          ),
+        );
 
-      await tester.pumpWidget(
-        ProviderScope(
-          overrides: [
-            calendarProvider.overrideWith(() => notifier),
-          ],
-          child: const MaterialApp(
-            home: Scaffold(
-              body: SizedBox(
-                width: 700,
-                height: 450,
-                child: CalendarCard(currentSize: CardSize.medium),
+        await tester.pumpWidget(
+          ProviderScope(
+            overrides: [calendarProvider.overrideWith(() => notifier)],
+            child: const MaterialApp(
+              home: Scaffold(
+                body: SizedBox(
+                  width: 700,
+                  height: 450,
+                  child: CalendarCard(currentSize: CardSize.medium),
+                ),
               ),
             ),
           ),
-        ),
-      );
+        );
 
-      expect(find.text('Calendar'), findsOneWidget);
-      final monthName = CalendarCard.monthNames[initialDate.month - 1];
-      expect(find.text('$monthName ${initialDate.year}'), findsOneWidget);
-      // Today button is hidden near chevrons when marker is already on the current date
-      expect(find.widgetWithText(InkWell, 'Today'), findsNothing);
-      expect(find.text('Travel'), findsOneWidget);
-      expect(find.textContaining('${initialDate.year}'), findsWidgets);
-      expect(find.textContaining('${initialDate.day}'), findsWidgets);
-      expect(find.text('Milestones & Countdowns'), findsOneWidget);
-      expect(find.text('Demo Milestone'), findsOneWidget);
+        expect(find.text('Calendar'), findsOneWidget);
+        final monthName = monthNames[initialDate.month - 1];
+        expect(find.text('$monthName ${initialDate.year}'), findsOneWidget);
+        // Today button is hidden near chevrons when marker is already on the current date
+        expect(find.widgetWithText(InkWell, 'Today'), findsNothing);
+        expect(find.text('Travel'), findsOneWidget);
+        expect(find.textContaining('${initialDate.year}'), findsWidgets);
+        expect(find.textContaining('${initialDate.day}'), findsWidgets);
+        expect(find.text('Milestones & Countdowns'), findsOneWidget);
+        expect(find.text('Demo Milestone'), findsOneWidget);
 
-      // Verify circular delete button in milestone item
-      expect(find.byIcon(Icons.close_rounded), findsOneWidget);
+        // Verify circular delete button in milestone item
+        expect(find.byIcon(Icons.close_rounded), findsOneWidget);
 
-      // Tap delete milestone button
-      await tester.tap(find.byIcon(Icons.close_rounded));
-      await tester.pump();
+        // Tap delete milestone button
+        await tester.tap(find.byIcon(Icons.close_rounded));
+        await tester.pump();
 
-      expect(notifier.state.milestones.isEmpty, true);
-    });
+        expect(notifier.state.milestones.isEmpty, true);
+      },
+    );
 
-    testWidgets('Today button appears when navigated away and disappears after reset',
-        (WidgetTester tester) async {
-      final initialDate = CalendarState.todayMidnight;
-      final awayYear = initialDate.year + 1;
-      final notifier = _TestCalendarNotifier(
-        CalendarState(
-          selectedDate: initialDate,
-          viewMonth: DateTime(awayYear, 1, 1),
-        ),
-      );
+    testWidgets(
+      'Today button appears when navigated away and disappears after reset',
+      (WidgetTester tester) async {
+        final initialDate = CalendarState.todayMidnight;
+        final awayYear = initialDate.year + 1;
+        final notifier = _TestCalendarNotifier(
+          CalendarState(
+            selectedDate: initialDate,
+            viewMonth: DateTime(awayYear, 1, 1),
+          ),
+        );
 
-      await tester.pumpWidget(
-        ProviderScope(
-          overrides: [
-            calendarProvider.overrideWith(() => notifier),
-          ],
-          child: const MaterialApp(
-            home: Scaffold(
-              body: SizedBox(
-                width: 340,
-                height: 440,
-                child: CalendarCard(currentSize: CardSize.small),
+        await tester.pumpWidget(
+          ProviderScope(
+            overrides: [calendarProvider.overrideWith(() => notifier)],
+            child: const MaterialApp(
+              home: Scaffold(
+                body: SizedBox(
+                  width: 340,
+                  height: 440,
+                  child: CalendarCard(currentSize: CardSize.small),
+                ),
               ),
             ),
           ),
-        ),
-      );
+        );
 
-      expect(find.text('January $awayYear'), findsOneWidget);
-      // Today button is visible because we are viewing January of next year
-      expect(find.widgetWithText(InkWell, 'Today'), findsOneWidget);
+        expect(find.text('January $awayYear'), findsOneWidget);
+        // Today button is visible because we are viewing January of next year
+        expect(find.widgetWithText(InkWell, 'Today'), findsOneWidget);
 
-      // Tap the navigation Today button
-      await tester.tap(find.widgetWithText(InkWell, 'Today').first);
-      await tester.pump();
+        // Tap the navigation Today button
+        await tester.tap(find.widgetWithText(InkWell, 'Today').first);
+        await tester.pump();
 
-      final today = CalendarState.todayMidnight;
-      final expectedMonthName = CalendarCard.monthNames[today.month - 1];
-      expect(find.text('$expectedMonthName ${today.year}'), findsOneWidget);
+        final today = CalendarState.todayMidnight;
+        final expectedMonthName = monthNames[today.month - 1];
+        expect(find.text('$expectedMonthName ${today.year}'), findsOneWidget);
 
-      // After resetting to today, the Today button should no longer be visible
-      expect(find.widgetWithText(InkWell, 'Today'), findsNothing);
-    });
+        // After resetting to today, the Today button should no longer be visible
+        expect(find.widgetWithText(InkWell, 'Today'), findsNothing);
+      },
+    );
 
-    testWidgets('Travel button opens date picker dialog with TRAVEL button',
-        (WidgetTester tester) async {
+    testWidgets('Travel button opens date picker dialog with TRAVEL button', (
+      WidgetTester tester,
+    ) async {
       final initialDate = DateTime(2026, 9, 19);
       final notifier = _TestCalendarNotifier(
         CalendarState(
@@ -362,9 +374,7 @@ void main() {
 
       await tester.pumpWidget(
         ProviderScope(
-          overrides: [
-            calendarProvider.overrideWith(() => notifier),
-          ],
+          overrides: [calendarProvider.overrideWith(() => notifier)],
           child: const MaterialApp(
             home: Scaffold(
               body: SizedBox(
@@ -392,40 +402,40 @@ void main() {
       await tester.pumpAndSettle();
     });
 
-    testWidgets('Small card with constrained height resizes and wraps all dates without overflow',
-        (WidgetTester tester) async {
-      final initialDate = DateTime(2026, 10, 15);
-      final notifier = _TestCalendarNotifier(
-        CalendarState(
-          selectedDate: initialDate,
-          viewMonth: DateTime(2026, 10, 1),
-        ),
-      );
+    testWidgets(
+      'Small card with constrained height resizes and wraps all dates without overflow',
+      (WidgetTester tester) async {
+        final initialDate = DateTime(2026, 10, 15);
+        final notifier = _TestCalendarNotifier(
+          CalendarState(
+            selectedDate: initialDate,
+            viewMonth: DateTime(2026, 10, 1),
+          ),
+        );
 
-      await tester.pumpWidget(
-        ProviderScope(
-          overrides: [
-            calendarProvider.overrideWith(() => notifier),
-          ],
-          child: const MaterialApp(
-            home: Scaffold(
-              body: SizedBox(
-                width: 320,
-                height: 250,
-                child: CalendarCard(currentSize: CardSize.small),
+        await tester.pumpWidget(
+          ProviderScope(
+            overrides: [calendarProvider.overrideWith(() => notifier)],
+            child: const MaterialApp(
+              home: Scaffold(
+                body: SizedBox(
+                  width: 320,
+                  height: 250,
+                  child: CalendarCard(currentSize: CardSize.small),
+                ),
               ),
             ),
           ),
-        ),
-      );
+        );
 
-      expect(find.text('October 2026'), findsOneWidget);
-      // All dates from day 1 to day 31 are rendered and visible
-      expect(find.text('1'), findsOneWidget);
-      expect(find.text('15'), findsOneWidget);
-      expect(find.text('31'), findsOneWidget);
-      expect(tester.takeException(), isNull);
-    });
+        expect(find.text('October 2026'), findsOneWidget);
+        // All dates from day 1 to day 31 are rendered and visible
+        expect(find.text('1'), findsOneWidget);
+        expect(find.text('15'), findsOneWidget);
+        expect(find.text('31'), findsOneWidget);
+        expect(tester.takeException(), isNull);
+      },
+    );
   });
 }
 
@@ -437,7 +447,11 @@ class _TestCalendarNotifier extends CalendarNotifier {
   CalendarState build() => initial;
 
   @override
-  Future<void> addMilestone(String title, DateTime targetDate, {bool isPinned = false}) async {
+  Future<void> addMilestone(
+    String title,
+    DateTime targetDate, {
+    bool isPinned = false,
+  }) async {
     final ms = CalendarMilestone(
       id: (state.milestones.length + 1).toString(),
       title: title,

@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:wyrm_desk/home/card_layout_state.dart';
@@ -47,13 +47,12 @@ void main() {
   });
 
   group('TasksCard Widget', () {
-    testWidgets('renders header, title, and empty state when empty',
-        (WidgetTester tester) async {
+    testWidgets('renders header, title, and empty state when empty', (
+      WidgetTester tester,
+    ) async {
       await tester.pumpWidget(
         ProviderScope(
-          overrides: [
-            tasksProvider.overrideWith(() => _TestTasksNotifier([])),
-          ],
+          overrides: [tasksProvider.overrideWith(() => _TestTasksNotifier([]))],
           child: const MaterialApp(
             home: Scaffold(
               body: SizedBox(
@@ -72,8 +71,9 @@ void main() {
       expect(find.text('Tap + to add a task or priority.'), findsOneWidget);
     });
 
-    testWidgets('renders populated task items with interactive checkboxes',
-        (WidgetTester tester) async {
+    testWidgets('renders populated task items with interactive checkboxes', (
+      WidgetTester tester,
+    ) async {
       final notifier = _TestTasksNotifier([
         TaskItem(
           id: '1',
@@ -93,9 +93,7 @@ void main() {
 
       await tester.pumpWidget(
         ProviderScope(
-          overrides: [
-            tasksProvider.overrideWith(() => notifier),
-          ],
+          overrides: [tasksProvider.overrideWith(() => notifier)],
           child: const MaterialApp(
             home: Scaffold(
               body: SizedBox(
@@ -122,110 +120,117 @@ void main() {
     });
 
     testWidgets(
-        'renders small multiline layout and allows deleting tasks with custom font size',
-        (WidgetTester tester) async {
-      final notifier = _TestTasksNotifier([
-        TaskItem(
-          id: '1',
-          title: 'Multiline Small Card Task',
-          isCompleted: false,
-          priority: 'high',
-          createdAt: DateTime.now(),
-        ),
-      ]);
+      'renders small multiline layout and allows deleting tasks with custom font size',
+      (WidgetTester tester) async {
+        final notifier = _TestTasksNotifier([
+          TaskItem(
+            id: '1',
+            title: 'Multiline Small Card Task',
+            isCompleted: false,
+            priority: 'high',
+            createdAt: DateTime.now(),
+          ),
+        ]);
 
-      await tester.pumpWidget(
-        ProviderScope(
-          overrides: [
-            tasksProvider.overrideWith(() => notifier),
-            appSettingsProvider.overrideWith(
-              () => _TestAppSettingsNotifier(
-                const AppSettingsConfig(cardFontSize: 18.0),
+        await tester.pumpWidget(
+          ProviderScope(
+            overrides: [
+              tasksProvider.overrideWith(() => notifier),
+              appSettingsProvider.overrideWith(
+                () => _TestAppSettingsNotifier(
+                  const AppSettingsConfig(cardFontSize: 18.0),
+                ),
               ),
-            ),
-          ],
-          child: const MaterialApp(
-            home: Scaffold(
-              body: SizedBox(
-                width: 320,
-                height: 380,
-                child: TasksCard(currentSize: CardSize.small),
+            ],
+            child: const MaterialApp(
+              home: Scaffold(
+                body: SizedBox(
+                  width: 320,
+                  height: 380,
+                  child: TasksCard(currentSize: CardSize.small),
+                ),
               ),
             ),
           ),
-        ),
-      );
+        );
 
-      expect(find.text('Tasks'), findsOneWidget);
-      expect(find.text('Multiline Small Card Task'), findsOneWidget);
-      expect(find.text('HIGH'), findsOneWidget);
-      expect(find.byIcon(Icons.close_rounded), findsOneWidget);
+        expect(find.text('Tasks'), findsOneWidget);
+        expect(find.text('Multiline Small Card Task'), findsOneWidget);
+        expect(find.text('HIGH'), findsOneWidget);
+        expect(find.byIcon(Icons.close_rounded), findsOneWidget);
 
-      // Verify custom font size and softWrap are applied
-      final textWidget = tester.widget<Text>(find.text('Multiline Small Card Task'));
-      expect(textWidget.style?.fontSize, 18.0);
-      expect(textWidget.softWrap, true);
+        // Verify custom font size and softWrap are applied
+        final textWidget = tester.widget<Text>(
+          find.text('Multiline Small Card Task'),
+        );
+        expect(textWidget.style?.fontSize, 18.0);
+        expect(textWidget.softWrap, true);
 
-      // Verify delete button has circular 28x28 styling matching CardEditButton
-      final deleteIconFinder = find.byIcon(Icons.close_rounded);
-      expect(deleteIconFinder, findsOneWidget);
-      final containerFinder = find.ancestor(
-        of: deleteIconFinder,
-        matching: find.byType(Container),
-      ).first;
-      final containerWidget = tester.widget<Container>(containerFinder);
-      final boxDecoration = containerWidget.decoration as BoxDecoration;
-      expect(containerWidget.constraints?.maxWidth, 28);
-      expect(containerWidget.constraints?.maxHeight, 28);
-      expect(boxDecoration.shape, BoxShape.circle);
+        // Verify delete button has circular 28x28 styling matching CardEditButton
+        final deleteIconFinder = find.byIcon(Icons.close_rounded);
+        expect(deleteIconFinder, findsOneWidget);
+        final containerFinder = find
+            .ancestor(of: deleteIconFinder, matching: find.byType(Container))
+            .first;
+        final containerWidget = tester.widget<Container>(containerFinder);
+        final boxDecoration = containerWidget.decoration as BoxDecoration;
+        expect(containerWidget.constraints?.maxWidth, 28);
+        expect(containerWidget.constraints?.maxHeight, 28);
+        expect(boxDecoration.shape, BoxShape.circle);
 
-      // Tap delete button to remove task
-      await tester.tap(find.byIcon(Icons.close_rounded));
-      await tester.pump();
+        // Tap delete button to remove task
+        await tester.tap(find.byIcon(Icons.close_rounded));
+        await tester.pump();
 
-      expect(notifier.state.isEmpty, true);
-    });
+        expect(notifier.state.isEmpty, true);
+      },
+    );
 
     testWidgets(
-        'renders task_bg.png backdrop in both empty and populated states',
-        (WidgetTester tester) async {
-      final notifier = _TestTasksNotifier([]);
+      'renders task_bg.png backdrop in both empty and populated states',
+      (WidgetTester tester) async {
+        final notifier = _TestTasksNotifier([]);
 
-      await tester.pumpWidget(
-        ProviderScope(
-          overrides: [
-            tasksProvider.overrideWith(() => notifier),
-          ],
-          child: const MaterialApp(
-            home: Scaffold(
-              body: SizedBox(
-                width: 320,
-                height: 400,
-                child: TasksCard(currentSize: CardSize.small),
+        await tester.pumpWidget(
+          ProviderScope(
+            overrides: [tasksProvider.overrideWith(() => notifier)],
+            child: const MaterialApp(
+              home: Scaffold(
+                body: SizedBox(
+                  width: 320,
+                  height: 400,
+                  child: TasksCard(currentSize: CardSize.small),
+                ),
               ),
             ),
           ),
-        ),
-      );
-      await tester.pump();
+        );
+        await tester.pump();
 
-      // Verify task_bg.png in empty state
-      final taskBgFinder = find.byWidgetPredicate((widget) {
-        if (widget is Image && widget.image is AssetImage) {
-          final asset = widget.image as AssetImage;
-          return asset.assetName == 'assets/card_bg/task/task_bg.png';
-        }
-        return false;
-      });
-      expect(taskBgFinder, findsOneWidget);
+        // Verify task_bg.png in empty state
+        final taskBgFinder = find.byWidgetPredicate((widget) {
+          if (widget is Image && widget.image is AssetImage) {
+            final asset = widget.image as AssetImage;
+            return asset.assetName == 'assets/card_bg/task/task_bg.png';
+          }
+          if (widget is Image && widget.image is ResizeImage) {
+            final inner = (widget.image as ResizeImage).imageProvider;
+            if (inner is AssetImage) {
+              return inner.assetName == 'assets/card_bg/task/task_bg.png';
+            }
+          }
+          return false;
+        });
+        expect(taskBgFinder, findsOneWidget);
 
-      // Add a task and re-pump
-      notifier.addTask('New Task');
-      await tester.pump();
+        // Add a task and re-pump
+        notifier.addTask('New Task');
+        await tester.pump();
 
-      // Verify task_bg.png remains in populated state
-      expect(taskBgFinder, findsOneWidget);
-    });
+        // Verify task_bg.png remains in populated state
+        expect(taskBgFinder, findsOneWidget);
+      },
+    );
   });
 }
 

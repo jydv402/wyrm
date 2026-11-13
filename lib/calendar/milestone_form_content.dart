@@ -1,11 +1,7 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
+import 'package:wyrm_desk/core/date_names.dart';
 import 'package:wyrm_desk/core/theme.dart';
 import 'package:wyrm_desk/in_app_keyboard/in_app_keyboard_text_field.dart';
-
-const List<String> _calendarMonthNames = [
-  'January', 'February', 'March', 'April', 'May', 'June',
-  'July', 'August', 'September', 'October', 'November', 'December'
-];
 
 /// Reusable form content for creating and editing calendar milestones in Dusk Glass style.
 class MilestoneFormContent extends StatelessWidget {
@@ -51,7 +47,10 @@ class MilestoneFormContent extends StatelessWidget {
             hintStyle: const TextStyle(color: AppColors.textMuted),
             filled: true,
             fillColor: AppColors.well,
-            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 16,
+              vertical: 14,
+            ),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(16),
               borderSide: const BorderSide(color: AppColors.line, width: 1.0),
@@ -122,7 +121,7 @@ class MilestoneFormContent extends StatelessWidget {
                 ),
                 const SizedBox(width: 10),
                 Text(
-                  '${_calendarMonthNames[selectedDate.month - 1]} ${selectedDate.day}, ${selectedDate.year}',
+                  '${monthNames[selectedDate.month - 1]} ${selectedDate.day}, ${selectedDate.year}',
                   style: const TextStyle(
                     color: AppColors.textPrimary,
                     fontWeight: FontWeight.w600,
@@ -214,10 +213,16 @@ class MilestonePreviewCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final displayTitle = title.trim().isEmpty ? 'Milestone Title' : title.trim();
+    final displayTitle = title.trim().isEmpty
+        ? 'Milestone Title'
+        : title.trim();
     final now = DateTime.now();
     final todayMidnight = DateTime(now.year, now.month, now.day);
-    final targetMidnight = DateTime(targetDate.year, targetDate.month, targetDate.day);
+    final targetMidnight = DateTime(
+      targetDate.year,
+      targetDate.month,
+      targetDate.day,
+    );
     final days = targetMidnight.difference(todayMidnight).inDays;
 
     String daysLabel;
@@ -282,7 +287,7 @@ class MilestonePreviewCard extends StatelessWidget {
                       overflow: TextOverflow.ellipsis,
                     ),
                     Text(
-                      '${_calendarMonthNames[targetDate.month - 1]} ${targetDate.day}, ${targetDate.year}',
+                      '${monthNames[targetDate.month - 1]} ${targetDate.day}, ${targetDate.year}',
                       style: const TextStyle(
                         color: AppColors.textSecondary,
                         fontSize: 11,
@@ -330,11 +335,17 @@ class MilestonePreviewCard extends StatelessWidget {
                 ),
                 if (isPinned)
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 6,
+                      vertical: 3,
+                    ),
                     decoration: BoxDecoration(
                       color: AppColors.goldAccent.withValues(alpha: 0.15),
                       borderRadius: BorderRadius.circular(6),
-                      border: Border.all(color: AppColors.goldAccent.withValues(alpha: 0.4), width: 1.0),
+                      border: Border.all(
+                        color: AppColors.goldAccent.withValues(alpha: 0.4),
+                        width: 1.0,
+                      ),
                     ),
                     child: const Text(
                       'PINNED',

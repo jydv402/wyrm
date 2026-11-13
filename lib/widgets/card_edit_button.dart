@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:wyrm_desk/core/theme.dart';
 import 'package:wyrm_desk/home/card_layout_state.dart';
 
@@ -96,13 +96,17 @@ class CardEditButton extends StatelessWidget {
           Icon(
             icon,
             size: 18,
-            color: isSelected ? AppColors.accentOrange : AppColors.textSecondary,
+            color: isSelected
+                ? AppColors.accentOrange
+                : AppColors.textSecondary,
           ),
           const SizedBox(width: 12),
           Text(
             label,
             style: TextStyle(
-              color: isSelected ? AppColors.textPrimary : AppColors.textSecondary,
+              color: isSelected
+                  ? AppColors.textPrimary
+                  : AppColors.textSecondary,
               fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
               fontSize: 13.5,
             ),

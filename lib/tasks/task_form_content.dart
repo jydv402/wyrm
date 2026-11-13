@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:wyrm_desk/core/theme.dart';
 import 'package:wyrm_desk/in_app_keyboard/in_app_keyboard_text_field.dart';
 
@@ -45,7 +45,10 @@ class TaskFormContent extends StatelessWidget {
             hintStyle: const TextStyle(color: AppColors.textMuted),
             filled: true,
             fillColor: AppColors.well,
-            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 16,
+              vertical: 14,
+            ),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(16),
               borderSide: const BorderSide(color: AppColors.line, width: 1.0),
@@ -76,9 +79,13 @@ class TaskFormContent extends StatelessWidget {
         const SizedBox(height: 8),
         Row(
           children: [
-            _buildPriorityOption('normal', 'Normal Priority', AppColors.teal.accent),
-            const SizedBox(width: 10),
-            _buildPriorityOption('high', 'High Priority', AppColors.priorityHigh),
+            _buildPriorityOption('normal', 'Normal', AppColors.teal.accent),
+            const SizedBox(width: 8),
+            _buildPriorityOption('low', 'Low', AppColors.priorityLow),
+            const SizedBox(width: 8),
+            _buildPriorityOption('medium', 'Medium', AppColors.priorityMedium),
+            const SizedBox(width: 8),
+            _buildPriorityOption('high', 'High', AppColors.priorityHigh),
           ],
         ),
       ],
@@ -137,9 +144,15 @@ class TaskPreviewCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final displayTitle =
-        title.trim().isEmpty ? 'Write your task description...' : title.trim();
-    final isHigh = priority == 'high';
+    final displayTitle = title.trim().isEmpty
+        ? 'Write your task description...'
+        : title.trim();
+    final (String, Color)? badge = switch (priority.toLowerCase()) {
+      'high' => ('HIGH', AppColors.priorityHigh),
+      'medium' => ('MEDIUM', AppColors.priorityMedium),
+      'low' => ('LOW', AppColors.priorityLow),
+      _ => null,
+    };
 
     return Container(
       width: 290,
@@ -180,19 +193,25 @@ class TaskPreviewCard extends StatelessWidget {
                   overflow: TextOverflow.ellipsis,
                 ),
               ),
-              if (isHigh) ...[
+              if (badge != null) ...[
                 const SizedBox(width: 6),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
-                  decoration: BoxDecoration(
-                    color: AppColors.priorityHigh.withValues(alpha: 0.15),
-                    borderRadius: BorderRadius.circular(6),
-                    border: Border.all(color: AppColors.priorityHigh.withValues(alpha: 0.4), width: 1.0),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 6,
+                    vertical: 3,
                   ),
-                  child: const Text(
-                    'HIGH',
+                  decoration: BoxDecoration(
+                    color: badge.$2.withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(6),
+                    border: Border.all(
+                      color: badge.$2.withValues(alpha: 0.4),
+                      width: 1.0,
+                    ),
+                  ),
+                  child: Text(
+                    badge.$1,
                     style: TextStyle(
-                      color: AppColors.priorityHigh,
+                      color: badge.$2,
                       fontSize: 10,
                       fontWeight: FontWeight.w800,
                       letterSpacing: 0.5,

@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
@@ -17,12 +17,7 @@ class DigitalClockSmall extends ConsumerWidget {
     final now = ref.watch(clockTimeProvider).value ?? DateTime.now();
     final hours = ref.watch(clockHoursProvider);
     final minutes = ref.watch(clockMinutesProvider);
-
-    // End of day countdown
-    final endOfDay = DateTime(now.year, now.month, now.day + 1);
-    final diff = endOfDay.difference(now);
-    final hoursLeft = diff.inHours;
-    final minsLeft = diff.inMinutes % 60;
+    final timeLeft = ref.watch(timeLeftTodayPartsProvider);
 
     // Greeting
     final String greeting;
@@ -134,7 +129,7 @@ class DigitalClockSmall extends ConsumerWidget {
         if (!isNightstand) ...[
           const SizedBox(height: 12),
           DuskGlassPill.sunCountdown(
-            timeLeft: '${hoursLeft}h ${minsLeft}m',
+            timeLeft: '${timeLeft.hours}h ${timeLeft.minutes}m',
             suffix: 'left today',
           ),
         ],

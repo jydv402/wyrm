@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:qr/qr.dart';
 import 'package:shelf/shelf.dart';
@@ -11,6 +12,7 @@ import 'package:shelf_web_socket/shelf_web_socket.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 
 import 'package:wyrm_desk/calendar/calendar_state.dart';
+import 'package:wyrm_desk/core/app_database.dart';
 import 'package:wyrm_desk/display/display_state.dart';
 import 'package:wyrm_desk/habits/habits.dart';
 import 'package:wyrm_desk/home/card_layout_state.dart';
@@ -26,8 +28,14 @@ import 'package:wyrm_desk/tasks/task_model.dart';
 /// 2. REST API endpoints under `/api/*` for one-off operations and data queries.
 /// 3. A real-time WebSocket connection at `/ws` for bi-directional live synchronization.
 class ShelfWebServer {
-  /// Default TCP port used for hosting the local web remote.
-  static const int defaultPort = 8080;
+  /// Release default TCP port.
+  static const int releasePort = 8080;
+
+  /// Debug default TCP port.
+  static const int debugPort = 8081;
+
+  /// Default TCP port used for hosting the local web remote (8081 for debug, 8080 for release).
+  static int get defaultPort => kDebugMode ? debugPort : releasePort;
 
   // ---------------------------------------------------------------------------
   // State provider getters: Called whenever a fresh snapshot is needed.
@@ -60,6 +68,7 @@ class ShelfWebServer {
   final void Function(String id)? onDeleteHabit;
   final void Function(DashboardCardType card)? onScrollToCard;
   final void Function(bool open)? onToggleNetworkModal;
+  final Future<bool> Function(String jsonString)? onImportDatabase;
 
   // ---------------------------------------------------------------------------
   // Testing overrides: In-memory string/byte mocks used by headless unit tests.
@@ -98,6 +107,7 @@ class ShelfWebServer {
     this.onDeleteHabit,
     this.onScrollToCard,
     this.onToggleNetworkModal,
+    this.onImportDatabase,
     this.htmlOverride,
     this.cssOverride,
     this.jsOverride,
@@ -109,7 +119,8 @@ class ShelfWebServer {
   // ===========================================================================
 
   /// Starts the embedded HTTP and WebSocket server on the designated TCP port.
-  Future<HttpServer> start({int port = defaultPort}) async {
+  Future<HttpServer> start({int? port}) async {
+    final effectivePort = port ?? defaultPort;
     _ipAddress = await NetworkInfo.getLocalIpAddress();
     final router = Router();
 
@@ -147,6 +158,9 @@ class ShelfWebServer {
     router.post('/api/modal/network', _handlePostToggleNetworkModal);
     router.get('/api/qr', _handleGetQrSvg);
     router.get('/api/qr.svg', _handleGetQrSvg);
+    router.get('/api/backup/export', _handleGetBackupExport);
+    router.get('/api/backup', _handleGetBackupExport);
+    router.post('/api/backup/import', _handlePostBackupImport);
 
     // --- WebSocket Real-Time Channel ---
     router.get(
@@ -164,7 +178,7 @@ class ShelfWebServer {
     _server = await shelf_io.serve(
       handler,
       InternetAddress.anyIPv4,
-      port,
+      effectivePort,
     );
 
     return _server!;
@@ -455,10 +469,20 @@ class ShelfWebServer {
     return null;
   }
 
+  /// Whitelisted task priority values accepted from the web remote.
+  static const Set<String> _taskPriorities = {'normal', 'medium', 'high', 'low'};
+
   /// Validates and triggers task creation.
+  ///
+  /// An unrecognized or missing [priority] falls back to 'normal' so unknown
+  /// remote values never persist into the task model.
   bool _executeCreateTask(String? title, String? priority) {
     if (title != null && title.trim().isNotEmpty && onAddTask != null) {
-      onAddTask!(title.trim(), (priority ?? 'normal').trim());
+      final candidate = (priority ?? 'normal').trim().toLowerCase();
+      final normalized = _taskPriorities.contains(candidate)
+          ? candidate
+          : 'normal';
+      onAddTask!(title.trim(), normalized);
       return true;
     }
     return false;
@@ -523,7 +547,8 @@ class ShelfWebServer {
         ? rawTarget.toInt()
         : (int.tryParse(rawTarget?.toString() ?? '1') ?? 1);
     final unit = data['unit'] as String?;
-    final iconName = (data['icon_name'] ?? data['iconName'] ?? data['glyph'] ?? 'bolt').toString();
+    final rawIcon = (data['icon_name'] ?? data['iconName'] ?? data['glyph'] ?? 'bolt').toString();
+    final iconName = emojiToHabitIcon[rawIcon] ?? rawIcon;
 
     if (title != null && title.trim().isNotEmpty && onAddHabit != null) {
       onAddHabit!(
@@ -825,6 +850,66 @@ class ShelfWebServer {
       );
     } catch (e) {
       return Response.internalServerError(body: 'Failed to generate QR code: $e');
+    }
+  }
+
+  /// Exports the entire database document as a downloadable JSON file attachment.
+  Future<Response> _handleGetBackupExport(Request request) async {
+    try {
+      final jsonString = await AppDatabase.exportDatabaseJson();
+      return Response.ok(
+        jsonString,
+        headers: {
+          'Content-Type': 'application/json; charset=utf-8',
+          'Content-Disposition': 'attachment; filename="${AppDatabase.backupFileName}"',
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+        },
+      );
+    } catch (e) {
+      return Response.internalServerError(
+        body: jsonEncode({'error': 'Failed to export database backup: $e'}),
+        headers: {'Content-Type': 'application/json'},
+      );
+    }
+  }
+
+  /// Imports and validates a full database JSON backup payload.
+  Future<Response> _handlePostBackupImport(Request request) async {
+    try {
+      final body = await request.readAsString();
+      if (body.trim().isEmpty) {
+        return Response.badRequest(
+          body: jsonEncode({'error': 'Backup payload cannot be empty'}),
+          headers: {'Content-Type': 'application/json'},
+        );
+      }
+
+      final success = onImportDatabase != null
+          ? await onImportDatabase!(body)
+          : await AppDatabase.importDatabaseJson(body);
+
+      if (!success) {
+        return Response.badRequest(
+          body: jsonEncode({'error': 'Invalid or corrupted database backup JSON'}),
+          headers: {'Content-Type': 'application/json'},
+        );
+      }
+
+      // Broadcast fresh state update to all connected WebSocket clients.
+      broadcastState();
+
+      return Response.ok(
+        jsonEncode({
+          'status': 'ok',
+          'message': 'Database backup imported successfully',
+        }),
+        headers: {'Content-Type': 'application/json'},
+      );
+    } catch (e) {
+      return Response.internalServerError(
+        body: jsonEncode({'error': 'Failed to import database backup: $e'}),
+        headers: {'Content-Type': 'application/json'},
+      );
     }
   }
 

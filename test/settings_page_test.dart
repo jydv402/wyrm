@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:wyrm_desk/display/display_state.dart';
@@ -12,12 +12,12 @@ import 'package:wyrm_desk/widgets/dusk_glass_panel.dart';
 void main() {
   group('SettingsPage Widget Tests', () {
     testWidgets(
-      'renders full-screen layout with top bar and 4 Dusk Glass sections',
+      'renders full-screen layout with top bar and Dusk Glass sections',
       (WidgetTester tester) async {
         tester.view.physicalSize = const Size(1280, 800);
         tester.view.devicePixelRatio = 1.0;
         addTearDown(tester.view.resetPhysicalSize);
-      addTearDown(tester.view.resetDevicePixelRatio);
+        addTearDown(tester.view.resetDevicePixelRatio);
         addTearDown(tester.view.resetDevicePixelRatio);
 
         await tester.pumpWidget(
@@ -42,6 +42,7 @@ void main() {
         expect(find.text('Clock & Calendar'), findsOneWidget);
         expect(find.text('Card Appearance'), findsOneWidget);
         expect(find.text('Web Remote Companion'), findsOneWidget);
+        expect(find.text('Data & Backups'), findsOneWidget);
 
         // Sections Content
         expect(
@@ -56,8 +57,10 @@ void main() {
         expect(find.text('Week Starts On'), findsOneWidget);
         expect(find.text('Card Font Size'), findsOneWidget);
         expect(find.text('Server Running'), findsOneWidget);
-        expect(find.text('http://192.168.1.50:8080'), findsOneWidget);
+        expect(find.text('http://192.168.1.50:8081'), findsOneWidget);
         expect(find.text('Show QR'), findsOneWidget);
+        expect(find.text('Export to Downloads'), findsOneWidget);
+        expect(find.text('Import from Downloads'), findsOneWidget);
       },
     );
 
@@ -67,7 +70,7 @@ void main() {
         tester.view.physicalSize = const Size(1280, 800);
         tester.view.devicePixelRatio = 1.0;
         addTearDown(tester.view.resetPhysicalSize);
-      addTearDown(tester.view.resetDevicePixelRatio);
+        addTearDown(tester.view.resetDevicePixelRatio);
         addTearDown(tester.view.resetDevicePixelRatio);
 
         final container = ProviderContainer(
@@ -139,9 +142,7 @@ void main() {
       expect(container.read(appSettingsProvider).startWeekOnMonday, false);
     });
 
-    testWidgets('toggles nightstand mode switch', (
-      WidgetTester tester,
-    ) async {
+    testWidgets('toggles nightstand mode switch', (WidgetTester tester) async {
       tester.view.physicalSize = const Size(1280, 800);
       tester.view.devicePixelRatio = 1.0;
       addTearDown(tester.view.resetPhysicalSize);
@@ -268,6 +269,7 @@ void main() {
       expect(find.text('Clock & Calendar'), findsOneWidget);
       expect(find.text('Card Appearance'), findsOneWidget);
       expect(find.text('Web Remote Companion'), findsOneWidget);
+      expect(find.text('Data & Backups'), findsOneWidget);
     });
     testWidgets(
       'all cards inside SettingsPage use the Glacier DuskTone theme',
@@ -275,7 +277,7 @@ void main() {
         tester.view.physicalSize = const Size(1280, 800);
         tester.view.devicePixelRatio = 1.0;
         addTearDown(tester.view.resetPhysicalSize);
-      addTearDown(tester.view.resetDevicePixelRatio);
+        addTearDown(tester.view.resetDevicePixelRatio);
         addTearDown(tester.view.resetDevicePixelRatio);
 
         await tester.pumpWidget(
@@ -292,7 +294,7 @@ void main() {
           find.byType(DuskGlassPanel),
         );
         expect(panels, isNotEmpty);
-        expect(panels.length, 4);
+        expect(panels.length, 5);
 
         for (final panel in panels) {
           expect(panel.tone, AppColors.glacier);

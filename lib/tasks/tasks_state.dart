@@ -52,6 +52,11 @@ class TasksNotifier extends Notifier<List<TaskItem>> {
     state = updated;
     AppDatabase.saveTasks(updated);
   }
+
+  /// Reloads tasks from disk.
+  Future<void> reloadFromDisk() async {
+    await _initializeFromDisk();
+  }
 }
 
 /// Riverpod provider exposing reactive task items.

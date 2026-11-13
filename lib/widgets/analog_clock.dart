@@ -1,5 +1,6 @@
 import 'dart:math' as math;
-import 'package:flutter/material.dart';
+
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:wyrm_desk/clock/clock_provider.dart';
 import 'package:wyrm_desk/core/theme.dart';
@@ -12,11 +13,7 @@ class AnalogClock extends ConsumerWidget {
   /// Toggles glowing amber/orange nightstand palette for pitch-black ambient viewing.
   final bool isNightstand;
 
-  const AnalogClock({
-    super.key,
-    this.size,
-    this.isNightstand = false,
-  });
+  const AnalogClock({super.key, this.size, this.isNightstand = false});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -34,10 +31,7 @@ class AnalogClock extends ConsumerWidget {
       decoration: BoxDecoration(
         color: containerColor,
         borderRadius: BorderRadius.circular(32.0),
-        border: Border.all(
-          color: borderColor,
-          width: 1.5,
-        ),
+        border: Border.all(color: borderColor, width: 1.5),
       ),
       child: CustomPaint(
         painter: _AnalogueClockPainter(
@@ -54,10 +48,7 @@ class _AnalogueClockPainter extends CustomPainter {
   final AnalogueClockAngles angles;
   final bool isNightstand;
 
-  _AnalogueClockPainter({
-    required this.angles,
-    this.isNightstand = false,
-  });
+  _AnalogueClockPainter({required this.angles, this.isNightstand = false});
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -73,9 +64,7 @@ class _AnalogueClockPainter extends CustomPainter {
     final Color handColor = isNightstand
         ? const Color(0xFFFF9500)
         : AppColors.textPrimary;
-    final Color innerCapColor = isNightstand
-        ? Colors.black
-        : AppColors.surface;
+    final Color innerCapColor = isNightstand ? Colors.black : AppColors.surface;
 
     // Render 12 circular hour markers around the dial perimeter.
     final tickPaint = Paint()

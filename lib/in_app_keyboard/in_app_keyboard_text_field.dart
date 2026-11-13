@@ -1,4 +1,5 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
+
 import 'in_app_keyboard_scope.dart';
 
 /// An adaptive text input field that seamlessly binds to the virtual in-app keyboard

@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:wyrm_desk/clock/clock_provider.dart';
@@ -9,10 +9,7 @@ import 'package:wyrm_desk/widgets/dusk_glass_pill.dart';
 class DigitalClockMedium extends StatelessWidget {
   final bool isNightstand;
 
-  const DigitalClockMedium({
-    super.key,
-    this.isNightstand = false,
-  });
+  const DigitalClockMedium({super.key, this.isNightstand = false});
 
   @override
   Widget build(BuildContext context) {
@@ -56,7 +53,9 @@ class _ClockHoursDigit extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final hours = ref.watch(clockHoursProvider);
-    final color = isNightstand ? const Color(0xFFFF9500) : AppColors.textPrimary;
+    final color = isNightstand
+        ? const Color(0xFFFF9500)
+        : AppColors.textPrimary;
 
     return Text(
       hours,
@@ -102,7 +101,9 @@ class _ClockMinutesDigit extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final minutes = ref.watch(clockMinutesProvider);
-    final color = isNightstand ? const Color(0xFFFF9500) : AppColors.textPrimary;
+    final color = isNightstand
+        ? const Color(0xFFFF9500)
+        : AppColors.textPrimary;
 
     return Text(
       minutes,
@@ -127,8 +128,9 @@ class _ClockSecondsAndPeriodColumn extends ConsumerWidget {
     final seconds = ref.watch(clockSecondsProvider);
     final period = ref.watch(clockPeriodProvider);
 
-    final primaryColor =
-        isNightstand ? const Color(0xFFFF9500) : AppColors.slate.accent;
+    final primaryColor = isNightstand
+        ? const Color(0xFFFF9500)
+        : AppColors.slate.accent;
     final secondaryColor = isNightstand
         ? const Color(0xFFFF9500).withValues(alpha: 0.6)
         : AppColors.textSecondary;
@@ -167,12 +169,10 @@ class _ClockTimeLeftBadge extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final now = ref.watch(clockTimeProvider).value ?? DateTime.now();
-    final endOfDay = DateTime(now.year, now.month, now.day + 1);
-    final diff = endOfDay.difference(now);
+    final left = ref.watch(timeLeftTodayPartsProvider);
 
     return DuskGlassPill.sunCountdown(
-      timeLeft: '${diff.inHours}h ${diff.inMinutes % 60}m',
+      timeLeft: '${left.hours}h ${left.minutes}m',
       suffix: 'left today',
     );
   }

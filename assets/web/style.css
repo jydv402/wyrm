@@ -326,6 +326,7 @@ h1, h2, h3, p { font-weight: inherit; }
 .pill--medium { --pill: #f3c45e; }
 .pill--low { --pill: #8ed5b7; }
 .pill--accent { --pill: var(--t-accent); }
+.pill--neutral { --pill: rgb(255 255 255 / 0.75); }
 
 /* Meter */
 .meter { display: grid; gap: 2px; }
@@ -568,10 +569,15 @@ h1, h2, h3, p { font-weight: inherit; }
 .habit-composer__row { display: flex; gap: 12px; }
 .habit-composer__row .seg { flex: 1; }
 .habit-composer__row .field { width: 140px; flex: none; }
-.glyphs { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; }
+.glyph-picker { display: flex; flex-direction: column; gap: 10px; }
+.glyphs { display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px; }
 .glyph { display: grid; place-items: center; height: 46px; padding: 0; border-radius: 16px; font-size: 22px; cursor: pointer; transition: transform 0.12s, background 0.2s, border-color 0.2s; }
 .glyph:active { transform: scale(0.92); }
 .glyph.is-on { background: rgb(var(--t-rgb) / 0.2); border-color: var(--t-accent); }
+.glyph-custom-row { display: flex; width: 100%; }
+.glyph-custom { width: 100%; height: 42px; padding: 0 14px; border-radius: 14px; background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.12); color: #fff; font-size: 14px; transition: border-color 0.2s, background 0.2s; }
+.glyph-custom:focus { outline: none; border-color: var(--t-accent); background: rgba(255, 255, 255, 0.08); }
+.glyph-custom::placeholder { color: var(--text-3); font-size: 13px; }
 
 .habit-grid { position: relative; display: grid; gap: 20px; grid-template-columns: repeat(auto-fill, minmax(310px, 1fr)); }
 .habit { --r: 30px; gap: 18px; }

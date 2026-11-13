@@ -97,16 +97,6 @@ class AppSettingsNotifier extends Notifier<AppSettingsConfig> {
     AppSettingsStorage.saveSettings(updated);
   }
 
-  /// Increments card text font size by 1.0 pt up to 22.0 pt.
-  void incrementCardFontSize() {
-    setCardFontSize(state.cardFontSize + 1.0);
-  }
-
-  /// Decrements card text font size by 1.0 pt down to 11.0 pt.
-  void decrementCardFontSize() {
-    setCardFontSize(state.cardFontSize - 1.0);
-  }
-
   /// Toggles whether calendar weeks start on Monday vs. Sunday.
   void toggleStartWeekOnMonday() {
     setStartWeekOnMonday(!state.startWeekOnMonday);
@@ -117,6 +107,11 @@ class AppSettingsNotifier extends Notifier<AppSettingsConfig> {
     final updated = state.copyWith(startWeekOnMonday: value);
     state = updated;
     AppSettingsStorage.saveSettings(updated);
+  }
+
+  /// Reloads application settings from disk.
+  Future<void> reloadFromDisk() async {
+    await _initializeFromDisk();
   }
 }
 

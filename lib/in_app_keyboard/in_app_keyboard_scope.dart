@@ -1,4 +1,5 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
+
 import 'in_app_keyboard_controller.dart';
 
 /// Scoped inherited notifier providing the virtual keyboard controller down the widget tree.
@@ -11,13 +12,16 @@ class InAppKeyboardScope extends InheritedNotifier<InAppKeyboardController> {
 
   /// Retrieves the keyboard controller from the nearest ancestor scope, throwing if not found.
   static InAppKeyboardController of(BuildContext context) {
-    final scope = context.dependOnInheritedWidgetOfExactType<InAppKeyboardScope>();
+    final scope = context
+        .dependOnInheritedWidgetOfExactType<InAppKeyboardScope>();
     assert(scope != null, 'No InAppKeyboardScope found in context');
     return scope!.notifier!;
   }
 
   /// Safely retrieves the keyboard controller from ancestor scope, or null if outside keyboard context.
   static InAppKeyboardController? maybeOf(BuildContext context) {
-    return context.dependOnInheritedWidgetOfExactType<InAppKeyboardScope>()?.notifier;
+    return context
+        .dependOnInheritedWidgetOfExactType<InAppKeyboardScope>()
+        ?.notifier;
   }
 }

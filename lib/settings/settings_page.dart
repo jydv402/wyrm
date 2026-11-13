@@ -1,15 +1,13 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:wyrm_desk/core/theme.dart';
+import 'package:wyrm_desk/core/core.dart';
+import 'package:wyrm_desk/server/server_provider.dart';
+import 'package:wyrm_desk/server/web_server.dart';
 import 'package:wyrm_desk/display/display_state.dart';
 import 'package:wyrm_desk/home/card_layout_state.dart';
 import 'package:wyrm_desk/server/network_info.dart';
 import 'package:wyrm_desk/server/network_modal.dart';
 import 'package:wyrm_desk/settings/settings_state.dart';
-import 'package:wyrm_desk/widgets/dusk_glass_button.dart';
-import 'package:wyrm_desk/widgets/dusk_glass_panel.dart';
-import 'package:wyrm_desk/widgets/dusk_glass_pill.dart';
-import 'package:wyrm_desk/widgets/dusk_glass_segmented_control.dart';
 
 /// Fullscreen Dusk Glass settings page for Wyrm Desk.
 ///
@@ -36,7 +34,9 @@ class SettingsPage extends ConsumerWidget {
 
     final ipAsync = ref.watch(localIpProvider);
     final ipAddress = ipAsync.value ?? '127.0.0.1';
-    final serverUrl = 'http://$ipAddress:8080';
+    final server = ref.watch(webServerProvider);
+    final serverPort = server.port ?? ShelfWebServer.defaultPort;
+    final serverUrl = 'http://$ipAddress:$serverPort';
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -203,6 +203,15 @@ class SettingsPage extends ConsumerWidget {
             context: context,
             ref: ref,
             ipAddress: ipAddress,
+            serverUrl: serverUrl,
+          ),
+
+          const SizedBox(height: 16),
+
+          // Section 5: Data & Backups
+          _buildDataBackupSection(
+            context: context,
+            ref: ref,
             serverUrl: serverUrl,
           ),
 
@@ -595,7 +604,8 @@ class SettingsPage extends ConsumerWidget {
                       ),
                     ),
                     DuskGlassButton(
-                      onPressed: () => NetworkConnectionModal.show(context, ref),
+                      onPressed: () =>
+                          NetworkConnectionModal.show(context, ref),
                       height: 32,
                       padding: const EdgeInsets.symmetric(horizontal: 12),
                       label: const Row(
@@ -651,6 +661,185 @@ class SettingsPage extends ConsumerWidget {
                         ),
                       ),
                     ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Section 5: Data & Backups panel
+  Widget _buildDataBackupSection({
+    required BuildContext context,
+    required WidgetRef ref,
+    required String serverUrl,
+  }) {
+    return DuskGlassPanel(
+      tone: AppColors.glacier,
+      borderRadius: 26.0,
+      padding: const EdgeInsets.all(22.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          _buildSectionHeader(
+            icon: Icons.storage_rounded,
+            title: 'Data & Backups',
+            subtitle: 'Backup or restore dashboard data between release and test versions',
+          ),
+          const SizedBox(height: 18),
+
+          // Export Backup Row
+          _buildSettingRow(
+            icon: Icons.upload_file_rounded,
+            title: 'Export to Downloads',
+            subtitle:
+                'Saves ${AppDatabase.backupFileName} to device Downloads folder',
+            trailing: DuskGlassButton(
+              onPressed: () async {
+                final path = await AppDatabase.exportToDownloads();
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(
+                        path != null
+                            ? 'Database exported to $path'
+                            : 'Failed to export backup.',
+                      ),
+                      backgroundColor: path != null
+                          ? AppColors.surfaceElevated
+                          : AppColors.accentRed,
+                    ),
+                  );
+                }
+              },
+              height: 38,
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              label: const Text(
+                'Export',
+                style: TextStyle(
+                  color: AppColors.textPrimary,
+                  fontSize: 12.5,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ),
+
+          const SizedBox(height: 12),
+
+          // Import Backup Row
+          _buildSettingRow(
+            icon: Icons.download_rounded,
+            title: 'Import from Downloads',
+            subtitle:
+                'Restores ${AppDatabase.backupFileName} and updates all cards',
+            trailing: DuskGlassButton(
+              onPressed: () async {
+                final modified = await AppDatabase.getDownloadsBackupModified();
+                if (!context.mounted) return;
+
+                if (modified == null) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text(
+                        'No ${AppDatabase.backupFileName} found in Downloads.',
+                      ),
+                      backgroundColor: AppColors.accentRed,
+                    ),
+                  );
+                  return;
+                }
+
+                final confirmed = await showDialog<bool>(
+                  context: context,
+                  builder: (ctx) => AlertDialog(
+                    backgroundColor: AppColors.surfaceElevated,
+                    title: const Text(
+                      'Restore Database?',
+                      style: TextStyle(color: AppColors.textPrimary),
+                    ),
+                    content: Text(
+                      'This will replace your current tasks, habits, calendar, and settings with the backup from Downloads (${modified.toLocal().toString().split('.').first}). Continue?',
+                      style: const TextStyle(color: AppColors.textSecondary),
+                    ),
+                    actions: [
+                      TextButton(
+                        onPressed: () => Navigator.of(ctx).pop(false),
+                        child: const Text('Cancel'),
+                      ),
+                      TextButton(
+                        onPressed: () => Navigator.of(ctx).pop(true),
+                        child: const Text(
+                          'Restore',
+                          style: TextStyle(color: AppColors.glacierAccent),
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+
+                if (confirmed == true && context.mounted) {
+                  final success = await ref
+                      .read(databaseServiceProvider)
+                      .importFromDownloadsAndReload();
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(
+                          success
+                              ? 'Database successfully restored from Downloads!'
+                              : 'Failed to restore database.',
+                        ),
+                        backgroundColor: success
+                            ? AppColors.surfaceElevated
+                            : AppColors.accentRed,
+                      ),
+                    );
+                  }
+                }
+              },
+              height: 38,
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              label: const Text(
+                'Import',
+                style: TextStyle(
+                  color: AppColors.textPrimary,
+                  fontSize: 12.5,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ),
+
+          const SizedBox(height: 14),
+
+          // Tip banner on Web Remote backup transfer
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+            decoration: BoxDecoration(
+              color: AppColors.well,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: AppColors.line, width: 1.0),
+            ),
+            child: Row(
+              children: [
+                const Icon(
+                  Icons.wifi_rounded,
+                  size: 16,
+                  color: AppColors.glacierAccent,
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    'Tip: You can also download or upload backups wirelessly from any computer or phone browser at $serverUrl',
+                    style: const TextStyle(
+                      color: AppColors.textSecondary,
+                      fontSize: 11.5,
+                      height: 1.35,
+                    ),
                   ),
                 ),
               ],

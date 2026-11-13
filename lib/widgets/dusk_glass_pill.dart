@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:wyrm_desk/core/theme.dart';
 
 /// Translucent pill container for status, priorities, tags, and metrics.
@@ -64,7 +64,7 @@ class DuskGlassPill extends StatelessWidget {
     );
   }
 
-  /// Factory preset for Task priority badges (High, Medium, Low).
+  /// Factory preset for Task priority badges (Normal, High, Medium, Low).
   factory DuskGlassPill.priority(String priority) {
     final Color color;
     switch (priority.toLowerCase()) {
@@ -75,8 +75,11 @@ class DuskGlassPill extends StatelessWidget {
         color = AppColors.priorityMedium;
         break;
       case 'low':
-      default:
         color = AppColors.priorityLow;
+        break;
+      case 'normal':
+      default:
+        color = AppColors.teal.accent;
         break;
     }
 
@@ -100,7 +103,9 @@ class DuskGlassPill extends StatelessWidget {
   Widget build(BuildContext context) {
     final tint = tintColor ?? AppColors.textSecondary;
     final bgColor = tint.withValues(alpha: 0.12);
-    final borderColor = borderless ? Colors.transparent : tint.withValues(alpha: 0.28);
+    final borderColor = borderless
+        ? Colors.transparent
+        : tint.withValues(alpha: 0.28);
 
     final content = Container(
       height: height,
@@ -117,10 +122,7 @@ class DuskGlassPill extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            if (icon != null) ...[
-              icon!,
-              const SizedBox(width: 8),
-            ],
+            if (icon != null) ...[icon!, const SizedBox(width: 8)],
             child,
           ],
         ),

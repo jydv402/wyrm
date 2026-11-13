@@ -1,7 +1,8 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:wyrm_desk/habits/habits.dart';
+import 'package:wyrm_desk/core/date_names.dart';
 import 'package:wyrm_desk/home/card_layout_state.dart';
 
 void main() {
@@ -15,11 +16,7 @@ void main() {
         unit: 'cups',
         iconName: 'water_drop',
         colorHex: '#A0D2B4',
-        completions: {
-          '2026-09-18': 8,
-          '2026-09-19': 6,
-          '2026-09-20': 8,
-        },
+        completions: {'2026-09-18': 8, '2026-09-19': 6, '2026-09-20': 8},
         createdAt: DateTime(2026, 9, 1),
       );
 
@@ -28,8 +25,10 @@ void main() {
       expect(json['title'], 'Drink Water');
       expect(json['type'], 'numeric');
       expect(json['target_value'], 8);
+      expect(json['targetValue'], 8);
       expect(json['unit'], 'cups');
       expect(json['icon_name'], 'water_drop');
+      expect(json['iconName'], 'water_drop');
       expect(json['color_hex'], '#A0D2B4');
       expect(json['completions']['2026-09-20'], 8);
 
@@ -43,38 +42,35 @@ void main() {
       expect(deserialized.completions['2026-09-20'], 8);
     });
 
-    test('calculates completion status accurately for binary and numeric types', () {
-      final binaryHabit = HabitItem(
-        id: 'h1',
-        title: 'Meditate',
-        type: HabitType.binary,
-        targetValue: 1,
-        completions: {
-          '2026-09-20': 1,
-          '2026-09-19': 0,
-        },
-        createdAt: DateTime(2026, 9, 1),
-      );
+    test(
+      'calculates completion status accurately for binary and numeric types',
+      () {
+        final binaryHabit = HabitItem(
+          id: 'h1',
+          title: 'Meditate',
+          type: HabitType.binary,
+          targetValue: 1,
+          completions: {'2026-09-20': 1, '2026-09-19': 0},
+          createdAt: DateTime(2026, 9, 1),
+        );
 
-      expect(binaryHabit.isCompletedOn(DateTime(2026, 9, 20)), isTrue);
-      expect(binaryHabit.isCompletedOn(DateTime(2026, 9, 19)), isFalse);
-      expect(binaryHabit.isCompletedOn(DateTime(2026, 9, 18)), isFalse);
+        expect(binaryHabit.isCompletedOn(DateTime(2026, 9, 20)), isTrue);
+        expect(binaryHabit.isCompletedOn(DateTime(2026, 9, 19)), isFalse);
+        expect(binaryHabit.isCompletedOn(DateTime(2026, 9, 18)), isFalse);
 
-      final numericHabit = HabitItem(
-        id: 'h2',
-        title: 'Walk Steps',
-        type: HabitType.numeric,
-        targetValue: 10,
-        completions: {
-          '2026-09-20': 10,
-          '2026-09-19': 7,
-        },
-        createdAt: DateTime(2026, 9, 1),
-      );
+        final numericHabit = HabitItem(
+          id: 'h2',
+          title: 'Walk Steps',
+          type: HabitType.numeric,
+          targetValue: 10,
+          completions: {'2026-09-20': 10, '2026-09-19': 7},
+          createdAt: DateTime(2026, 9, 1),
+        );
 
-      expect(numericHabit.isCompletedOn(DateTime(2026, 9, 20)), isTrue);
-      expect(numericHabit.isCompletedOn(DateTime(2026, 9, 19)), isFalse);
-    });
+        expect(numericHabit.isCompletedOn(DateTime(2026, 9, 20)), isTrue);
+        expect(numericHabit.isCompletedOn(DateTime(2026, 9, 19)), isFalse);
+      },
+    );
 
     test('calculates current streak with same-day grace', () {
       final today = DateTime(2026, 9, 20);
@@ -89,11 +85,7 @@ void main() {
       final habitTodayDone = HabitItem(
         id: 'h1',
         title: 'Today Done',
-        completions: {
-          '2026-09-20': 1,
-          '2026-09-19': 1,
-          '2026-09-18': 1,
-        },
+        completions: {'2026-09-20': 1, '2026-09-19': 1, '2026-09-18': 1},
         createdAt: DateTime(2026, 9, 1),
       );
       expect(habitTodayDone.currentStreak(today), 3);
@@ -101,10 +93,7 @@ void main() {
       final habitGrace = HabitItem(
         id: 'h2',
         title: 'Grace',
-        completions: {
-          '2026-09-19': 1,
-          '2026-09-18': 1,
-        },
+        completions: {'2026-09-19': 1, '2026-09-18': 1},
         createdAt: DateTime(2026, 9, 1),
       );
       expect(habitGrace.currentStreak(today), 2);
@@ -112,9 +101,7 @@ void main() {
       final habitBroken = HabitItem(
         id: 'h3',
         title: 'Broken',
-        completions: {
-          '2026-09-18': 1,
-        },
+        completions: {'2026-09-18': 1},
         createdAt: DateTime(2026, 9, 1),
       );
       expect(habitBroken.currentStreak(today), 0);
@@ -143,11 +130,7 @@ void main() {
       final habit = HabitItem(
         id: 'hw',
         title: 'Weekly Progress',
-        completions: {
-          '2026-09-14': 1,
-          '2026-09-16': 1,
-          '2026-09-18': 1,
-        },
+        completions: {'2026-09-14': 1, '2026-09-16': 1, '2026-09-18': 1},
         createdAt: DateTime(2026, 9, 1),
       );
 
@@ -172,80 +155,99 @@ void main() {
 
       expect(habit.monthCompletedDaysCount(month), 2);
 
-      final columns = habit.getMonthlyHeatmapColumns(month, startWeekOnMonday: true);
+      final columns = habit.getMonthlyHeatmapColumns(
+        month,
+        startWeekOnMonday: true,
+      );
       expect(columns.isNotEmpty, isTrue);
       for (final col in columns) {
         expect(col.length, 7);
       }
 
-      final sept1Cell = columns.expand((col) => col).firstWhere(
-            (c) => c.date?.year == 2026 && c.date?.month == 9 && c.date?.day == 1,
+      final sept1Cell = columns
+          .expand((col) => col)
+          .firstWhere(
+            (c) =>
+                c.date?.year == 2026 && c.date?.month == 9 && c.date?.day == 1,
           );
       expect(sept1Cell.isCurrentMonth, isTrue);
       expect(sept1Cell.intensity, 1.0);
 
-      final sept2Cell = columns.expand((col) => col).firstWhere(
-            (c) => c.date?.year == 2026 && c.date?.month == 9 && c.date?.day == 2,
+      final sept2Cell = columns
+          .expand((col) => col)
+          .firstWhere(
+            (c) =>
+                c.date?.year == 2026 && c.date?.month == 9 && c.date?.day == 2,
           );
       expect(sept2Cell.intensity, 0.5);
 
-      final sept4Cell = columns.expand((col) => col).firstWhere(
-            (c) => c.date?.year == 2026 && c.date?.month == 9 && c.date?.day == 4,
+      final sept4Cell = columns
+          .expand((col) => col)
+          .firstWhere(
+            (c) =>
+                c.date?.year == 2026 && c.date?.month == 9 && c.date?.day == 4,
           );
       expect(sept4Cell.intensity, 0.0);
     });
 
-    test('generates calendar weeks matrix (5 or 6 weeks of 7 days) correctly', () {
-      final month = DateTime(2026, 9, 1);
-      final habit = HabitItem(
-        id: 'hc',
-        title: 'Calendar Weeks Test',
-        type: HabitType.numeric,
-        targetValue: 4,
-        completions: {
-          '2026-09-01': 4,
-          '2026-09-02': 2,
-        },
-        createdAt: DateTime(2026, 8, 1),
-      );
+    test(
+      'generates calendar weeks matrix (5 or 6 weeks of 7 days) correctly',
+      () {
+        final month = DateTime(2026, 9, 1);
+        final habit = HabitItem(
+          id: 'hc',
+          title: 'Calendar Weeks Test',
+          type: HabitType.numeric,
+          targetValue: 4,
+          completions: {'2026-09-01': 4, '2026-09-02': 2},
+          createdAt: DateTime(2026, 8, 1),
+        );
 
-      final weeks = habit.getMonthlyCalendarWeeks(month, startWeekOnMonday: true);
-      expect(weeks.length, isIn([5, 6]));
-      for (final week in weeks) {
-        expect(week.length, 7);
-      }
+        final weeks = habit.getMonthlyCalendarWeeks(
+          month,
+          startWeekOnMonday: true,
+        );
+        expect(weeks.length, isIn([5, 6]));
+        for (final week in weeks) {
+          expect(week.length, 7);
+        }
 
-      final sept1 = weeks.expand((w) => w).firstWhere(
-            (c) => c.date?.year == 2026 && c.date?.month == 9 && c.date?.day == 1,
-          );
-      expect(sept1.isCurrentMonth, isTrue);
-      expect(sept1.intensity, 1.0);
+        final sept1 = weeks
+            .expand((w) => w)
+            .firstWhere(
+              (c) =>
+                  c.date?.year == 2026 &&
+                  c.date?.month == 9 &&
+                  c.date?.day == 1,
+            );
+        expect(sept1.isCurrentMonth, isTrue);
+        expect(sept1.intensity, 1.0);
 
-      final sept2 = weeks.expand((w) => w).firstWhere(
-            (c) => c.date?.year == 2026 && c.date?.month == 9 && c.date?.day == 2,
-          );
-      expect(sept2.intensity, 0.5);
-    });
+        final sept2 = weeks
+            .expand((w) => w)
+            .firstWhere(
+              (c) =>
+                  c.date?.year == 2026 &&
+                  c.date?.month == 9 &&
+                  c.date?.day == 2,
+            );
+        expect(sept2.intensity, 0.5);
+      },
+    );
 
     test('resets streaks at month boundary', () {
       final sept1 = DateTime(2026, 9, 1);
       final habit = HabitItem(
         id: 'hs',
         title: 'Streak Reset Test',
-        completions: {
-          '2026-08-30': 1,
-          '2026-08-31': 1,
-        },
+        completions: {'2026-08-30': 1, '2026-08-31': 1},
         createdAt: DateTime(2026, 8, 1),
       );
 
       expect(habit.currentStreak(sept1), 0);
 
       final habitDoneSept1 = habit.copyWith(
-        completions: {
-          ...habit.completions,
-          '2026-09-01': 1,
-        },
+        completions: {...habit.completions, '2026-09-01': 1},
       );
       expect(habitDoneSept1.currentStreak(sept1), 1);
     });
@@ -255,7 +257,9 @@ void main() {
     test('adds, edits, and deletes habits cleanly', () async {
       final container = ProviderContainer(
         overrides: [
-          habitsProvider.overrideWith(() => _TestHabitsNotifier(const HabitsState())),
+          habitsProvider.overrideWith(
+            () => _TestHabitsNotifier(const HabitsState()),
+          ),
         ],
       );
       addTearDown(container.dispose);
@@ -284,7 +288,9 @@ void main() {
     test('toggles binary habit completion and steps numeric habit', () async {
       final container = ProviderContainer(
         overrides: [
-          habitsProvider.overrideWith(() => _TestHabitsNotifier(const HabitsState())),
+          habitsProvider.overrideWith(
+            () => _TestHabitsNotifier(const HabitsState()),
+          ),
         ],
       );
       addTearDown(container.dispose);
@@ -310,39 +316,63 @@ void main() {
       await notifier.addHabit(numericHabit);
 
       await notifier.toggleCompletion('hb', today);
-      expect(container.read(habitsProvider).habits[0].isCompletedOn(today), isTrue);
+      expect(
+        container.read(habitsProvider).habits[0].isCompletedOn(today),
+        isTrue,
+      );
 
       await notifier.toggleCompletion('hb', today);
-      expect(container.read(habitsProvider).habits[0].isCompletedOn(today), isFalse);
+      expect(
+        container.read(habitsProvider).habits[0].isCompletedOn(today),
+        isFalse,
+      );
 
       await notifier.stepCompletion('hn', 3, today);
-      expect(container.read(habitsProvider).habits[1].completionCountOn(today), 3);
-      expect(container.read(habitsProvider).habits[1].isCompletedOn(today), isFalse);
+      expect(
+        container.read(habitsProvider).habits[1].completionCountOn(today),
+        3,
+      );
+      expect(
+        container.read(habitsProvider).habits[1].isCompletedOn(today),
+        isFalse,
+      );
 
       await notifier.stepCompletion('hn', 5, today);
-      expect(container.read(habitsProvider).habits[1].completionCountOn(today), 8);
-      expect(container.read(habitsProvider).habits[1].isCompletedOn(today), isTrue);
+      expect(
+        container.read(habitsProvider).habits[1].completionCountOn(today),
+        8,
+      );
+      expect(
+        container.read(habitsProvider).habits[1].isCompletedOn(today),
+        isTrue,
+      );
 
       await notifier.stepCompletion('hn', -2, today);
-      expect(container.read(habitsProvider).habits[1].completionCountOn(today), 6);
-      expect(container.read(habitsProvider).habits[1].isCompletedOn(today), isFalse);
+      expect(
+        container.read(habitsProvider).habits[1].completionCountOn(today),
+        6,
+      );
+      expect(
+        container.read(habitsProvider).habits[1].isCompletedOn(today),
+        isFalse,
+      );
     });
 
     test('cycles carousel forward and backward with wrapping', () async {
       final container = ProviderContainer(
         overrides: [
-          habitsProvider.overrideWith(() => _TestHabitsNotifier(const HabitsState())),
+          habitsProvider.overrideWith(
+            () => _TestHabitsNotifier(const HabitsState()),
+          ),
         ],
       );
       addTearDown(container.dispose);
       final notifier = container.read(habitsProvider.notifier);
 
       for (var i = 1; i <= 3; i++) {
-        await notifier.addHabit(HabitItem(
-          id: 'h$i',
-          title: 'Habit $i',
-          createdAt: DateTime.now(),
-        ));
+        await notifier.addHabit(
+          HabitItem(id: 'h$i', title: 'Habit $i', createdAt: DateTime.now()),
+        );
       }
 
       notifier.setCarouselIndex(0);
@@ -363,14 +393,14 @@ void main() {
   });
 
   group('HabitsCard Widget', () {
-    testWidgets('renders empty state when no habits exist', (WidgetTester tester) async {
+    testWidgets('renders empty state when no habits exist', (
+      WidgetTester tester,
+    ) async {
       final notifier = _TestHabitsNotifier(const HabitsState(habits: []));
 
       await tester.pumpWidget(
         ProviderScope(
-          overrides: [
-            habitsProvider.overrideWith(() => notifier),
-          ],
+          overrides: [habitsProvider.overrideWith(() => notifier)],
           child: const MaterialApp(
             home: Scaffold(
               body: SizedBox(
@@ -388,74 +418,68 @@ void main() {
       expect(find.text('Add a habit'), findsOneWidget);
     });
 
-    testWidgets('renders Small carousel layout with active habit details and week strip',
-        (WidgetTester tester) async {
-      final today = DateTime.now();
-      final testHabits = [
-        HabitItem(
-          id: 'h1',
-          title: 'Morning Yoga',
-          type: HabitType.binary,
-          targetValue: 1,
-          iconName: 'fitness_center',
-          completions: {
-            HabitItem.dateKey(today): 1,
-          },
-          createdAt: DateTime(2026, 9, 1),
-        ),
-        HabitItem(
-          id: 'h2',
-          title: 'Hydration',
-          type: HabitType.numeric,
-          targetValue: 8,
-          unit: 'cups',
-          iconName: 'water_drop',
-          completions: {
-            HabitItem.dateKey(today): 5,
-          },
-          createdAt: DateTime(2026, 9, 1),
-        ),
-      ];
+    testWidgets(
+      'renders Small carousel layout with active habit details and week strip',
+      (WidgetTester tester) async {
+        final today = DateTime.now();
+        final testHabits = [
+          HabitItem(
+            id: 'h1',
+            title: 'Morning Yoga',
+            type: HabitType.binary,
+            targetValue: 1,
+            iconName: 'fitness_center',
+            completions: {HabitItem.dateKey(today): 1},
+            createdAt: DateTime(2026, 9, 1),
+          ),
+          HabitItem(
+            id: 'h2',
+            title: 'Hydration',
+            type: HabitType.numeric,
+            targetValue: 8,
+            unit: 'cups',
+            iconName: 'water_drop',
+            completions: {HabitItem.dateKey(today): 5},
+            createdAt: DateTime(2026, 9, 1),
+          ),
+        ];
 
-      final notifier = _TestHabitsNotifier(
-        HabitsState(
-          habits: testHabits,
-          selectedCarouselIndex: 0,
-        ),
-      );
+        final notifier = _TestHabitsNotifier(
+          HabitsState(habits: testHabits, selectedCarouselIndex: 0),
+        );
 
-      await tester.pumpWidget(
-        ProviderScope(
-          overrides: [
-            habitsProvider.overrideWith(() => notifier),
-          ],
-          child: const MaterialApp(
-            home: Scaffold(
-              body: SizedBox(
-                width: 340,
-                height: 250,
-                child: HabitsCard(currentSize: CardSize.small),
+        await tester.pumpWidget(
+          ProviderScope(
+            overrides: [habitsProvider.overrideWith(() => notifier)],
+            child: const MaterialApp(
+              home: Scaffold(
+                body: SizedBox(
+                  width: 340,
+                  height: 250,
+                  child: HabitsCard(currentSize: CardSize.small),
+                ),
               ),
             ),
           ),
-        ),
-      );
+        );
 
-      expect(find.text('Habits'), findsOneWidget);
-      expect(find.text('Morning Yoga'), findsOneWidget);
-      expect(find.text('1/2'), findsNWidgets(2));
-      expect(find.text('Done'), findsOneWidget);
+        expect(find.text('Habits'), findsOneWidget);
+        expect(find.text('Morning Yoga'), findsOneWidget);
+        expect(find.text('1/2'), findsNWidgets(2));
+        expect(find.text('Done'), findsOneWidget);
 
-      await tester.tap(find.byIcon(Icons.chevron_right_rounded));
-      await tester.pumpAndSettle();
+        await tester.tap(find.byIcon(Icons.chevron_right_rounded));
+        await tester.pumpAndSettle();
 
-      expect(find.text('Hydration'), findsOneWidget);
-      expect(find.text('2/2'), findsOneWidget);
-      expect(find.text('5/8 cups'), findsOneWidget);
-    });
+        expect(find.text('Hydration'), findsOneWidget);
+        expect(find.text('2/2'), findsOneWidget);
+        expect(find.text('5/8 cups'), findsOneWidget);
+      },
+    );
 
-    testWidgets('renders Medium multi-column card grid without overflow',
-        (WidgetTester tester) async {
+    testWidgets('renders Medium multi-column card grid without overflow', (
+      WidgetTester tester,
+    ) async {
       final testHabits = [
         HabitItem(
           id: 'h1',
@@ -474,17 +498,12 @@ void main() {
       ];
 
       final notifier = _TestHabitsNotifier(
-        HabitsState(
-          habits: testHabits,
-          selectedCarouselIndex: 0,
-        ),
+        HabitsState(habits: testHabits, selectedCarouselIndex: 0),
       );
 
       await tester.pumpWidget(
         ProviderScope(
-          overrides: [
-            habitsProvider.overrideWith(() => notifier),
-          ],
+          overrides: [habitsProvider.overrideWith(() => notifier)],
           child: const MaterialApp(
             home: Scaffold(
               body: SizedBox(
@@ -507,101 +526,94 @@ void main() {
       expect(tester.takeException(), isNull);
     });
 
-    testWidgets('renders Fullscreen vertically scrollable 2-row grid without overflow',
-        (WidgetTester tester) async {
-      final testHabits = [
-        HabitItem(
-          id: 'h1',
-          title: 'Read Book',
-          type: HabitType.binary,
-          createdAt: DateTime(2026, 9, 1),
-        ),
-        HabitItem(
-          id: 'h2',
-          title: 'Walk Steps',
-          type: HabitType.numeric,
-          targetValue: 10,
-          unit: 'km',
-          createdAt: DateTime(2026, 9, 1),
-        ),
-      ];
+    testWidgets(
+      'renders Fullscreen vertically scrollable 2-row grid without overflow',
+      (WidgetTester tester) async {
+        final testHabits = [
+          HabitItem(
+            id: 'h1',
+            title: 'Read Book',
+            type: HabitType.binary,
+            createdAt: DateTime(2026, 9, 1),
+          ),
+          HabitItem(
+            id: 'h2',
+            title: 'Walk Steps',
+            type: HabitType.numeric,
+            targetValue: 10,
+            unit: 'km',
+            createdAt: DateTime(2026, 9, 1),
+          ),
+        ];
 
-      final notifier = _TestHabitsNotifier(
-        HabitsState(
-          habits: testHabits,
-          selectedCarouselIndex: 0,
-        ),
-      );
+        final notifier = _TestHabitsNotifier(
+          HabitsState(habits: testHabits, selectedCarouselIndex: 0),
+        );
 
-      await tester.pumpWidget(
-        ProviderScope(
-          overrides: [
-            habitsProvider.overrideWith(() => notifier),
-          ],
-          child: const MaterialApp(
-            home: Scaffold(
-              body: SizedBox(
-                width: 1000,
-                height: 600,
-                child: HabitsCard(currentSize: CardSize.fullscreen),
+        await tester.pumpWidget(
+          ProviderScope(
+            overrides: [habitsProvider.overrideWith(() => notifier)],
+            child: const MaterialApp(
+              home: Scaffold(
+                body: SizedBox(
+                  width: 1000,
+                  height: 600,
+                  child: HabitsCard(currentSize: CardSize.fullscreen),
+                ),
               ),
             ),
           ),
-        ),
-      );
+        );
 
-      expect(find.text('Read Book'), findsOneWidget);
-      expect(find.text('Walk Steps'), findsOneWidget);
-      expect(tester.takeException(), isNull);
-    });
+        expect(find.text('Read Book'), findsOneWidget);
+        expect(find.text('Walk Steps'), findsOneWidget);
+        expect(tester.takeException(), isNull);
+      },
+    );
 
-    testWidgets('renders Small layout in constrained ultra-compact height without overflow',
-        (WidgetTester tester) async {
-      final today = DateTime.now();
-      final testHabits = [
-        HabitItem(
-          id: 'h1',
-          title: 'Stretch',
-          type: HabitType.binary,
-          targetValue: 1,
-          iconName: 'fitness_center',
-          completions: {
-            HabitItem.dateKey(today): 1,
-          },
-          createdAt: DateTime(2026, 9, 1),
-        ),
-      ];
+    testWidgets(
+      'renders Small layout in constrained ultra-compact height without overflow',
+      (WidgetTester tester) async {
+        final today = DateTime.now();
+        final testHabits = [
+          HabitItem(
+            id: 'h1',
+            title: 'Stretch',
+            type: HabitType.binary,
+            targetValue: 1,
+            iconName: 'fitness_center',
+            completions: {HabitItem.dateKey(today): 1},
+            createdAt: DateTime(2026, 9, 1),
+          ),
+        ];
 
-      final notifier = _TestHabitsNotifier(
-        HabitsState(
-          habits: testHabits,
-          selectedCarouselIndex: 0,
-        ),
-      );
+        final notifier = _TestHabitsNotifier(
+          HabitsState(habits: testHabits, selectedCarouselIndex: 0),
+        );
 
-      await tester.pumpWidget(
-        ProviderScope(
-          overrides: [
-            habitsProvider.overrideWith(() => notifier),
-          ],
-          child: const MaterialApp(
-            home: Scaffold(
-              body: SizedBox(
-                width: 300,
-                height: 125,
-                child: HabitsCard(currentSize: CardSize.small),
+        await tester.pumpWidget(
+          ProviderScope(
+            overrides: [habitsProvider.overrideWith(() => notifier)],
+            child: const MaterialApp(
+              home: Scaffold(
+                body: SizedBox(
+                  width: 300,
+                  height: 125,
+                  child: HabitsCard(currentSize: CardSize.small),
+                ),
               ),
             ),
           ),
-        ),
-      );
+        );
 
-      expect(find.text('Stretch'), findsOneWidget);
-      expect(tester.takeException(), isNull);
-    });
+        expect(find.text('Stretch'), findsOneWidget);
+        expect(tester.takeException(), isNull);
+      },
+    );
 
-    testWidgets('renders GitHub heatmap with month name in Medium size',
-        (WidgetTester tester) async {
+    testWidgets('renders GitHub heatmap with month name in Medium size', (
+      WidgetTester tester,
+    ) async {
       final testHabits = [
         HabitItem(
           id: 'h1',
@@ -612,17 +624,12 @@ void main() {
       ];
 
       final notifier = _TestHabitsNotifier(
-        HabitsState(
-          habits: testHabits,
-          selectedCarouselIndex: 0,
-        ),
+        HabitsState(habits: testHabits, selectedCarouselIndex: 0),
       );
 
       await tester.pumpWidget(
         ProviderScope(
-          overrides: [
-            habitsProvider.overrideWith(() => notifier),
-          ],
+          overrides: [habitsProvider.overrideWith(() => notifier)],
           child: const MaterialApp(
             home: Scaffold(
               body: SizedBox(
@@ -636,10 +643,34 @@ void main() {
       );
 
       expect(find.text('Morning Run'), findsOneWidget);
-      final monthName = HabitsCard.monthNames[DateTime.now().month - 1];
+      final monthName = monthNames[DateTime.now().month - 1];
       expect(find.textContaining(monthName), findsOneWidget);
       expect(tester.takeException(), isNull);
     });
+
+    testWidgets(
+      'buildHabitGlyph renders Icon for known tokens/emojis and Text for custom emojis',
+      (tester) async {
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Scaffold(
+              body: Column(
+                children: [
+                  buildHabitGlyph('water_drop', size: 24),
+                  buildHabitGlyph('💧', size: 24),
+                  buildHabitGlyph('🍎', size: 24),
+                ],
+              ),
+            ),
+          ),
+        );
+
+        // water_drop and 💧 resolve to Icons.water_drop_rounded
+        expect(find.byIcon(Icons.water_drop_rounded), findsNWidgets(2));
+        // 🍎 is a custom emoji, rendered directly as a Text widget
+        expect(find.text('🍎'), findsOneWidget);
+      },
+    );
   });
 }
 

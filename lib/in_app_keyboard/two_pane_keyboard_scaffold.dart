@@ -1,5 +1,6 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:wyrm_desk/core/theme.dart';
+
 import 'in_app_keyboard_controller.dart';
 import 'in_app_keyboard_scope.dart';
 import 'in_app_keyboard_widget.dart';
@@ -9,7 +10,7 @@ import 'in_app_keyboard_widget.dart';
 class TwoPaneKeyboardScaffold extends StatefulWidget {
   final String title;
   final Widget Function(BuildContext context, InAppKeyboardController keyboard)
-      formBuilder;
+  formBuilder;
   final Widget Function(BuildContext context) previewBuilder;
   final VoidCallback onSave;
   final String saveLabel;
@@ -73,16 +74,10 @@ class _TwoPaneKeyboardScaffoldState extends State<TwoPaneKeyboardScaffold> {
                           crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
                             // Left Pane: Form Fields (40% width)
-                            Expanded(
-                              flex: 4,
-                              child: _buildLeftCard(context),
-                            ),
+                            Expanded(flex: 4, child: _buildLeftCard(context)),
                             const SizedBox(width: 14),
                             // Right Pane: Live Preview & In-App Keyboard (60% width)
-                            Expanded(
-                              flex: 6,
-                              child: _buildRightCard(context),
-                            ),
+                            Expanded(flex: 6, child: _buildRightCard(context)),
                           ],
                         );
                       } else {

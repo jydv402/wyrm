@@ -1,8 +1,7 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:wyrm_desk/calendar/milestone_form_content.dart';
-import 'package:wyrm_desk/habits/habit_form_content.dart';
 import 'package:wyrm_desk/habits/habits.dart';
 import 'package:wyrm_desk/home/card_layout_state.dart';
 import 'package:wyrm_desk/in_app_keyboard/in_app_keyboard.dart';
@@ -36,8 +35,9 @@ class _TestHabitsNotifier extends HabitsNotifier {
 
 void main() {
   group('TwoPaneKeyboardScaffold Component', () {
-    testWidgets('renders 40/60 split with form on left and preview on right',
-        (WidgetTester tester) async {
+    testWidgets('renders 40/60 split with form on left and preview on right', (
+      WidgetTester tester,
+    ) async {
       tester.view.physicalSize = const Size(1280, 800);
       tester.view.devicePixelRatio = 1.0;
       addTearDown(tester.view.resetPhysicalSize);
@@ -83,8 +83,9 @@ void main() {
   });
 
   group('Adaptive Form Widgets & WYSIWYG Previews', () {
-    testWidgets('HabitFormContent and HabitPreviewTile render and interact',
-        (WidgetTester tester) async {
+    testWidgets('HabitFormContent and HabitPreviewTile render and interact', (
+      WidgetTester tester,
+    ) async {
       final titleController = TextEditingController(text: 'Morning Jog');
       final unitController = TextEditingController(text: 'km');
       var habitType = HabitType.binary;
@@ -139,56 +140,59 @@ void main() {
       unitController.dispose();
     });
 
-    testWidgets('MilestoneFormContent and MilestonePreviewCard render and interact',
-        (WidgetTester tester) async {
-      final titleController = TextEditingController(text: 'Launch Day');
-      var date = DateTime(2026, 10, 15);
-      var isPinned = false;
+    testWidgets(
+      'MilestoneFormContent and MilestonePreviewCard render and interact',
+      (WidgetTester tester) async {
+        final titleController = TextEditingController(text: 'Launch Day');
+        var date = DateTime(2026, 10, 15);
+        var isPinned = false;
 
-      await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(
-            body: StatefulBuilder(
-              builder: (context, setState) {
-                return Column(
-                  children: [
-                    MilestoneFormContent(
-                      titleController: titleController,
-                      selectedDate: date,
-                      isPinned: isPinned,
-                      onDateChanged: (d) => setState(() => date = d),
-                      onPinnedChanged: (p) => setState(() => isPinned = p),
-                    ),
-                    MilestonePreviewCard(
-                      title: titleController.text,
-                      targetDate: date,
-                      isPinned: isPinned,
-                    ),
-                  ],
-                );
-              },
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Scaffold(
+              body: StatefulBuilder(
+                builder: (context, setState) {
+                  return Column(
+                    children: [
+                      MilestoneFormContent(
+                        titleController: titleController,
+                        selectedDate: date,
+                        isPinned: isPinned,
+                        onDateChanged: (d) => setState(() => date = d),
+                        onPinnedChanged: (p) => setState(() => isPinned = p),
+                      ),
+                      MilestonePreviewCard(
+                        title: titleController.text,
+                        targetDate: date,
+                        isPinned: isPinned,
+                      ),
+                    ],
+                  );
+                },
+              ),
             ),
           ),
-        ),
-      );
-      await tester.pumpAndSettle();
+        );
+        await tester.pumpAndSettle();
 
-      expect(find.text('Milestone Name'), findsOneWidget);
-      expect(find.text('Launch Day'), findsWidgets);
-      expect(find.text('Target Date'), findsOneWidget);
-      expect(find.text('Pin to Countdown Pill'), findsOneWidget);
+        expect(find.text('Milestone Name'), findsOneWidget);
+        expect(find.text('Launch Day'), findsWidgets);
+        expect(find.text('Target Date'), findsOneWidget);
+        expect(find.text('Pin to Countdown Pill'), findsOneWidget);
 
-      final pinSwitch = find.byType(Switch);
-      expect(pinSwitch, findsOneWidget);
-      await tester.tap(pinSwitch);
-      await tester.pumpAndSettle();
-      expect(isPinned, true);
+        final pinSwitch = find.byType(Switch);
+        expect(pinSwitch, findsOneWidget);
+        await tester.tap(pinSwitch);
+        await tester.pumpAndSettle();
+        expect(isPinned, true);
 
-      titleController.dispose();
-    });
+        titleController.dispose();
+      },
+    );
 
-    testWidgets('TaskFormContent and TaskPreviewCard render and interact',
-        (WidgetTester tester) async {
+    testWidgets('TaskFormContent and TaskPreviewCard render and interact', (
+      WidgetTester tester,
+    ) async {
       tester.view.physicalSize = const Size(1280, 800);
       tester.view.devicePixelRatio = 1.0;
       addTearDown(tester.view.resetPhysicalSize);
@@ -225,10 +229,14 @@ void main() {
 
       expect(find.text('Task Description'), findsOneWidget);
       expect(find.text('Review PR'), findsWidgets);
-      expect(find.text('Normal Priority'), findsOneWidget);
-      expect(find.text('High Priority'), findsOneWidget);
+      expect(find.text('Normal Priority'), findsNothing);
+      expect(find.text('High Priority'), findsNothing);
+      expect(find.text('Normal'), findsOneWidget);
+      expect(find.text('Medium'), findsOneWidget);
+      expect(find.text('High'), findsOneWidget);
+      expect(find.text('Low'), findsOneWidget);
 
-      final highPriorityChip = find.text('High Priority');
+      final highPriorityChip = find.text('High');
       await tester.tap(highPriorityChip);
       await tester.pumpAndSettle();
       expect(priority, 'high');
@@ -238,8 +246,9 @@ void main() {
   });
 
   group('2-Pane Editor Navigation Trigger Tests', () {
-    testWidgets('TasksCard opens TwoPaneKeyboardScaffold by default',
-        (WidgetTester tester) async {
+    testWidgets('TasksCard opens TwoPaneKeyboardScaffold by default', (
+      WidgetTester tester,
+    ) async {
       tester.view.physicalSize = const Size(1280, 800);
       tester.view.devicePixelRatio = 1.0;
       addTearDown(tester.view.resetPhysicalSize);
@@ -248,9 +257,7 @@ void main() {
         ProviderScope(
           overrides: [
             appSettingsProvider.overrideWith(
-              () => _FakeAppSettingsNotifier(
-                const AppSettingsConfig(),
-              ),
+              () => _FakeAppSettingsNotifier(const AppSettingsConfig()),
             ),
             tasksProvider.overrideWith(() => _TestTasksNotifier([])),
           ],
@@ -277,8 +284,9 @@ void main() {
       expect(find.byType(InAppKeyboardWidget), findsOneWidget);
     });
 
-    testWidgets('HabitsCard opens TwoPaneKeyboardScaffold by default',
-        (WidgetTester tester) async {
+    testWidgets('HabitsCard opens TwoPaneKeyboardScaffold by default', (
+      WidgetTester tester,
+    ) async {
       tester.view.physicalSize = const Size(1280, 800);
       tester.view.devicePixelRatio = 1.0;
       addTearDown(tester.view.resetPhysicalSize);
@@ -287,9 +295,7 @@ void main() {
         ProviderScope(
           overrides: [
             appSettingsProvider.overrideWith(
-              () => _FakeAppSettingsNotifier(
-                const AppSettingsConfig(),
-              ),
+              () => _FakeAppSettingsNotifier(const AppSettingsConfig()),
             ),
             habitsProvider.overrideWith(() => _TestHabitsNotifier([])),
           ],
