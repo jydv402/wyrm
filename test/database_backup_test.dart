@@ -3,14 +3,15 @@ import 'dart:io';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:wyrm_desk/core/core.dart';
-import 'package:wyrm_desk/home/card_layout_state.dart';
-import 'package:wyrm_desk/settings/settings_state.dart';
-import 'package:wyrm_desk/tasks/task_model.dart';
-import 'package:wyrm_desk/tasks/tasks_state.dart';
-import 'package:wyrm_desk/calendar/calendar_state.dart';
-import 'package:wyrm_desk/habits/habits_state.dart';
-import 'package:wyrm_desk/display/display_state.dart';
+import 'package:wyrm_desk/data/app_database.dart';
+import 'package:wyrm_desk/data/database_service.dart';
+import 'package:wyrm_desk/config/card_layout_state.dart';
+import 'package:wyrm_desk/config/app_settings_state.dart';
+import 'package:wyrm_desk/features/tasks/task_model.dart';
+import 'package:wyrm_desk/features/tasks/tasks_state.dart';
+import 'package:wyrm_desk/features/calendar/calendar_state.dart';
+import 'package:wyrm_desk/features/habits/habits_state.dart';
+import 'package:wyrm_desk/features/display/display_state.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -71,13 +72,14 @@ void main() {
       expect(success, true);
 
       // Verify persisted state reflects imported changes
-      final loadedSettings = await AppDatabase.loadSettings();
-      expect(loadedSettings.is24HourFormat, true);
-      expect(loadedSettings.cardFontSize, 16.0);
+      final loadedSettings = await AppDatabase.readSection('settings')
+          as Map<String, dynamic>;
+      expect(loadedSettings['is_24_hour_format'], true);
+      expect(loadedSettings['card_font_size'], 16.0);
 
-      final loadedTasks = await AppDatabase.loadTasks();
+      final loadedTasks = await AppDatabase.readSection('tasks') as List;
       expect(loadedTasks.length, 1);
-      expect(loadedTasks.first.title, 'Test Backup Task');
+      expect(loadedTasks.first['title'], 'Test Backup Task');
     });
 
     test('exportToDownloads and importFromDownloads work with custom path', () async {
@@ -91,7 +93,10 @@ void main() {
           createdAt: DateTime.now(),
         ),
       ];
-      await AppDatabase.saveTasks(initialTasks);
+      await AppDatabase.writeSection(
+        'tasks',
+        initialTasks.map((t) => t.toJson()).toList(),
+      );
 
       // Export
       final exportedPath = await AppDatabase.exportToDownloads(customPath: testBackupFile);
@@ -103,24 +108,27 @@ void main() {
       expect(modified, isNotNull);
 
       // Mutate database with different task
-      await AppDatabase.saveTasks([
-        TaskItem(
-          id: 'different-task',
-          title: 'Overwritten Task',
-          createdAt: DateTime.now(),
-        ),
-      ]);
-      final intermediateTasks = await AppDatabase.loadTasks();
-      expect(intermediateTasks.first.title, 'Overwritten Task');
+      await AppDatabase.writeSection(
+        'tasks',
+        [
+          TaskItem(
+            id: 'different-task',
+            title: 'Overwritten Task',
+            createdAt: DateTime.now(),
+          ),
+        ].map((t) => t.toJson()).toList(),
+      );
+      final intermediateTasks = await AppDatabase.readSection('tasks') as List;
+      expect(intermediateTasks.first['title'], 'Overwritten Task');
 
       // Import backup from custom path
       final importSuccess = await AppDatabase.importFromDownloads(customPath: testBackupFile);
       expect(importSuccess, true);
 
       // Verify restored task
-      final restoredTasks = await AppDatabase.loadTasks();
+      final restoredTasks = await AppDatabase.readSection('tasks') as List;
       expect(restoredTasks.length, 1);
-      expect(restoredTasks.first.title, 'Export Verification Task');
+      expect(restoredTasks.first['title'], 'Export Verification Task');
     });
   });
 
@@ -139,7 +147,7 @@ void main() {
 
       // Write direct changes to database on disk
       final updatedSettings = const AppSettingsConfig(is24HourFormat: true, cardFontSize: 19.0);
-      await AppDatabase.saveSettings(updatedSettings);
+      await AppDatabase.writeSection('settings', updatedSettings.toJson());
 
       final updatedTasks = [
         TaskItem(
@@ -148,7 +156,7 @@ void main() {
           createdAt: DateTime.now(),
         ),
       ];
-      await AppDatabase.saveTasks(updatedTasks);
+      await AppDatabase.writeSection('tasks', updatedTasks.map((t) => t.toJson()).toList());
 
       // Invoke DatabaseService.reloadAllState()
       final dbService = container.read(databaseServiceProvider);

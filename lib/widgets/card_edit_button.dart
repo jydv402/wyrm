@@ -1,6 +1,6 @@
 import 'package:material_ui/material_ui.dart';
-import 'package:wyrm_desk/core/theme.dart';
-import 'package:wyrm_desk/home/card_layout_state.dart';
+import 'package:wyrm_desk/theme/theme.dart';
+import 'package:wyrm_desk/config/card_layout_state.dart';
 
 /// Corner button that triggers an in-place pop-up menu for selecting container dimensions
 /// with Dusk Glass styling.

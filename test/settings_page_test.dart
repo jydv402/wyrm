@@ -1,12 +1,13 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:wyrm_desk/display/display_state.dart';
-import 'package:wyrm_desk/home/card_layout_state.dart';
-import 'package:wyrm_desk/server/network_info.dart';
-import 'package:wyrm_desk/server/network_modal.dart';
-import 'package:wyrm_desk/core/theme.dart';
-import 'package:wyrm_desk/settings/settings.dart';
+import 'package:wyrm_desk/features/display/display_state.dart';
+import 'package:wyrm_desk/config/card_layout_state.dart';
+import 'package:wyrm_desk/features/network/network_info.dart';
+import 'package:wyrm_desk/features/network/network_modal.dart';
+import 'package:wyrm_desk/theme/theme.dart';
+import 'package:wyrm_desk/features/settings/settings_page.dart';
+import 'package:wyrm_desk/config/app_settings_state.dart';
 import 'package:wyrm_desk/widgets/dusk_glass_panel.dart';
 
 void main() {

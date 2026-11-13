@@ -1,5 +1,5 @@
 import 'package:material_ui/material_ui.dart';
-import 'package:wyrm_desk/core/theme.dart';
+import 'package:wyrm_desk/theme/theme.dart';
 
 /// Base Dusk Glass surface container featuring tone gradients, 1px glowing edge,
 /// upper light sheen, and ambient elevation.

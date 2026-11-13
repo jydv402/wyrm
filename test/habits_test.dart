@@ -1,9 +1,12 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:wyrm_desk/habits/habits.dart';
+import 'package:wyrm_desk/features/habits/habit_form_content.dart';
+import 'package:wyrm_desk/features/habits/habit_model.dart';
+import 'package:wyrm_desk/features/habits/habits_card.dart';
+import 'package:wyrm_desk/features/habits/habits_state.dart';
 import 'package:wyrm_desk/core/date_names.dart';
-import 'package:wyrm_desk/home/card_layout_state.dart';
+import 'package:wyrm_desk/config/card_layout_state.dart';
 
 void main() {
   group('HabitItem Model', () {

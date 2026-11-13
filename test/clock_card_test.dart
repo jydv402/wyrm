@@ -2,10 +2,16 @@ import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:wyrm_desk/clock/clock.dart';
-import 'package:wyrm_desk/home/card_layout_state.dart';
-import 'package:wyrm_desk/settings/settings.dart';
-import 'package:wyrm_desk/widgets/widgets.dart';
+import 'package:wyrm_desk/features/clock/clock_card.dart';
+import 'package:wyrm_desk/features/clock/clock_provider.dart';
+import 'package:wyrm_desk/features/clock/analog_clock.dart';
+import 'package:wyrm_desk/features/clock/digital_clock_medium.dart';
+import 'package:wyrm_desk/features/clock/digital_clock_small.dart';
+import 'package:wyrm_desk/features/home/top_pill_bar.dart';
+import 'package:wyrm_desk/config/card_layout_state.dart';
+import 'package:wyrm_desk/config/app_settings_state.dart';
+import 'package:wyrm_desk/widgets/bento_box.dart';
+import 'package:wyrm_desk/widgets/card_edit_button.dart';
 
 /// Test override for AppSettingsNotifier allowing fixed configuration and in-memory updates.
 class _TestAppSettingsNotifier extends AppSettingsNotifier {

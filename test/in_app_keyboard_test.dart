@@ -1,6 +1,9 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:wyrm_desk/in_app_keyboard/in_app_keyboard.dart';
+import 'package:wyrm_desk/features/keyboard/in_app_keyboard_controller.dart';
+import 'package:wyrm_desk/features/keyboard/in_app_keyboard_scope.dart';
+import 'package:wyrm_desk/features/keyboard/in_app_keyboard_text_field.dart';
+import 'package:wyrm_desk/features/keyboard/in_app_keyboard_widget.dart';
 
 void main() {
   group('InAppKeyboardController Unit Tests', () {

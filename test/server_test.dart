@@ -3,14 +3,23 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:web_socket_channel/io.dart';
-import 'package:wyrm_desk/calendar/calendar_model.dart';
-import 'package:wyrm_desk/calendar/calendar_state.dart';
-import 'package:wyrm_desk/display/display.dart';
-import 'package:wyrm_desk/habits/habits.dart';
-import 'package:wyrm_desk/home/card_layout_state.dart';
-import 'package:wyrm_desk/server/server.dart';
-import 'package:wyrm_desk/settings/settings_state.dart';
-import 'package:wyrm_desk/tasks/task_model.dart';
+import 'package:wyrm_desk/features/calendar/calendar_model.dart';
+import 'package:wyrm_desk/features/calendar/calendar_server_section.dart';
+import 'package:wyrm_desk/features/calendar/calendar_state.dart';
+import 'package:wyrm_desk/features/display/display_server_section.dart';
+import 'package:wyrm_desk/features/display/display_state.dart';
+import 'package:wyrm_desk/features/habits/habit_model.dart';
+import 'package:wyrm_desk/features/habits/habits_server_section.dart';
+import 'package:wyrm_desk/features/habits/habits_state.dart';
+import 'package:wyrm_desk/config/card_layout_state.dart';
+import 'package:wyrm_desk/config/layout_server_section.dart';
+import 'package:wyrm_desk/config/settings_server_section.dart';
+import 'package:wyrm_desk/features/network/network_info.dart';
+import 'package:wyrm_desk/features/network/network_server_section.dart';
+import 'package:wyrm_desk/config/app_settings_state.dart';
+import 'package:wyrm_desk/features/tasks/task_model.dart';
+import 'package:wyrm_desk/features/tasks/tasks_server_section.dart';
+import 'package:wyrm_desk/server/web_server.dart';
 
 void main() {
   group('ShelfWebServer REST and WebSocket tests', () {
@@ -61,122 +70,141 @@ void main() {
       ];
 
       server = ShelfWebServer(
-        getLayoutConfig: () => activeLayout,
-        getSettingsConfig: () => activeSettings,
-        getTasksConfig: () => activeTasks,
-        getCalendarConfig: () => CalendarState(
-          selectedDate: DateTime(2026, 9, 19),
-          viewMonth: DateTime(2026, 9, 1),
-          milestones: activeMilestones,
-        ),
-        getHabitsConfig: () => HabitsState(habits: activeHabits),
-        getDisplayConfig: () => activeDisplay,
-        onSetCardSize: (type, size) {
-          activeLayout = activeLayout.withSize(type, size);
-        },
-        onSet24HourFormat: (is24Hour) {
-          activeSettings = activeSettings.copyWith(is24HourFormat: is24Hour);
-        },
-        onSetBrightness: (brightness) {
-          activeDisplay = activeDisplay.copyWith(brightness: brightness);
-        },
-        onSetCardFontSize: (fontSize) {
-          activeSettings = activeSettings.copyWith(cardFontSize: fontSize);
-        },
-        onSetStartWeekOnMonday: (startMon) {
-          activeSettings = activeSettings.copyWith(startWeekOnMonday: startMon);
-        },
-        onAddTask: (title, priority) {
-          activeTasks = [
-            ...activeTasks,
-            TaskItem(
-              id: (activeTasks.length + 1).toString(),
-              title: title,
-              priority: priority,
-              createdAt: DateTime.now(),
+        sections: [
+          TasksServerSection(
+            getTasks: () => activeTasks,
+            onAddTask: (title, priority) {
+              activeTasks = [
+                ...activeTasks,
+                TaskItem(
+                  id: (activeTasks.length + 1).toString(),
+                  title: title,
+                  priority: priority,
+                  createdAt: DateTime.now(),
+                ),
+              ];
+            },
+            onToggleTask: (id) {
+              activeTasks = activeTasks
+                  .map((t) =>
+                      t.id == id ? t.copyWith(isCompleted: !t.isCompleted) : t)
+                  .toList();
+            },
+            onDeleteTask: (id) {
+              activeTasks = activeTasks.where((t) => t.id != id).toList();
+            },
+          ),
+          HabitsServerSection(
+            getHabits: () => HabitsState(habits: activeHabits),
+            onAddHabit: (title, type, targetValue, {unit, iconName}) {
+              activeHabits = [
+                ...activeHabits,
+                HabitItem(
+                  id: (activeHabits.length + 1).toString(),
+                  title: title,
+                  type: type,
+                  targetValue: targetValue,
+                  unit: unit,
+                  iconName: iconName ?? 'bolt',
+                  createdAt: DateTime.now(),
+                ),
+              ];
+            },
+            onToggleHabit: (id, [date]) {
+              final d = date ?? DateTime.now();
+              final k = HabitItem.dateKey(d);
+              activeHabits = activeHabits.map((h) {
+                if (h.id != id) return h;
+                final count = h.completionCountOn(d);
+                final newCompletions = Map<String, int>.from(h.completions);
+                if (count >= h.targetValue) {
+                  newCompletions.remove(k);
+                } else {
+                  newCompletions[k] = h.targetValue;
+                }
+                return h.copyWith(completions: newCompletions);
+              }).toList();
+            },
+            onStepHabit: (id, delta, [date]) {
+              final d = date ?? DateTime.now();
+              final k = HabitItem.dateKey(d);
+              activeHabits = activeHabits.map((h) {
+                if (h.id != id) return h;
+                final count = h.completionCountOn(d);
+                final newCompletions = Map<String, int>.from(h.completions);
+                newCompletions[k] = count + delta;
+                return h.copyWith(completions: newCompletions);
+              }).toList();
+            },
+            onDeleteHabit: (id) {
+              activeHabits = activeHabits.where((h) => h.id != id).toList();
+            },
+          ),
+          CalendarServerSection(
+            getCalendar: () => CalendarState(
+              selectedDate: DateTime(2026, 9, 19),
+              viewMonth: DateTime(2026, 9, 1),
+              milestones: activeMilestones,
             ),
-          ];
-        },
-        onToggleTask: (id) {
-          activeTasks = activeTasks
-              .map((t) =>
-                  t.id == id ? t.copyWith(isCompleted: !t.isCompleted) : t)
-              .toList();
-        },
-        onDeleteTask: (id) {
-          activeTasks = activeTasks.where((t) => t.id != id).toList();
-        },
-        onAddMilestone: (title, date, {isPinned = false}) {
-          activeMilestones = [
-            ...activeMilestones,
-            CalendarMilestone(
-              id: (activeMilestones.length + 1).toString(),
-              title: title,
-              targetDate: date,
-              isPinned: isPinned,
-              createdAt: DateTime.now(),
-            ),
-          ];
-        },
-        onDeleteMilestone: (id) {
-          activeMilestones = activeMilestones.where((m) => m.id != id).toList();
-        },
-        onTogglePinMilestone: (id) {
-          activeMilestones = activeMilestones.map((m) {
-            if (m.id == id) return m.copyWith(isPinned: !m.isPinned);
-            return m;
-          }).toList();
-        },
-        onAddHabit: (title, type, targetValue, {unit, iconName}) {
-          activeHabits = [
-            ...activeHabits,
-            HabitItem(
-              id: (activeHabits.length + 1).toString(),
-              title: title,
-              type: type,
-              targetValue: targetValue,
-              unit: unit,
-              iconName: iconName ?? 'bolt',
-              createdAt: DateTime.now(),
-            ),
-          ];
-        },
-        onToggleHabit: (id, [date]) {
-          final d = date ?? DateTime.now();
-          final k = HabitItem.dateKey(d);
-          activeHabits = activeHabits.map((h) {
-            if (h.id != id) return h;
-            final count = h.completionCountOn(d);
-            final newCompletions = Map<String, int>.from(h.completions);
-            if (count >= h.targetValue) {
-              newCompletions.remove(k);
-            } else {
-              newCompletions[k] = h.targetValue;
-            }
-            return h.copyWith(completions: newCompletions);
-          }).toList();
-        },
-        onStepHabit: (id, delta, [date]) {
-          final d = date ?? DateTime.now();
-          final k = HabitItem.dateKey(d);
-          activeHabits = activeHabits.map((h) {
-            if (h.id != id) return h;
-            final count = h.completionCountOn(d);
-            final newCompletions = Map<String, int>.from(h.completions);
-            newCompletions[k] = count + delta;
-            return h.copyWith(completions: newCompletions);
-          }).toList();
-        },
-        onDeleteHabit: (id) {
-          activeHabits = activeHabits.where((h) => h.id != id).toList();
-        },
-        onScrollToCard: (card) {
-          lastScrolledCard = card;
-        },
-        getNetworkModalConfig: () => activeNetworkModal,
-        onToggleNetworkModal: ([bool? open]) {
-          activeNetworkModal = open ?? !activeNetworkModal;
-        },
+            getStartWeekOnMonday: () => activeSettings.startWeekOnMonday,
+            onAddMilestone: (title, date, {isPinned = false}) {
+              activeMilestones = [
+                ...activeMilestones,
+                CalendarMilestone(
+                  id: (activeMilestones.length + 1).toString(),
+                  title: title,
+                  targetDate: date,
+                  isPinned: isPinned,
+                  createdAt: DateTime.now(),
+                ),
+              ];
+            },
+            onDeleteMilestone: (id) {
+              activeMilestones =
+                  activeMilestones.where((m) => m.id != id).toList();
+            },
+            onTogglePinMilestone: (id) {
+              activeMilestones = activeMilestones.map((m) {
+                if (m.id == id) return m.copyWith(isPinned: !m.isPinned);
+                return m;
+              }).toList();
+            },
+          ),
+          LayoutServerSection(
+            getLayout: () => activeLayout,
+            onSetCardSize: (type, size) {
+              activeLayout = activeLayout.withSize(type, size);
+            },
+            onScrollToCard: (card) {
+              lastScrolledCard = card;
+            },
+          ),
+          SettingsServerSection(
+            getSettings: () => activeSettings,
+            onSet24HourFormat: (is24Hour) {
+              activeSettings = activeSettings.copyWith(is24HourFormat: is24Hour);
+            },
+            onSetCardFontSize: (fontSize) {
+              activeSettings = activeSettings.copyWith(cardFontSize: fontSize);
+            },
+            onSetStartWeekOnMonday: (startMon) {
+              activeSettings =
+                  activeSettings.copyWith(startWeekOnMonday: startMon);
+            },
+          ),
+          DisplayServerSection(
+            getDisplay: () => activeDisplay,
+            onSetBrightness: (brightness) {
+              activeDisplay = activeDisplay.copyWith(brightness: brightness);
+            },
+          ),
+          NetworkServerSection(
+            getNetworkModalOpen: () => activeNetworkModal,
+            onToggleNetworkModal: (open) {
+              activeNetworkModal = open;
+            },
+          ),
+        ],
         htmlOverride: '<!DOCTYPE html><html><body>Wyrm Web Test</body></html>',
         cssOverride: 'body { background: #000; }',
         jsOverride: 'console.log("Wyrm JS");',

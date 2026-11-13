@@ -1,9 +1,11 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:wyrm_desk/home/card_layout_state.dart';
-import 'package:wyrm_desk/settings/settings_state.dart';
-import 'package:wyrm_desk/tasks/tasks.dart';
+import 'package:wyrm_desk/config/card_layout_state.dart';
+import 'package:wyrm_desk/config/app_settings_state.dart';
+import 'package:wyrm_desk/features/tasks/task_model.dart';
+import 'package:wyrm_desk/features/tasks/tasks_state.dart';
+import 'package:wyrm_desk/features/tasks/tasks_card.dart';
 
 void main() {
   group('TaskItem Model', () {

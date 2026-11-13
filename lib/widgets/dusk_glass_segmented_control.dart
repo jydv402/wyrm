@@ -1,5 +1,5 @@
 import 'package:material_ui/material_ui.dart';
-import 'package:wyrm_desk/core/theme.dart';
+import 'package:wyrm_desk/theme/theme.dart';
 
 /// Dusk Glass segmented control with an animated gliding thumb pill.
 class DuskGlassSegmentedControl<T> extends StatelessWidget {

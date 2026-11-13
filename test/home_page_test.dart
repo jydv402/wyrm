@@ -2,9 +2,10 @@ import 'package:material_ui/material_ui.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:wyrm_desk/clock/clock.dart';
-import 'package:wyrm_desk/home/home.dart';
-import 'package:wyrm_desk/tasks/tasks.dart';
+import 'package:wyrm_desk/features/clock/clock_provider.dart';
+import 'package:wyrm_desk/config/card_layout_state.dart';
+import 'package:wyrm_desk/features/home/homepage.dart';
+import 'package:wyrm_desk/features/tasks/tasks_card.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();

@@ -1,8 +1,8 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:wyrm_desk/core/core.dart';
-import 'package:wyrm_desk/home/home.dart';
-import 'package:wyrm_desk/server/server.dart';
+import 'package:wyrm_desk/theme/theme.dart';
+import 'package:wyrm_desk/features/home/homepage.dart';
+import 'package:wyrm_desk/server/server_provider.dart';
 
 void main() {
   runApp(const ProviderScope(child: WyrmDeskApp()));

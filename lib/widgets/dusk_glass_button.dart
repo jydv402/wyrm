@@ -1,5 +1,5 @@
 import 'package:material_ui/material_ui.dart';
-import 'package:wyrm_desk/core/theme.dart';
+import 'package:wyrm_desk/theme/theme.dart';
 
 /// Interactive Dusk Glass button with tactile press scaling and subtle glowing borders.
 class DuskGlassButton extends StatefulWidget {

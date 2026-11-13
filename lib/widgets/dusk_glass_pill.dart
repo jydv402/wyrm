@@ -1,5 +1,5 @@
 import 'package:material_ui/material_ui.dart';
-import 'package:wyrm_desk/core/theme.dart';
+import 'package:wyrm_desk/theme/theme.dart';
 
 /// Translucent pill container for status, priorities, tags, and metrics.
 class DuskGlassPill extends StatelessWidget {

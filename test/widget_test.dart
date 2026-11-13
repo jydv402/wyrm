@@ -1,12 +1,14 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:wyrm_desk/calendar/calendar.dart';
-import 'package:wyrm_desk/clock/clock.dart';
-import 'package:wyrm_desk/core/core.dart';
-import 'package:wyrm_desk/habits/habits.dart';
-import 'package:wyrm_desk/home/home.dart';
-import 'package:wyrm_desk/tasks/tasks.dart';
+import 'package:wyrm_desk/features/calendar/calendar_card.dart';
+import 'package:wyrm_desk/features/clock/clock_card.dart';
+import 'package:wyrm_desk/features/home/top_pill_bar.dart';
+import 'package:wyrm_desk/config/card_layout_state.dart';
+import 'package:wyrm_desk/widgets/card_edit_button.dart';
+import 'package:wyrm_desk/features/habits/habits_card.dart';
+import 'package:wyrm_desk/features/home/homepage.dart';
+import 'package:wyrm_desk/features/tasks/tasks_card.dart';
 
 void main() {
   testWidgets(
