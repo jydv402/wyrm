@@ -5,11 +5,10 @@ import 'package:wyrm_desk/theme/theme.dart';
 import 'package:wyrm_desk/config/card_layout_state.dart';
 import 'package:wyrm_desk/features/clock/analog_clock.dart';
 import 'package:wyrm_desk/widgets/bento_box.dart';
-import 'package:wyrm_desk/widgets/card_edit_button.dart';
 import 'package:wyrm_desk/features/clock/digital_clock_medium.dart';
 import 'package:wyrm_desk/features/clock/digital_clock_small.dart';
-import 'package:wyrm_desk/widgets/dusk_card_header.dart';
-import 'package:wyrm_desk/widgets/dusk_glass_panel.dart';
+import 'package:wyrm_desk/widgets/dusk_card_scaffold.dart';
+import 'package:wyrm_desk/widgets/dusk_image_backdrop.dart';
 
 /// Primary clock card container supporting Small, Medium, Fullscreen, and Nightstand sizing tiers.
 class ClockContainer extends ConsumerWidget {
@@ -56,94 +55,40 @@ class ClockContainer extends ConsumerWidget {
             Positioned(
               top: 0,
               right: 0,
-              child: CardEditButton<CardSize>(
-                options: cardSizeMenuOptions(includeNightstand: true),
-                currentValue: currentSize,
-                onSelected: onSelectSize ?? (_) {},
-              ),
+              child:
+                  cardSizeMenuButton(
+                    currentSize: currentSize,
+                    onSelectSize: onSelectSize ?? (_) {},
+                    includeNightstand: true,
+                  ) ??
+                  const SizedBox.shrink(),
             ),
           ],
         ),
       );
     }
 
-    return DuskGlassPanel(
+    return DuskCardScaffold(
       tone: AppColors.slate,
-      borderRadius: 32.0,
+      icon: Icons.schedule_rounded,
+      title: 'Clock',
+      editButton: cardSizeMenuButton(
+        currentSize: currentSize,
+        onSelectSize: onSelectSize,
+        includeNightstand: true,
+      ),
+      background: DuskImageBackdrop(
+        assetPath: backgroundAsset,
+        animate: true,
+        overlayColors: const [
+          Color(0x73000000), // black 45%
+          Color(0x33000000), // black 20%
+          Color(0xA6000000), // black 65%
+        ],
+      ),
       padding: const EdgeInsets.fromLTRB(20.0, 16.0, 16.0, 16.0),
-      background: _ClockImageBackdrop(assetPath: backgroundAsset),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          DuskCardHeader(
-            icon: Icons.schedule_rounded,
-            title: 'Clock',
-            accentColor: AppColors.slate.accent,
-            editButton: onSelectSize == null
-                ? null
-                : CardEditButton<CardSize>(
-                    options: cardSizeMenuOptions(includeNightstand: true),
-                    currentValue: currentSize,
-                    onSelected: onSelectSize!,
-                  ),
-          ),
-          Expanded(child: content),
-        ],
-      ),
-    );
-  }
-}
-
-/// Dynamic time-of-day photographic backdrop with smooth cross-fade animation
-/// and dark gradient sheen for high-contrast typography readability.
-class _ClockImageBackdrop extends StatelessWidget {
-  final String assetPath;
-
-  const _ClockImageBackdrop({required this.assetPath});
-
-  @override
-  Widget build(BuildContext context) {
-    return AnimatedSwitcher(
-      duration: const Duration(milliseconds: 1000),
-      switchInCurve: Curves.easeInOut,
-      switchOutCurve: Curves.easeInOut,
-      child: Stack(
-        key: ValueKey(assetPath),
-        fit: StackFit.expand,
-        children: [
-          LayoutBuilder(
-            builder: (context, constraints) {
-              final dpr = MediaQuery.devicePixelRatioOf(context);
-              // Decode at the larger on-screen dimension so BoxFit.cover
-              // stays sharp without decoding the full multi-megabyte asset.
-              final longest = constraints.maxWidth >= constraints.maxHeight
-                  ? constraints.maxWidth
-                  : constraints.maxHeight;
-              return Image.asset(
-                assetPath,
-                fit: BoxFit.cover,
-                alignment: Alignment.center,
-                cacheWidth: (longest * dpr).round(),
-              );
-            },
-          ),
-          // High-contrast gradient overlay ensuring clock digits and labels remain legible
-          DecoratedBox(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [
-                  Colors.black.withValues(alpha: 0.45),
-                  Colors.black.withValues(alpha: 0.20),
-                  Colors.black.withValues(alpha: 0.65),
-                ],
-                stops: const [0.0, 0.45, 1.0],
-              ),
-            ),
-          ),
-        ],
-      ),
+      headerGap: 0.0,
+      child: content,
     );
   }
 }

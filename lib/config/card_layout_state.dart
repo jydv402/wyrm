@@ -58,6 +58,21 @@ List<EditMenuOption<CardSize>> cardSizeMenuOptions({
   ];
 }
 
+/// Builds the shared card-size popup control, or null when the owning card is
+/// not size-adjustable (the parent wired no `onSelectSize` handler).
+Widget? cardSizeMenuButton({
+  required CardSize currentSize,
+  required ValueChanged<CardSize>? onSelectSize,
+  bool includeNightstand = false,
+}) {
+  if (onSelectSize == null) return null;
+  return CardEditButton<CardSize>(
+    options: cardSizeMenuOptions(includeNightstand: includeNightstand),
+    currentValue: currentSize,
+    onSelected: onSelectSize,
+  );
+}
+
 /// Identifiers for the primary modular cards hosted on the dashboard.
 enum DashboardCardType {
   /// Clock and ambient time card.

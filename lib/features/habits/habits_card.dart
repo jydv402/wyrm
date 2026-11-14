@@ -6,23 +6,19 @@ import 'package:wyrm_desk/features/habits/habit_form_content.dart';
 import 'package:wyrm_desk/features/habits/habit_model.dart';
 import 'package:wyrm_desk/features/habits/habits_state.dart';
 import 'package:wyrm_desk/config/card_layout_state.dart';
-import 'package:wyrm_desk/widgets/card_edit_button.dart';
 import 'package:wyrm_desk/features/keyboard/two_pane_keyboard_scaffold.dart';
 import 'package:wyrm_desk/config/app_settings_state.dart';
-import 'package:wyrm_desk/widgets/dusk_card_header.dart';
+import 'package:wyrm_desk/widgets/dusk_card_scaffold.dart';
 import 'package:wyrm_desk/widgets/dusk_glass_button.dart';
-import 'package:wyrm_desk/widgets/dusk_glass_panel.dart';
 
 /// Dusk Glass Habits card with teal gradient, empty state matching the reference,
 /// and interactive 7-day completion matrices.
 class HabitsCard extends ConsumerWidget {
-  final Widget? child;
   final ValueChanged<CardSize>? onSelectSize;
   final CardSize currentSize;
 
   const HabitsCard({
     super.key,
-    this.child,
     this.onSelectSize,
     this.currentSize = CardSize.small,
   });
@@ -46,76 +42,33 @@ class HabitsCard extends ConsumerWidget {
     final settings = ref.watch(appSettingsProvider);
     final isSmall = currentSize == CardSize.small;
 
-    return DuskGlassPanel(
+    return DuskCardScaffold(
       tone: AppColors.teal,
-      borderRadius: 32.0,
+      icon: Icons.eco_rounded,
+      title: 'Habits',
+      badge: DuskCountBadge(
+        label: habitsState.habits.isEmpty
+            ? null
+            : '${habitsState.completedTodayCount()}/${habitsState.habits.length}',
+        color: AppColors.tealAccent,
+      ),
+      onAdd: () => _openHabitTwoPaneEditor(context, ref),
+      editButton: cardSizeMenuButton(
+        currentSize: currentSize,
+        onSelectSize: onSelectSize,
+      ),
       padding: EdgeInsets.symmetric(
         horizontal: isSmall ? 16.0 : 20.0,
         vertical: 14.0,
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          DuskCardHeader(
-            icon: Icons.eco_rounded,
-            title: 'Habits',
-            accentColor: AppColors.tealAccent,
-            badge: _HabitsCountBadge(habitsState: habitsState),
-            onAdd: () => _openHabitTwoPaneEditor(context, ref),
-            addColor: AppColors.tealFill,
-            addForegroundColor: AppColors.tealInk,
-            editButton: onSelectSize == null
-                ? null
-                : CardEditButton<CardSize>(
-                    options: cardSizeMenuOptions(),
-                    currentValue: currentSize,
-                    onSelected: onSelectSize!,
-                  ),
-          ),
-          const SizedBox(height: 12),
-          Expanded(
-            child: isSmall
-                ? _HabitsCarouselView(state: habitsState, settings: settings)
-                : _HabitsExpandedGrid(
-                    state: habitsState,
-                    settings: settings,
-                    isFullscreen: currentSize == CardSize.fullscreen,
-                  ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-/// Completed-today/total badge shown in the card header.
-class _HabitsCountBadge extends StatelessWidget {
-  final HabitsState habitsState;
-
-  const _HabitsCountBadge({required this.habitsState});
-
-  @override
-  Widget build(BuildContext context) {
-    if (habitsState.habits.isEmpty) return const SizedBox.shrink();
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-      decoration: BoxDecoration(
-        color: AppColors.tealAccent.withValues(alpha: 0.16),
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(
-          color: AppColors.tealAccent.withValues(alpha: 0.35),
-          width: 1.0,
-        ),
-      ),
-      child: Text(
-        '${habitsState.completedTodayCount()}/${habitsState.habits.length}',
-        style: const TextStyle(
-          color: AppColors.tealAccent,
-          fontSize: 11,
-          fontWeight: FontWeight.w700,
-        ),
-      ),
+      headerGap: 12.0,
+      child: isSmall
+          ? _HabitsCarouselView(state: habitsState, settings: settings)
+          : _HabitsExpandedGrid(
+              state: habitsState,
+              settings: settings,
+              isFullscreen: currentSize == CardSize.fullscreen,
+            ),
     );
   }
 }
@@ -450,80 +403,31 @@ class _HabitsEmptyState extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    return Center(
-      child: FittedBox(
-        fit: BoxFit.scaleDown,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            // Circular sprout icon badge
-            Container(
-              width: 72,
-              height: 72,
-              decoration: BoxDecoration(
-                color: AppColors.tealAccent.withValues(alpha: 0.12),
-                shape: BoxShape.circle,
-                border: Border.all(
-                  color: AppColors.tealAccent.withValues(alpha: 0.38),
-                  width: 1.2,
-                ),
-              ),
-              child: const Icon(
-                Icons.spa_rounded,
-                size: 34,
-                color: AppColors.tealAccent,
-              ),
-            ),
-
-            const SizedBox(height: 14),
-
-            // Title
-            const Text(
-              'No habits for today',
-              style: TextStyle(
-                color: AppColors.textPrimary,
-                fontSize: 18,
-                fontWeight: FontWeight.w600,
-                letterSpacing: -0.2,
-              ),
-            ),
-
-            const SizedBox(height: 4),
-
-            // Subtitle
-            const Text(
-              'Build the life you want, one habit at a time.',
-              style: TextStyle(
-                color: AppColors.textSecondary,
-                fontSize: 13.5,
-                fontWeight: FontWeight.w400,
-              ),
-              textAlign: TextAlign.center,
-            ),
-
-            const SizedBox(height: 18),
-
-            // + Add a habit button
-            DuskGlassButton(
-              onPressed: () => _openHabitTwoPaneEditor(context, ref),
-              height: 42,
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              icon: const Icon(
-                Icons.add_rounded,
-                size: 18,
-                color: AppColors.textPrimary,
-              ),
-              label: const Text(
-                'Add a habit',
-                style: TextStyle(
-                  color: AppColors.textPrimary,
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ),
-          ],
+    return DuskCardEmptyState(
+      icon: Icons.spa_rounded,
+      accentColor: AppColors.tealAccent,
+      title: 'No habits for today',
+      subtitle: 'Build the life you want, one habit at a time.',
+      circleSize: 72.0,
+      circleBorderWidth: 1.2,
+      iconGap: 14.0,
+      scaleDown: true,
+      action: DuskGlassButton(
+        onPressed: () => _openHabitTwoPaneEditor(context, ref),
+        height: 42,
+        padding: const EdgeInsets.symmetric(horizontal: 20),
+        icon: const Icon(
+          Icons.add_rounded,
+          size: 18,
+          color: AppColors.textPrimary,
+        ),
+        label: const Text(
+          'Add a habit',
+          style: TextStyle(
+            color: AppColors.textPrimary,
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
+          ),
         ),
       ),
     );

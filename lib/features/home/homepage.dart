@@ -20,17 +20,8 @@ class HomePage extends ConsumerStatefulWidget {
   /// Optional custom top bar widget.
   final Widget? topBar;
 
-  /// Custom content injected into the clock container.
+  /// Custom content injected into the clock container (used by tests).
   final Widget? clockWidget;
-
-  /// Custom content injected into the habits container.
-  final Widget? habitsWidget;
-
-  /// Custom content injected into the calendar container.
-  final Widget? calendarWidget;
-
-  /// Custom content injected into the tasks container.
-  final Widget? tasksWidget;
 
   /// Spacing between adjacent cards and columns.
   final double spacing;
@@ -42,9 +33,6 @@ class HomePage extends ConsumerStatefulWidget {
     super.key,
     this.topBar,
     this.clockWidget,
-    this.habitsWidget,
-    this.calendarWidget,
-    this.tasksWidget,
     this.spacing = 14.0,
     this.padding = const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
   });
@@ -194,7 +182,8 @@ class _HomePageState extends ConsumerState<HomePage>
                   Expanded(
                     child: LayoutBuilder(
                       builder: (context, constraints) {
-                        return _ScrollableDeck(
+                        return _DeckRow(
+                          constraints: constraints,
                           scrollController: _scrollController,
                           clockKey: _clockKey,
                           habitsKey: _habitsKey,
@@ -204,9 +193,6 @@ class _HomePageState extends ConsumerState<HomePage>
                           spacing: widget.spacing,
                           config: layoutConfig,
                           clockWidget: widget.clockWidget,
-                          habitsWidget: widget.habitsWidget,
-                          calendarWidget: widget.calendarWidget,
-                          tasksWidget: widget.tasksWidget,
                         );
                       },
                     ),
@@ -217,61 +203,6 @@ class _HomePageState extends ConsumerState<HomePage>
           ),
         ],
       ),
-    );
-  }
-}
-
-/// The 3-column desk deck: adaptive-width card columns inside a horizontally
-/// scrollable canvas, driven by the active [CardLayoutConfig].
-class _ScrollableDeck extends StatelessWidget {
-  final ScrollController scrollController;
-  final GlobalKey clockKey;
-  final GlobalKey habitsKey;
-  final GlobalKey calendarKey;
-  final GlobalKey tasksKey;
-  final void Function(DashboardCardType type, CardSize size) onSelectSize;
-  final double spacing;
-  final CardLayoutConfig config;
-  final Widget? clockWidget;
-  final Widget? habitsWidget;
-  final Widget? calendarWidget;
-  final Widget? tasksWidget;
-
-  const _ScrollableDeck({
-    required this.scrollController,
-    required this.clockKey,
-    required this.habitsKey,
-    required this.calendarKey,
-    required this.tasksKey,
-    required this.onSelectSize,
-    required this.spacing,
-    required this.config,
-    this.clockWidget,
-    this.habitsWidget,
-    this.calendarWidget,
-    this.tasksWidget,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        return _DeckRow(
-          constraints: constraints,
-          scrollController: scrollController,
-          clockKey: clockKey,
-          habitsKey: habitsKey,
-          calendarKey: calendarKey,
-          tasksKey: tasksKey,
-          onSelectSize: onSelectSize,
-          spacing: spacing,
-          config: config,
-          clockWidget: clockWidget,
-          habitsWidget: habitsWidget,
-          calendarWidget: calendarWidget,
-          tasksWidget: tasksWidget,
-        );
-      },
     );
   }
 }
@@ -290,9 +221,6 @@ class _DeckRow extends StatelessWidget {
   final double spacing;
   final CardLayoutConfig config;
   final Widget? clockWidget;
-  final Widget? habitsWidget;
-  final Widget? calendarWidget;
-  final Widget? tasksWidget;
 
   const _DeckRow({
     required this.constraints,
@@ -305,9 +233,6 @@ class _DeckRow extends StatelessWidget {
     required this.spacing,
     required this.config,
     this.clockWidget,
-    this.habitsWidget,
-    this.calendarWidget,
-    this.tasksWidget,
   });
 
   @override
@@ -407,7 +332,6 @@ class _DeckRow extends StatelessWidget {
                         currentSize: config.habits,
                         onSelectSize: (size) =>
                             onSelectSize(DashboardCardType.habits, size),
-                        child: habitsWidget,
                       ),
                     ),
                     SizedBox(height: spacing),
@@ -418,7 +342,6 @@ class _DeckRow extends StatelessWidget {
                         currentSize: config.calendar,
                         onSelectSize: (size) =>
                             onSelectSize(DashboardCardType.calendar, size),
-                        child: calendarWidget,
                       ),
                     ),
                   ],
@@ -434,7 +357,6 @@ class _DeckRow extends StatelessWidget {
                   currentSize: config.habits,
                   onSelectSize: (size) =>
                       onSelectSize(DashboardCardType.habits, size),
-                  child: habitsWidget,
                 ),
               ),
               SizedBox(width: spacing),
@@ -447,7 +369,6 @@ class _DeckRow extends StatelessWidget {
                   currentSize: config.calendar,
                   onSelectSize: (size) =>
                       onSelectSize(DashboardCardType.calendar, size),
-                  child: calendarWidget,
                 ),
               ),
             ],
@@ -464,7 +385,6 @@ class _DeckRow extends StatelessWidget {
                 currentSize: config.tasks,
                 onSelectSize: (size) =>
                     onSelectSize(DashboardCardType.tasks, size),
-                child: tasksWidget,
               ),
             ),
           ],

@@ -7,23 +7,19 @@ import 'package:wyrm_desk/features/calendar/milestone_form_content.dart';
 import 'package:wyrm_desk/core/date_names.dart';
 import 'package:wyrm_desk/theme/theme.dart';
 import 'package:wyrm_desk/config/card_layout_state.dart';
-import 'package:wyrm_desk/widgets/card_edit_button.dart';
 import 'package:wyrm_desk/features/keyboard/two_pane_keyboard_scaffold.dart';
 import 'package:wyrm_desk/config/app_settings_state.dart';
-import 'package:wyrm_desk/widgets/dusk_card_header.dart';
+import 'package:wyrm_desk/widgets/dusk_card_scaffold.dart';
 import 'package:wyrm_desk/widgets/dusk_glass_button.dart';
-import 'package:wyrm_desk/widgets/dusk_glass_panel.dart';
 
 /// Dusk Glass Calendar card with gold/olive gradient, date banner pill,
 /// and responsive day grid matching the screenshot.
 class CalendarCard extends ConsumerWidget {
-  final Widget? child;
   final ValueChanged<CardSize>? onSelectSize;
   final CardSize currentSize;
 
   const CalendarCard({
     super.key,
-    this.child,
     this.onSelectSize,
     this.currentSize = CardSize.small,
   });
@@ -34,74 +30,29 @@ class CalendarCard extends ConsumerWidget {
     final settings = ref.watch(appSettingsProvider);
     final isSmall = currentSize == CardSize.small;
 
-    return DuskGlassPanel(
+    return DuskCardScaffold(
       tone: AppColors.gold,
-      borderRadius: 32.0,
+      icon: Icons.calendar_today_rounded,
+      title: 'Calendar',
+      badge: DuskCountBadge(
+        label: calendarState.milestones.isEmpty
+            ? null
+            : '${calendarState.milestones.length}',
+        color: AppColors.goldAccent,
+      ),
+      onAdd: () => _openMilestoneTwoPaneEditor(context, ref),
+      filledAdd: false, // Circular glass '+' button
+      editButton: cardSizeMenuButton(
+        currentSize: currentSize,
+        onSelectSize: onSelectSize,
+      ),
       padding: EdgeInsets.symmetric(
         horizontal: isSmall ? 16.0 : 20.0,
         vertical: 14.0,
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          DuskCardHeader(
-            icon: Icons.calendar_today_rounded,
-            title: 'Calendar',
-            accentColor: AppColors.goldAccent,
-            badge: _CalendarCountBadge(calendarState: calendarState),
-            onAdd: () => _openMilestoneTwoPaneEditor(context, ref),
-            addColor: null, // Circular glass '+' button
-            editButton: onSelectSize == null
-                ? null
-                : CardEditButton<CardSize>(
-                    options: cardSizeMenuOptions(),
-                    currentValue: currentSize,
-                    onSelected: onSelectSize!,
-                  ),
-          ),
-          const SizedBox(height: 10),
-          Expanded(
-            child: isSmall
-                ? _CalendarMonthView(state: calendarState, settings: settings)
-                : _CalendarExpandedLayout(
-                    state: calendarState,
-                    settings: settings,
-                  ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-/// Milestone count badge shown in the card header.
-class _CalendarCountBadge extends StatelessWidget {
-  final CalendarState calendarState;
-
-  const _CalendarCountBadge({required this.calendarState});
-
-  @override
-  Widget build(BuildContext context) {
-    if (calendarState.milestones.isEmpty) return const SizedBox.shrink();
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-      decoration: BoxDecoration(
-        color: AppColors.goldAccent.withValues(alpha: 0.16),
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(
-          color: AppColors.goldAccent.withValues(alpha: 0.35),
-          width: 1.0,
-        ),
-      ),
-      child: Text(
-        '${calendarState.milestones.length}',
-        style: const TextStyle(
-          color: AppColors.goldAccent,
-          fontWeight: FontWeight.w700,
-          fontSize: 11,
-        ),
-      ),
+      child: isSmall
+          ? _CalendarMonthView(state: calendarState, settings: settings)
+          : _CalendarExpandedLayout(state: calendarState, settings: settings),
     );
   }
 }

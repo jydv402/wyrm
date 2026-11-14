@@ -2,27 +2,24 @@ import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:wyrm_desk/theme/theme.dart';
 import 'package:wyrm_desk/config/card_layout_state.dart';
-import 'package:wyrm_desk/widgets/card_edit_button.dart';
 import 'package:wyrm_desk/features/keyboard/two_pane_keyboard_scaffold.dart';
 import 'package:wyrm_desk/config/app_settings_state.dart';
 import 'package:wyrm_desk/features/tasks/task_form_content.dart';
 import 'package:wyrm_desk/features/tasks/task_model.dart';
 import 'package:wyrm_desk/features/tasks/tasks_state.dart';
-import 'package:wyrm_desk/widgets/dusk_card_header.dart';
+import 'package:wyrm_desk/widgets/dusk_card_scaffold.dart';
 import 'package:wyrm_desk/widgets/dusk_glass_button.dart';
-import 'package:wyrm_desk/widgets/dusk_glass_panel.dart';
 import 'package:wyrm_desk/widgets/dusk_glass_pill.dart';
+import 'package:wyrm_desk/widgets/dusk_image_backdrop.dart';
 
 /// Dusk Glass Tasks card with rust/ember gradient, empty state matching the screenshot,
 /// and interactive task checklist with priority pills.
 class TasksCard extends ConsumerWidget {
-  final Widget? child;
   final ValueChanged<CardSize>? onSelectSize;
   final CardSize currentSize;
 
   const TasksCard({
     super.key,
-    this.child,
     this.onSelectSize,
     this.currentSize = CardSize.small,
   });
@@ -32,41 +29,31 @@ class TasksCard extends ConsumerWidget {
     final tasks = ref.watch(tasksProvider);
     final isSmall = currentSize == CardSize.small;
 
-    return DuskGlassPanel(
+    return DuskCardScaffold(
       tone: AppColors.rust,
-      borderRadius: 32.0,
-      background: const _TasksImageBackdrop(),
+      icon: Icons.check_box_outlined,
+      title: 'Tasks',
+      badge: DuskCountBadge(
+        label: tasks.isEmpty
+            ? null
+            : '${tasks.where((t) => t.isCompleted).length}/${tasks.length}',
+        color: AppColors.rustAccent,
+      ),
+      onAdd: () => _openTaskTwoPaneEditor(context, ref),
+      editButton: cardSizeMenuButton(
+        currentSize: currentSize,
+        onSelectSize: onSelectSize,
+      ),
+      background: const DuskImageBackdrop(
+        assetPath: 'assets/card_bg/task/task_bg.png',
+      ),
       padding: EdgeInsets.symmetric(
         horizontal: isSmall ? 16.0 : 20.0,
         vertical: 14.0,
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          DuskCardHeader(
-            icon: Icons.check_box_outlined,
-            title: 'Tasks',
-            accentColor: AppColors.rustAccent,
-            badge: _TasksCountBadge(tasks: tasks),
-            onAdd: () => _openTaskTwoPaneEditor(context, ref),
-            addColor: AppColors.rustFill,
-            addForegroundColor: Colors.white,
-            editButton: onSelectSize == null
-                ? null
-                : CardEditButton<CardSize>(
-                    options: cardSizeMenuOptions(),
-                    currentValue: currentSize,
-                    onSelected: onSelectSize!,
-                  ),
-          ),
-          const SizedBox(height: 10),
-          Expanded(
-            child: isSmall
-                ? _TasksSmallLayout(tasks: tasks)
-                : _TasksExpandedLayout(tasks: tasks),
-          ),
-        ],
-      ),
+      child: isSmall
+          ? _TasksSmallLayout(tasks: tasks)
+          : _TasksExpandedLayout(tasks: tasks),
     );
   }
 
@@ -121,39 +108,6 @@ class TasksCard extends ConsumerWidget {
   }
 }
 
-/// Completed/total count badge shown in the card header.
-class _TasksCountBadge extends StatelessWidget {
-  final List<TaskItem> tasks;
-
-  const _TasksCountBadge({required this.tasks});
-
-  @override
-  Widget build(BuildContext context) {
-    if (tasks.isEmpty) return const SizedBox.shrink();
-    final completedCount = tasks.where((t) => t.isCompleted).length;
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-      decoration: BoxDecoration(
-        color: AppColors.rustAccent.withValues(alpha: 0.16),
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(
-          color: AppColors.rustAccent.withValues(alpha: 0.35),
-          width: 1.0,
-        ),
-      ),
-      child: Text(
-        '$completedCount/${tasks.length}',
-        style: const TextStyle(
-          color: AppColors.rustAccent,
-          fontWeight: FontWeight.w700,
-          fontSize: 11,
-        ),
-      ),
-    );
-  }
-}
-
 /// Compact Small layout: screenshot-matching empty state or glass task checklist.
 class _TasksSmallLayout extends StatelessWidget {
   final List<TaskItem> tasks;
@@ -163,7 +117,13 @@ class _TasksSmallLayout extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (tasks.isEmpty) {
-      return const _TasksEmptyState();
+      return const DuskCardEmptyState(
+        icon: Icons.check_rounded,
+        accentColor: AppColors.rustAccent,
+        title: 'All caught up',
+        subtitle: 'Tap + to add a task or priority.',
+        bottomInset: 80.0,
+      );
     }
 
     return ListView.separated(
@@ -292,70 +252,6 @@ class _TaskRow extends ConsumerWidget {
   }
 }
 
-/// Empty state matching the screenshot: checkmark circle, "All caught up",
-/// and "Tap + to add a task or priority." (no quote).
-class _TasksEmptyState extends StatelessWidget {
-  const _TasksEmptyState();
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          // Checkmark Circle Glyph
-          Container(
-            width: 68,
-            height: 68,
-            decoration: BoxDecoration(
-              color: AppColors.rust.accent.withValues(alpha: 0.12),
-              shape: BoxShape.circle,
-              border: Border.all(
-                color: AppColors.rust.accent.withValues(alpha: 0.38),
-                width: 1.5,
-              ),
-            ),
-            child: const Icon(
-              Icons.check_rounded,
-              size: 34,
-              color: AppColors.rustAccent,
-            ),
-          ),
-
-          const SizedBox(height: 16),
-
-          // Title
-          const Text(
-            'All caught up',
-            style: TextStyle(
-              color: AppColors.textPrimary,
-              fontSize: 18,
-              fontWeight: FontWeight.w600,
-              letterSpacing: -0.2,
-            ),
-          ),
-
-          const SizedBox(height: 4),
-
-          // Subtitle
-          const Text(
-            'Tap + to add a task or priority.',
-            style: TextStyle(
-              color: AppColors.textSecondary,
-              fontSize: 13.5,
-              fontWeight: FontWeight.w400,
-            ),
-            textAlign: TextAlign.center,
-          ),
-
-          const SizedBox(height: 80),
-        ],
-      ),
-    );
-  }
-}
-
 /// Dual-pane split view for Medium & Fullscreen modes.
 class _TasksExpandedLayout extends StatelessWidget {
   final List<TaskItem> tasks;
@@ -451,50 +347,6 @@ class _TasksExpandedLayout extends StatelessWidget {
                       ),
               ),
             ],
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-/// Full-bleed image backdrop for the Tasks card using [assets/card_bg/task/task_bg.png].
-class _TasksImageBackdrop extends StatelessWidget {
-  const _TasksImageBackdrop();
-
-  @override
-  Widget build(BuildContext context) {
-    return Stack(
-      fit: StackFit.expand,
-      children: [
-        LayoutBuilder(
-          builder: (context, constraints) {
-            final dpr = MediaQuery.devicePixelRatioOf(context);
-            // Decode at the larger on-screen dimension so BoxFit.cover
-            // stays sharp without decoding the full multi-megabyte asset.
-            final longest = constraints.maxWidth >= constraints.maxHeight
-                ? constraints.maxWidth
-                : constraints.maxHeight;
-            return Image.asset(
-              'assets/card_bg/task/task_bg.png',
-              fit: BoxFit.cover,
-              alignment: Alignment.center,
-              cacheWidth: (longest * dpr).round(),
-            );
-          },
-        ),
-        DecoratedBox(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-              colors: [
-                Colors.black.withValues(alpha: 0.45),
-                Colors.black.withValues(alpha: 0.25),
-                Colors.black.withValues(alpha: 0.70),
-              ],
-              stops: const [0.0, 0.45, 1.0],
-            ),
           ),
         ),
       ],
