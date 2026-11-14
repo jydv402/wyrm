@@ -9,7 +9,8 @@ import 'package:wyrm_desk/server/server_section.dart';
 class CalendarServerSection implements ServerSection {
   final CalendarState Function() getCalendar;
   final bool Function() getStartWeekOnMonday;
-  final void Function(String title, DateTime targetDate, {bool isPinned}) onAddMilestone;
+  final void Function(String title, DateTime targetDate, {bool isPinned})
+  onAddMilestone;
   final void Function(String id) onDeleteMilestone;
   final void Function(String id) onTogglePinMilestone;
 
@@ -24,17 +25,19 @@ class CalendarServerSection implements ServerSection {
   @override
   void registerRoutes(Router router, ServerRuntime runtime) {
     router.get('/api/calendar', (Request request) {
-      return jsonResponse(_serializeCalendarState(
-        getCalendar(),
-        getStartWeekOnMonday(),
-      ));
+      return jsonResponse(
+        _serializeCalendarState(getCalendar(), getStartWeekOnMonday()),
+      );
     });
     router.post('/api/calendar/milestones', (Request request) async {
       try {
         final data = await readJsonBody(request);
         final title = (data['title'] ?? data['name']) as String?;
-        final dateStr = (data['target_date'] ?? data['targetDate'] ?? data['date']) as String?;
-        final isPinned = (data['is_pinned'] ?? data['isPinned'] ?? false) as bool;
+        final dateStr =
+            (data['target_date'] ?? data['targetDate'] ?? data['date'])
+                as String?;
+        final isPinned =
+            (data['is_pinned'] ?? data['isPinned'] ?? false) as bool;
         if (_executeCreateMilestone(title, dateStr, isPinned)) {
           return jsonOk();
         }
@@ -67,7 +70,8 @@ class CalendarServerSection implements ServerSection {
       case 'create_milestone':
         return _executeCreateMilestone(
           data['title'] as String?,
-          (data['target_date'] ?? data['targetDate'] ?? data['date']) as String?,
+          (data['target_date'] ?? data['targetDate'] ?? data['date'])
+              as String?,
           (data['is_pinned'] ?? data['isPinned'] ?? false) as bool,
         );
       case 'delete_milestone':
@@ -82,12 +86,18 @@ class CalendarServerSection implements ServerSection {
   @override
   Map<String, dynamic>? snapshot() {
     return {
-      'calendar': _serializeCalendarState(getCalendar(), getStartWeekOnMonday()),
+      'calendar': _serializeCalendarState(
+        getCalendar(),
+        getStartWeekOnMonday(),
+      ),
     };
   }
 
   /// Serializes calendar state into JSON, computing fallback metrics if null.
-  Map<String, dynamic> _serializeCalendarState(CalendarState? cal, bool startWeekOnMonday) {
+  Map<String, dynamic> _serializeCalendarState(
+    CalendarState? cal,
+    bool startWeekOnMonday,
+  ) {
     if (cal == null) {
       final now = DateTime.now();
       return {
@@ -156,7 +166,9 @@ DateTime parseMilestoneDate(String? dateStr) {
   final isoParsed = DateTime.tryParse(trimmed);
   if (isoParsed != null) return isoParsed;
 
-  final delimiter = trimmed.contains('/') ? '/' : (trimmed.contains('-') ? '-' : null);
+  final delimiter = trimmed.contains('/')
+      ? '/'
+      : (trimmed.contains('-') ? '-' : null);
   if (delimiter != null) {
     final parts = trimmed.split(delimiter);
     if (parts.length == 3 && parts[2].length == 4) {

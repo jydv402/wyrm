@@ -85,7 +85,11 @@ class CalendarState {
   /// Calculates relative difference string between selected date and today.
   String get relativeDistanceText {
     final today = todayMidnight;
-    final selected = DateTime(selectedDate.year, selectedDate.month, selectedDate.day);
+    final selected = DateTime(
+      selectedDate.year,
+      selectedDate.month,
+      selectedDate.day,
+    );
     final diff = selected.difference(today).inDays;
 
     if (diff == 0) return 'Today';
@@ -150,9 +154,9 @@ class CalendarNotifier extends Notifier<CalendarState> {
     final raw = await AppDatabase.readSection('calendar');
     final loaded = raw is List
         ? raw
-            .whereType<Map<String, dynamic>>()
-            .map(CalendarMilestone.fromJson)
-            .toList()
+              .whereType<Map<String, dynamic>>()
+              .map(CalendarMilestone.fromJson)
+              .toList()
         : <CalendarMilestone>[];
     state = state.copyWith(milestones: loaded);
   }
@@ -161,10 +165,7 @@ class CalendarNotifier extends Notifier<CalendarState> {
   void selectDate(DateTime date) {
     final normalized = DateTime(date.year, date.month, date.day);
     final monthStart = DateTime(date.year, date.month, 1);
-    state = state.copyWith(
-      selectedDate: normalized,
-      viewMonth: monthStart,
-    );
+    state = state.copyWith(selectedDate: normalized, viewMonth: monthStart);
   }
 
   /// Jumps back to current day.
@@ -192,8 +193,16 @@ class CalendarNotifier extends Notifier<CalendarState> {
   }
 
   /// Adds a new milestone and persists to local JSON database.
-  Future<void> addMilestone(String title, DateTime targetDate, {bool isPinned = false}) async {
-    final normalizedTarget = DateTime(targetDate.year, targetDate.month, targetDate.day);
+  Future<void> addMilestone(
+    String title,
+    DateTime targetDate, {
+    bool isPinned = false,
+  }) async {
+    final normalizedTarget = DateTime(
+      targetDate.year,
+      targetDate.month,
+      targetDate.day,
+    );
     final newMilestone = CalendarMilestone(
       id: DateTime.now().millisecondsSinceEpoch.toString(),
       title: title.trim(),

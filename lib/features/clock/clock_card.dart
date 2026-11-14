@@ -56,10 +56,10 @@ class ClockContainer extends ConsumerWidget {
             Positioned(
               top: 0,
               right: 0,
-              child: CardEditButton(
-                currentSize: currentSize,
-                onSelectSize: onSelectSize ?? (_) {},
-                showNightstandOption: true,
+              child: CardEditButton<CardSize>(
+                options: cardSizeMenuOptions(includeNightstand: true),
+                currentValue: currentSize,
+                onSelected: onSelectSize ?? (_) {},
               ),
             ),
           ],
@@ -79,9 +79,13 @@ class ClockContainer extends ConsumerWidget {
             icon: Icons.schedule_rounded,
             title: 'Clock',
             accentColor: AppColors.slate.accent,
-            onSelectSize: onSelectSize,
-            currentSize: currentSize,
-            showNightstandOption: true,
+            editButton: onSelectSize == null
+                ? null
+                : CardEditButton<CardSize>(
+                    options: cardSizeMenuOptions(includeNightstand: true),
+                    currentValue: currentSize,
+                    onSelected: onSelectSize!,
+                  ),
           ),
           Expanded(child: content),
         ],

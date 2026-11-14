@@ -46,34 +46,45 @@ class InAppKeyboardWidget extends StatelessWidget {
               ),
             ],
           ),
-          child: _buildLayoutForMode(context, effectiveController),
+          child: switch (effectiveController.mode) {
+            VirtualKeyboardMode.letters => _LettersKeyboardLayout(
+              kb: effectiveController,
+              onDonePressed: onDonePressed,
+            ),
+            VirtualKeyboardMode.symbols => _SymbolsKeyboardLayout(
+              kb: effectiveController,
+              onDonePressed: onDonePressed,
+            ),
+            VirtualKeyboardMode.numpad => _NumpadKeyboardLayout(
+              kb: effectiveController,
+              onDonePressed: onDonePressed,
+            ),
+          },
         );
       },
     );
   }
+}
 
-  Widget _buildLayoutForMode(BuildContext context, InAppKeyboardController kb) {
-    switch (kb.mode) {
-      case VirtualKeyboardMode.letters:
-        return _buildLettersLayout(context, kb);
-      case VirtualKeyboardMode.symbols:
-        return _buildSymbolsLayout(context, kb);
-      case VirtualKeyboardMode.numpad:
-        return _buildNumpadLayout(context, kb);
-    }
-  }
+/// QWERTY letter layout with shift, caps lock, cursor nudges, and Done.
+class _LettersKeyboardLayout extends StatelessWidget {
+  static const _row1 = ['q', 'w', 'e', 'r', 't', 'y', 'u', 'i', 'o', 'p'];
+  static const _row2 = ['a', 's', 'd', 'f', 'g', 'h', 'j', 'k', 'l'];
+  static const _row3 = ['z', 'x', 'c', 'v', 'b', 'n', 'm'];
 
-  Widget _buildLettersLayout(BuildContext context, InAppKeyboardController kb) {
-    const row1 = ['q', 'w', 'e', 'r', 't', 'y', 'u', 'i', 'o', 'p'];
-    const row2 = ['a', 's', 'd', 'f', 'g', 'h', 'j', 'k', 'l'];
-    const row3 = ['z', 'x', 'c', 'v', 'b', 'n', 'm'];
+  final InAppKeyboardController kb;
+  final VoidCallback? onDonePressed;
 
+  const _LettersKeyboardLayout({required this.kb, this.onDonePressed});
+
+  @override
+  Widget build(BuildContext context) {
     return Column(
       children: [
         // Row 1
         Expanded(
           child: Row(
-            children: row1.map((char) {
+            children: _row1.map((char) {
               final label = kb.isShifted ? char.toUpperCase() : char;
               return Expanded(
                 child: _KeyButton(
@@ -91,7 +102,7 @@ class InAppKeyboardWidget extends StatelessWidget {
           child: Row(
             children: [
               const Spacer(flex: 1),
-              ...row2.map((char) {
+              ..._row2.map((char) {
                 final label = kb.isShifted ? char.toUpperCase() : char;
                 return Expanded(
                   flex: 2,
@@ -123,7 +134,7 @@ class InAppKeyboardWidget extends StatelessWidget {
                   onLongPress: kb.toggleCapsLock,
                 ),
               ),
-              ...row3.map((char) {
+              ..._row3.map((char) {
                 final label = kb.isShifted ? char.toUpperCase() : char;
                 return Expanded(
                   flex: 2,
@@ -147,67 +158,35 @@ class InAppKeyboardWidget extends StatelessWidget {
         const SizedBox(height: 5),
 
         // Row 4: Mode switch, Cursor nudges, Spacebar, Done
-        Expanded(
-          child: Row(
-            children: [
-              Expanded(
-                flex: 3,
-                child: _ActionKeyButton(
-                  label: '?123',
-                  onTap: () => kb.setMode(VirtualKeyboardMode.symbols),
-                ),
-              ),
-              Expanded(
-                flex: 2,
-                child: _ActionKeyButton(
-                  icon: Icons.chevron_left_rounded,
-                  onTap: kb.moveCursorLeft,
-                ),
-              ),
-              Expanded(
-                flex: 7,
-                child: _KeyButton(
-                  label: 'space',
-                  isSpacebar: true,
-                  onTap: () => kb.insertText(' '),
-                ),
-              ),
-              Expanded(
-                flex: 2,
-                child: _ActionKeyButton(
-                  icon: Icons.chevron_right_rounded,
-                  onTap: kb.moveCursorRight,
-                ),
-              ),
-              Expanded(
-                flex: 4,
-                child: _ActionKeyButton(
-                  label: 'Done',
-                  icon: Icons.check_rounded,
-                  isAccent: true,
-                  onTap: () {
-                    onDonePressed?.call();
-                    kb.submit();
-                  },
-                ),
-              ),
-            ],
-          ),
+        _KeyboardBottomBar(
+          kb: kb,
+          modeSwitchLabel: '?123',
+          modeSwitchTarget: VirtualKeyboardMode.symbols,
+          onDonePressed: onDonePressed,
         ),
       ],
     );
   }
+}
 
-  Widget _buildSymbolsLayout(BuildContext context, InAppKeyboardController kb) {
-    const row1 = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '0'];
-    const row2 = ['-', '/', ':', ';', '(', ')', '\$', '&', '@', '"'];
-    const row3 = ['.', ',', '?', '!', '\'', '%', '*', '+', '='];
+/// Symbol and punctuation layout with backspace, cursor nudges, and Done.
+class _SymbolsKeyboardLayout extends StatelessWidget {
+  static const _row1 = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '0'];
+  static const _row2 = ['-', '/', ':', ';', '(', ')', '\$', '&', '@', '"'];
+  static const _row3 = ['.', ',', '?', '!', '\'', '%', '*', '+', '='];
 
+  final InAppKeyboardController kb;
+  final VoidCallback? onDonePressed;
+
+  const _SymbolsKeyboardLayout({required this.kb, this.onDonePressed});
+
+  @override
+  Widget build(BuildContext context) {
     return Column(
       children: [
         Expanded(
           child: Row(
-            children: row1
+            children: _row1
                 .map(
                   (char) => Expanded(
                     child: _KeyButton(
@@ -222,7 +201,7 @@ class InAppKeyboardWidget extends StatelessWidget {
         const SizedBox(height: 5),
         Expanded(
           child: Row(
-            children: row2
+            children: _row2
                 .map(
                   (char) => Expanded(
                     child: _KeyButton(
@@ -238,7 +217,7 @@ class InAppKeyboardWidget extends StatelessWidget {
         Expanded(
           child: Row(
             children: [
-              ...row3.map(
+              ..._row3.map(
                 (char) => Expanded(
                   flex: 2,
                   child: _KeyButton(
@@ -259,66 +238,34 @@ class InAppKeyboardWidget extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 5),
-        Expanded(
-          child: Row(
-            children: [
-              Expanded(
-                flex: 3,
-                child: _ActionKeyButton(
-                  label: 'ABC',
-                  onTap: () => kb.setMode(VirtualKeyboardMode.letters),
-                ),
-              ),
-              Expanded(
-                flex: 2,
-                child: _ActionKeyButton(
-                  icon: Icons.chevron_left_rounded,
-                  onTap: kb.moveCursorLeft,
-                ),
-              ),
-              Expanded(
-                flex: 7,
-                child: _KeyButton(
-                  label: 'space',
-                  isSpacebar: true,
-                  onTap: () => kb.insertText(' '),
-                ),
-              ),
-              Expanded(
-                flex: 2,
-                child: _ActionKeyButton(
-                  icon: Icons.chevron_right_rounded,
-                  onTap: kb.moveCursorRight,
-                ),
-              ),
-              Expanded(
-                flex: 4,
-                child: _ActionKeyButton(
-                  label: 'Done',
-                  icon: Icons.check_rounded,
-                  isAccent: true,
-                  onTap: () {
-                    onDonePressed?.call();
-                    kb.submit();
-                  },
-                ),
-              ),
-            ],
-          ),
+        _KeyboardBottomBar(
+          kb: kb,
+          modeSwitchLabel: 'ABC',
+          modeSwitchTarget: VirtualKeyboardMode.letters,
+          onDonePressed: onDonePressed,
         ),
       ],
     );
   }
+}
 
-  Widget _buildNumpadLayout(BuildContext context, InAppKeyboardController kb) {
+/// Numeric keypad layout with backspace, mode switch, Clear, and Done.
+class _NumpadKeyboardLayout extends StatelessWidget {
+  final InAppKeyboardController kb;
+  final VoidCallback? onDonePressed;
+
+  const _NumpadKeyboardLayout({required this.kb, this.onDonePressed});
+
+  @override
+  Widget build(BuildContext context) {
     return Column(
       children: [
         Expanded(
           child: Row(
             children: [
-              _buildNumpadKey('1', kb),
-              _buildNumpadKey('2', kb),
-              _buildNumpadKey('3', kb),
+              _NumpadKeyButton(digit: '1', kb: kb),
+              _NumpadKeyButton(digit: '2', kb: kb),
+              _NumpadKeyButton(digit: '3', kb: kb),
               Expanded(
                 child: _ActionKeyButton(
                   icon: Icons.backspace_outlined,
@@ -333,9 +280,9 @@ class InAppKeyboardWidget extends StatelessWidget {
         Expanded(
           child: Row(
             children: [
-              _buildNumpadKey('4', kb),
-              _buildNumpadKey('5', kb),
-              _buildNumpadKey('6', kb),
+              _NumpadKeyButton(digit: '4', kb: kb),
+              _NumpadKeyButton(digit: '5', kb: kb),
+              _NumpadKeyButton(digit: '6', kb: kb),
               Expanded(
                 child: _ActionKeyButton(
                   label: 'ABC',
@@ -349,9 +296,9 @@ class InAppKeyboardWidget extends StatelessWidget {
         Expanded(
           child: Row(
             children: [
-              _buildNumpadKey('7', kb),
-              _buildNumpadKey('8', kb),
-              _buildNumpadKey('9', kb),
+              _NumpadKeyButton(digit: '7', kb: kb),
+              _NumpadKeyButton(digit: '8', kb: kb),
+              _NumpadKeyButton(digit: '9', kb: kb),
               Expanded(
                 child: _ActionKeyButton(label: 'Clear', onTap: kb.clear),
               ),
@@ -363,7 +310,7 @@ class InAppKeyboardWidget extends StatelessWidget {
           child: Row(
             children: [
               const Spacer(),
-              _buildNumpadKey('0', kb),
+              _NumpadKeyButton(digit: '0', kb: kb),
               const Spacer(),
               Expanded(
                 child: _ActionKeyButton(
@@ -382,13 +329,89 @@ class InAppKeyboardWidget extends StatelessWidget {
       ],
     );
   }
+}
 
-  Widget _buildNumpadKey(String digit, InAppKeyboardController kb) {
+/// A single numpad digit key.
+class _NumpadKeyButton extends StatelessWidget {
+  final String digit;
+  final InAppKeyboardController kb;
+
+  const _NumpadKeyButton({required this.digit, required this.kb});
+
+  @override
+  Widget build(BuildContext context) {
     return Expanded(
       child: _KeyButton(
         label: digit,
         fontSize: 18,
         onTap: () => kb.insertText(digit),
+      ),
+    );
+  }
+}
+
+/// Shared bottom row for the letter and symbol layouts: mode switch, cursor
+/// nudges, spacebar, and Done.
+class _KeyboardBottomBar extends StatelessWidget {
+  final InAppKeyboardController kb;
+  final String modeSwitchLabel;
+  final VirtualKeyboardMode modeSwitchTarget;
+  final VoidCallback? onDonePressed;
+
+  const _KeyboardBottomBar({
+    required this.kb,
+    required this.modeSwitchLabel,
+    required this.modeSwitchTarget,
+    this.onDonePressed,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Expanded(
+      child: Row(
+        children: [
+          Expanded(
+            flex: 3,
+            child: _ActionKeyButton(
+              label: modeSwitchLabel,
+              onTap: () => kb.setMode(modeSwitchTarget),
+            ),
+          ),
+          Expanded(
+            flex: 2,
+            child: _ActionKeyButton(
+              icon: Icons.chevron_left_rounded,
+              onTap: kb.moveCursorLeft,
+            ),
+          ),
+          Expanded(
+            flex: 7,
+            child: _KeyButton(
+              label: 'space',
+              isSpacebar: true,
+              onTap: () => kb.insertText(' '),
+            ),
+          ),
+          Expanded(
+            flex: 2,
+            child: _ActionKeyButton(
+              icon: Icons.chevron_right_rounded,
+              onTap: kb.moveCursorRight,
+            ),
+          ),
+          Expanded(
+            flex: 4,
+            child: _ActionKeyButton(
+              label: 'Done',
+              icon: Icons.check_rounded,
+              isAccent: true,
+              onTap: () {
+                onDonePressed?.call();
+                kb.submit();
+              },
+            ),
+          ),
+        ],
       ),
     );
   }

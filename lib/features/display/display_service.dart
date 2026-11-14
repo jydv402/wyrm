@@ -16,9 +16,7 @@ class DisplayService {
   /// Applies the requested panel brightness to the host window.
   ///
   /// [brightness] is a value between 0.0 and 1.0.
-  static Future<void> apply({
-    required double brightness,
-  }) async {
+  static Future<void> apply({required double brightness}) async {
     try {
       await channel.invokeMethod<void>('setPanelState', <String, dynamic>{
         'brightness': brightness,

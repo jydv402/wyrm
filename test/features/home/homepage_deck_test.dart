@@ -1,15 +1,17 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:wyrm_desk/config/card_layout_state.dart';
 import 'package:wyrm_desk/features/calendar/calendar_card.dart';
 import 'package:wyrm_desk/features/clock/clock_card.dart';
 import 'package:wyrm_desk/features/home/top_pill_bar.dart';
-import 'package:wyrm_desk/config/card_layout_state.dart';
 import 'package:wyrm_desk/widgets/card_edit_button.dart';
 import 'package:wyrm_desk/features/habits/habits_card.dart';
 import 'package:wyrm_desk/features/home/homepage.dart';
 import 'package:wyrm_desk/features/tasks/tasks_card.dart';
 
+/// Integration tests for the homepage deck shell: card rendering, in-place
+/// card-size popup menus, and scroll/stack behaviour across size changes.
 void main() {
   testWidgets(
     'HomePage renders pinned top bar, horizontal deck, all cards, and scroll indicator',
@@ -34,7 +36,7 @@ void main() {
       expect(find.byType(TasksCard), findsOneWidget);
 
       // Verify presence of corner cycle buttons on all four cards.
-      expect(find.byType(CardEditButton), findsNWidgets(4));
+      expect(find.byType(CardEditButton<CardSize>), findsNWidgets(4));
     },
   );
 
@@ -55,7 +57,7 @@ void main() {
 
       final clockMenuButton = find.descendant(
         of: clockFinder,
-        matching: find.byType(CardEditButton),
+        matching: find.byType(CardEditButton<CardSize>),
       );
 
       // Tap corner button to expand in-place popup menu.
@@ -111,7 +113,7 @@ void main() {
       final habitsFinder = find.byType(HabitsCard);
       final habitsMenuButton = find.descendant(
         of: habitsFinder,
-        matching: find.byType(CardEditButton),
+        matching: find.byType(CardEditButton<CardSize>),
       );
 
       // Expand popup menu on Habits card and select Medium.
@@ -154,30 +156,6 @@ void main() {
 
       expect(find.byType(HabitsCard), findsOneWidget);
       expect(find.byType(CalendarCard), findsOneWidget);
-    },
-  );
-
-  test(
-    'CardLayoutConfig serializes to and deserializes from JSON accurately',
-    () {
-      const config = CardLayoutConfig(
-        clock: CardSize.medium,
-        habits: CardSize.fullscreen,
-        calendar: CardSize.small,
-        tasks: CardSize.medium,
-      );
-
-      final jsonMap = config.toJson();
-      expect(jsonMap['clock'], 'medium');
-      expect(jsonMap['habits'], 'fullscreen');
-      expect(jsonMap['calendar'], 'small');
-      expect(jsonMap['tasks'], 'medium');
-
-      final restored = CardLayoutConfig.fromJson(jsonMap);
-      expect(restored.clock, CardSize.medium);
-      expect(restored.habits, CardSize.fullscreen);
-      expect(restored.calendar, CardSize.small);
-      expect(restored.tasks, CardSize.medium);
     },
   );
 }

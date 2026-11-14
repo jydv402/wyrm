@@ -1,5 +1,7 @@
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:wyrm_desk/data/app_database.dart';
+import 'package:wyrm_desk/widgets/card_edit_button.dart';
 
 /// Available sizing dimensions for bento cards across the horizontal layout.
 enum CardSize {
@@ -28,6 +30,32 @@ enum CardSize {
         return 'Nightstand';
     }
   }
+
+  /// Resolves the popup-menu icon for the shared card-size control.
+  IconData get menuIcon {
+    switch (this) {
+      case CardSize.small:
+        return Icons.crop_square_rounded;
+      case CardSize.medium:
+        return Icons.view_column_rounded;
+      case CardSize.fullscreen:
+        return Icons.fullscreen_rounded;
+      case CardSize.nightstand:
+        return Icons.bedtime_rounded;
+    }
+  }
+}
+
+/// Popup-menu entries for the shared card-size [CardEditButton], ordered
+/// small → medium → fullscreen, with the clock-only Nightstand tier last.
+List<EditMenuOption<CardSize>> cardSizeMenuOptions({
+  bool includeNightstand = false,
+}) {
+  const tiers = CardSize.values;
+  return [
+    for (final size in includeNightstand ? tiers : tiers.take(3))
+      EditMenuOption(value: size, label: size.label, icon: size.menuIcon),
+  ];
 }
 
 /// Identifiers for the primary modular cards hosted on the dashboard.
@@ -179,18 +207,15 @@ class CardLayoutNotifier extends Notifier<CardLayoutConfig> {
 /// Riverpod provider exposing layout state and configuration methods.
 final cardLayoutProvider =
     NotifierProvider<CardLayoutNotifier, CardLayoutConfig>(
-  CardLayoutNotifier.new,
-);
+      CardLayoutNotifier.new,
+    );
 
 /// Represents a requested scroll target event for the dashboard deck.
 class CardScrollRequest {
   final DashboardCardType card;
   final int timestamp;
 
-  const CardScrollRequest({
-    required this.card,
-    required this.timestamp,
-  });
+  const CardScrollRequest({required this.card, required this.timestamp});
 
   @override
   bool operator ==(Object other) =>
@@ -221,6 +246,5 @@ class CardScrollRequestNotifier extends Notifier<CardScrollRequest?> {
 /// Riverpod provider exposing the latest card scroll request for the dashboard.
 final cardScrollRequestProvider =
     NotifierProvider<CardScrollRequestNotifier, CardScrollRequest?>(
-  CardScrollRequestNotifier.new,
-);
-
+      CardScrollRequestNotifier.new,
+    );

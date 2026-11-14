@@ -43,7 +43,9 @@ final webServerProvider = Provider<ShelfWebServer>((ref) {
       HabitsServerSection(
         getHabits: () => ref.read(habitsProvider),
         onAddHabit: (title, type, targetValue, {unit, iconName}) {
-          ref.read(habitsProvider.notifier).addHabit(
+          ref
+              .read(habitsProvider.notifier)
+              .addHabit(
                 HabitItem(
                   id: DateTime.now().millisecondsSinceEpoch.toString(),
                   title: title,
@@ -116,7 +118,9 @@ final webServerProvider = Provider<ShelfWebServer>((ref) {
       ),
     ],
     onImportDatabase: (jsonString) async {
-      return await ref.read(databaseServiceProvider).importAndReloadJson(jsonString);
+      return await ref
+          .read(databaseServiceProvider)
+          .importAndReloadJson(jsonString);
     },
   );
 

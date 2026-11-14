@@ -79,21 +79,69 @@ class TaskFormContent extends StatelessWidget {
         const SizedBox(height: 8),
         Row(
           children: [
-            _buildPriorityOption('normal', 'Normal', AppColors.teal.accent),
+            _PriorityOptionChip(
+              value: 'normal',
+              label: 'Normal',
+              accentColor: AppColors.teal.accent,
+              selectedValue: selectedPriority,
+              onPriorityChanged: onPriorityChanged,
+              onChanged: onChanged,
+            ),
             const SizedBox(width: 8),
-            _buildPriorityOption('low', 'Low', AppColors.priorityLow),
+            _PriorityOptionChip(
+              value: 'low',
+              label: 'Low',
+              accentColor: AppColors.priorityLow,
+              selectedValue: selectedPriority,
+              onPriorityChanged: onPriorityChanged,
+              onChanged: onChanged,
+            ),
             const SizedBox(width: 8),
-            _buildPriorityOption('medium', 'Medium', AppColors.priorityMedium),
+            _PriorityOptionChip(
+              value: 'medium',
+              label: 'Medium',
+              accentColor: AppColors.priorityMedium,
+              selectedValue: selectedPriority,
+              onPriorityChanged: onPriorityChanged,
+              onChanged: onChanged,
+            ),
             const SizedBox(width: 8),
-            _buildPriorityOption('high', 'High', AppColors.priorityHigh),
+            _PriorityOptionChip(
+              value: 'high',
+              label: 'High',
+              accentColor: AppColors.priorityHigh,
+              selectedValue: selectedPriority,
+              onPriorityChanged: onPriorityChanged,
+              onChanged: onChanged,
+            ),
           ],
         ),
       ],
     );
   }
+}
 
-  Widget _buildPriorityOption(String value, String label, Color accentColor) {
-    final isSelected = selectedPriority == value;
+/// One selectable priority pill in the task form.
+class _PriorityOptionChip extends StatelessWidget {
+  final String value;
+  final String label;
+  final Color accentColor;
+  final String selectedValue;
+  final ValueChanged<String> onPriorityChanged;
+  final VoidCallback? onChanged;
+
+  const _PriorityOptionChip({
+    required this.value,
+    required this.label,
+    required this.accentColor,
+    required this.selectedValue,
+    required this.onPriorityChanged,
+    this.onChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final isSelected = selectedValue == value;
 
     return Expanded(
       child: InkWell(

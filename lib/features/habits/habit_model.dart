@@ -20,7 +20,9 @@ enum HabitType {
   static HabitType fromString(String? value) {
     if (value == null) return HabitType.binary;
     final normalized = value.toLowerCase().trim();
-    if (normalized == 'numeric' || normalized == 'counter' || normalized == 'target') {
+    if (normalized == 'numeric' ||
+        normalized == 'counter' ||
+        normalized == 'target') {
       return HabitType.numeric;
     }
     return HabitType.binary;
@@ -95,7 +97,9 @@ class HabitItem {
 
     final todayDone = isCompletedOn(todayMidnight);
     final yesterdayMidnight = todayMidnight.subtract(const Duration(days: 1));
-    final yesterdayInMonth = yesterdayMidnight.month == ref.month && yesterdayMidnight.year == ref.year;
+    final yesterdayInMonth =
+        yesterdayMidnight.month == ref.month &&
+        yesterdayMidnight.year == ref.year;
     final yesterdayDone = yesterdayInMonth && isCompletedOn(yesterdayMidnight);
 
     if (!todayDone && !yesterdayDone) {
@@ -112,7 +116,9 @@ class HabitItem {
       cursor = yesterdayMidnight;
     }
 
-    while (cursor.month == ref.month && cursor.year == ref.year && isCompletedOn(cursor)) {
+    while (cursor.month == ref.month &&
+        cursor.year == ref.year &&
+        isCompletedOn(cursor)) {
       streak++;
       cursor = cursor.subtract(const Duration(days: 1));
     }
@@ -122,13 +128,17 @@ class HabitItem {
 
   /// Calculates the best unbroken completion streak achieved within the reference month.
   int bestStreak([DateTime? referenceDate]) {
-    final ref = referenceDate ??
+    final ref =
+        referenceDate ??
         (completions.isNotEmpty
             ? (DateTime.tryParse(completions.keys.first) ?? createdAt)
             : createdAt);
-    final prefix = '${ref.year.toString().padLeft(4, '0')}-${ref.month.toString().padLeft(2, '0')}-';
+    final prefix =
+        '${ref.year.toString().padLeft(4, '0')}-${ref.month.toString().padLeft(2, '0')}-';
     final completedDateKeys = completions.entries
-        .where((entry) => entry.value >= targetValue && entry.key.startsWith(prefix))
+        .where(
+          (entry) => entry.value >= targetValue && entry.key.startsWith(prefix),
+        )
         .map((entry) => entry.key)
         .toList();
 
@@ -175,9 +185,12 @@ class HabitItem {
   /// Counts the total number of days completed in the designated month.
   int monthCompletedDaysCount([DateTime? referenceDate]) {
     final ref = referenceDate ?? DateTime.now();
-    final prefix = '${ref.year.toString().padLeft(4, '0')}-${ref.month.toString().padLeft(2, '0')}-';
+    final prefix =
+        '${ref.year.toString().padLeft(4, '0')}-${ref.month.toString().padLeft(2, '0')}-';
     return completions.entries
-        .where((entry) => entry.key.startsWith(prefix) && entry.value >= targetValue)
+        .where(
+          (entry) => entry.key.startsWith(prefix) && entry.value >= targetValue,
+        )
         .length;
   }
 
@@ -201,21 +214,28 @@ class HabitItem {
     var currentColumn = <HeatmapCellData>[];
 
     for (var i = 0; i < firstDayWeekdayOffset; i++) {
-      currentColumn.add(const HeatmapCellData(
-        dayNumber: 0,
-        isCurrentMonth: false,
-        isFuture: false,
-        isToday: false,
-        isCompleted: false,
-        intensity: 0.0,
-        count: 0,
-      ));
+      currentColumn.add(
+        const HeatmapCellData(
+          dayNumber: 0,
+          isCurrentMonth: false,
+          isFuture: false,
+          isToday: false,
+          isCompleted: false,
+          intensity: 0.0,
+          count: 0,
+        ),
+      );
     }
 
     for (var day = 1; day <= totalDays; day++) {
       final date = DateTime(year, month, day);
-      final isToday = date.year == today.year && date.month == today.month && date.day == today.day;
-      final isFuture = date.isAfter(DateTime(today.year, today.month, today.day));
+      final isToday =
+          date.year == today.year &&
+          date.month == today.month &&
+          date.day == today.day;
+      final isFuture = date.isAfter(
+        DateTime(today.year, today.month, today.day),
+      );
       final count = completionCountOn(date);
       final isCompleted = count >= targetValue;
 
@@ -226,16 +246,18 @@ class HabitItem {
         intensity = (count / targetValue).clamp(0.2, 0.8);
       }
 
-      currentColumn.add(HeatmapCellData(
-        date: date,
-        dayNumber: day,
-        isCurrentMonth: true,
-        isFuture: isFuture,
-        isToday: isToday,
-        isCompleted: isCompleted,
-        intensity: intensity,
-        count: count,
-      ));
+      currentColumn.add(
+        HeatmapCellData(
+          date: date,
+          dayNumber: day,
+          isCurrentMonth: true,
+          isFuture: isFuture,
+          isToday: isToday,
+          isCompleted: isCompleted,
+          intensity: intensity,
+          count: count,
+        ),
+      );
 
       if (currentColumn.length == 7) {
         columns.add(currentColumn);
@@ -245,15 +267,17 @@ class HabitItem {
 
     if (currentColumn.isNotEmpty) {
       while (currentColumn.length < 7) {
-        currentColumn.add(const HeatmapCellData(
-          dayNumber: 0,
-          isCurrentMonth: false,
-          isFuture: false,
-          isToday: false,
-          isCompleted: false,
-          intensity: 0.0,
-          count: 0,
-        ));
+        currentColumn.add(
+          const HeatmapCellData(
+            dayNumber: 0,
+            isCurrentMonth: false,
+            isFuture: false,
+            isToday: false,
+            isCompleted: false,
+            intensity: 0.0,
+            count: 0,
+          ),
+        );
       }
       columns.add(currentColumn);
     }
@@ -283,22 +307,29 @@ class HabitItem {
     final prevMonthLastDay = DateTime(year, month, 0).day;
     for (var i = firstDayWeekdayOffset - 1; i >= 0; i--) {
       final prevDate = DateTime(year, month - 1, prevMonthLastDay - i);
-      currentWeek.add(HeatmapCellData(
-        date: prevDate,
-        dayNumber: prevDate.day,
-        isCurrentMonth: false,
-        isFuture: false,
-        isToday: false,
-        isCompleted: false,
-        intensity: 0.0,
-        count: 0,
-      ));
+      currentWeek.add(
+        HeatmapCellData(
+          date: prevDate,
+          dayNumber: prevDate.day,
+          isCurrentMonth: false,
+          isFuture: false,
+          isToday: false,
+          isCompleted: false,
+          intensity: 0.0,
+          count: 0,
+        ),
+      );
     }
 
     for (var day = 1; day <= totalDays; day++) {
       final date = DateTime(year, month, day);
-      final isToday = date.year == today.year && date.month == today.month && date.day == today.day;
-      final isFuture = date.isAfter(DateTime(today.year, today.month, today.day));
+      final isToday =
+          date.year == today.year &&
+          date.month == today.month &&
+          date.day == today.day;
+      final isFuture = date.isAfter(
+        DateTime(today.year, today.month, today.day),
+      );
       final count = completionCountOn(date);
       final isCompleted = count >= targetValue;
 
@@ -309,16 +340,18 @@ class HabitItem {
         intensity = (count / targetValue).clamp(0.2, 0.8);
       }
 
-      currentWeek.add(HeatmapCellData(
-        date: date,
-        dayNumber: day,
-        isCurrentMonth: true,
-        isFuture: isFuture,
-        isToday: isToday,
-        isCompleted: isCompleted,
-        intensity: intensity,
-        count: count,
-      ));
+      currentWeek.add(
+        HeatmapCellData(
+          date: date,
+          dayNumber: day,
+          isCurrentMonth: true,
+          isFuture: isFuture,
+          isToday: isToday,
+          isCompleted: isCompleted,
+          intensity: intensity,
+          count: count,
+        ),
+      );
 
       if (currentWeek.length == 7) {
         weeks.add(currentWeek);
@@ -330,16 +363,18 @@ class HabitItem {
       var nextDay = 1;
       while (currentWeek.length < 7) {
         final nextDate = DateTime(year, month + 1, nextDay++);
-        currentWeek.add(HeatmapCellData(
-          date: nextDate,
-          dayNumber: nextDate.day,
-          isCurrentMonth: false,
-          isFuture: false,
-          isToday: false,
-          isCompleted: false,
-          intensity: 0.0,
-          count: 0,
-        ));
+        currentWeek.add(
+          HeatmapCellData(
+            date: nextDate,
+            dayNumber: nextDate.day,
+            isCurrentMonth: false,
+            isFuture: false,
+            isToday: false,
+            isCompleted: false,
+            intensity: 0.0,
+            count: 0,
+          ),
+        );
       }
       weeks.add(currentWeek);
     }
@@ -408,7 +443,9 @@ class HabitItem {
     if (rawCompletions is Map) {
       rawCompletions.forEach((key, value) {
         final keyStr = key.toString();
-        final countVal = value is num ? value.toInt() : int.tryParse(value.toString()) ?? 0;
+        final countVal = value is num
+            ? value.toInt()
+            : int.tryParse(value.toString()) ?? 0;
         parsedCompletions[keyStr] = countVal;
       });
     }
@@ -418,19 +455,26 @@ class HabitItem {
         ? DateTime.tryParse(rawCreatedAt) ?? DateTime.now()
         : DateTime.now();
 
-    final rawTarget = json['target_value'] ?? json['targetValue'] ?? json['target'];
+    final rawTarget =
+        json['target_value'] ?? json['targetValue'] ?? json['target'];
     final parsedTarget = rawTarget is num
         ? rawTarget.toInt()
         : int.tryParse(rawTarget?.toString() ?? '1') ?? 1;
 
     return HabitItem(
-      id: json['id']?.toString() ?? DateTime.now().millisecondsSinceEpoch.toString(),
+      id:
+          json['id']?.toString() ??
+          DateTime.now().millisecondsSinceEpoch.toString(),
       title: (json['title'] ?? json['name'] ?? 'Habit').toString(),
       type: HabitType.fromString(json['type']?.toString()),
       targetValue: parsedTarget < 1 ? 1 : parsedTarget,
       unit: json['unit']?.toString(),
-      iconName: (json['icon_name'] ?? json['iconName'] ?? json['icon'] ?? 'bolt').toString(),
-      colorHex: (json['color_hex'] ?? json['colorHex'] ?? json['color'] ?? '#A0D2B4').toString(),
+      iconName:
+          (json['icon_name'] ?? json['iconName'] ?? json['icon'] ?? 'bolt')
+              .toString(),
+      colorHex:
+          (json['color_hex'] ?? json['colorHex'] ?? json['color'] ?? '#A0D2B4')
+              .toString(),
       completions: parsedCompletions,
       createdAt: parsedCreatedAt,
     );
@@ -474,4 +518,3 @@ class HeatmapCellData {
     required this.count,
   });
 }
-

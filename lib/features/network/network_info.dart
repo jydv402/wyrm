@@ -1,4 +1,5 @@
 import 'dart:io';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 /// Utilities for resolving the device's local network IPv4 address.
@@ -14,7 +15,8 @@ class NetworkInfo {
       // Prioritize Wi-Fi and ethernet interfaces over virtual tunnels.
       for (final interface in interfaces) {
         final name = interface.name.toLowerCase();
-        final isPreferred = name.contains('wlan') ||
+        final isPreferred =
+            name.contains('wlan') ||
             name.contains('wi-fi') ||
             name.contains('wifi') ||
             name.contains('eth') ||
@@ -22,7 +24,8 @@ class NetworkInfo {
 
         if (isPreferred) {
           for (final address in interface.addresses) {
-            if (!address.isLoopback && address.type == InternetAddressType.IPv4) {
+            if (!address.isLoopback &&
+                address.type == InternetAddressType.IPv4) {
               return address.address;
             }
           }

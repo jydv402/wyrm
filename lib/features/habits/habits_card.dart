@@ -6,6 +6,7 @@ import 'package:wyrm_desk/features/habits/habit_form_content.dart';
 import 'package:wyrm_desk/features/habits/habit_model.dart';
 import 'package:wyrm_desk/features/habits/habits_state.dart';
 import 'package:wyrm_desk/config/card_layout_state.dart';
+import 'package:wyrm_desk/widgets/card_edit_button.dart';
 import 'package:wyrm_desk/features/keyboard/two_pane_keyboard_scaffold.dart';
 import 'package:wyrm_desk/config/app_settings_state.dart';
 import 'package:wyrm_desk/widgets/dusk_card_header.dart';
@@ -26,23 +27,17 @@ class HabitsCard extends ConsumerWidget {
     this.currentSize = CardSize.small,
   });
 
-  static IconData resolveIcon(String? name) {
-    return resolveHabitIcon(name) ?? Icons.bolt_rounded;
-  }
-
+  /// Resolves midnight of the week containing [referenceDate].
   static DateTime getWeekStart(DateTime referenceDate, bool startWeekOnMonday) {
     final ref = DateTime(
       referenceDate.year,
       referenceDate.month,
       referenceDate.day,
     );
-    if (!startWeekOnMonday) {
-      final daysToSubtract = ref.weekday % 7;
-      return ref.subtract(Duration(days: daysToSubtract));
-    } else {
-      final daysToSubtract = ref.weekday - 1;
-      return ref.subtract(Duration(days: daysToSubtract));
-    }
+    final daysToSubtract = startWeekOnMonday
+        ? ref.weekday - 1
+        : ref.weekday % 7;
+    return ref.subtract(Duration(days: daysToSubtract));
   }
 
   @override
@@ -50,28 +45,6 @@ class HabitsCard extends ConsumerWidget {
     final habitsState = ref.watch(habitsProvider);
     final settings = ref.watch(appSettingsProvider);
     final isSmall = currentSize == CardSize.small;
-
-    final badgeWidget = habitsState.habits.isNotEmpty
-        ? Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-            decoration: BoxDecoration(
-              color: AppColors.tealAccent.withValues(alpha: 0.16),
-              borderRadius: BorderRadius.circular(10),
-              border: Border.all(
-                color: AppColors.tealAccent.withValues(alpha: 0.35),
-                width: 1.0,
-              ),
-            ),
-            child: Text(
-              '${habitsState.completedTodayCount()}/${habitsState.habits.length}',
-              style: const TextStyle(
-                color: AppColors.tealAccent,
-                fontSize: 11,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-          )
-        : null;
 
     return DuskGlassPanel(
       tone: AppColors.teal,
@@ -87,38 +60,85 @@ class HabitsCard extends ConsumerWidget {
             icon: Icons.eco_rounded,
             title: 'Habits',
             accentColor: AppColors.tealAccent,
-            badge: badgeWidget,
-            onAdd: () => _showHabitFormSheet(context, ref),
+            badge: _HabitsCountBadge(habitsState: habitsState),
+            onAdd: () => _openHabitTwoPaneEditor(context, ref),
             addColor: AppColors.tealFill,
             addForegroundColor: AppColors.tealInk,
-            onSelectSize: onSelectSize,
-            currentSize: currentSize,
+            editButton: onSelectSize == null
+                ? null
+                : CardEditButton<CardSize>(
+                    options: cardSizeMenuOptions(),
+                    currentValue: currentSize,
+                    onSelected: onSelectSize!,
+                  ),
           ),
           const SizedBox(height: 12),
           Expanded(
             child: isSmall
-                ? _buildSmallLayout(context, ref, habitsState, settings)
-                : _buildExpandedLayout(context, ref, habitsState, settings),
+                ? _HabitsCarouselView(state: habitsState, settings: settings)
+                : _HabitsExpandedGrid(
+                    state: habitsState,
+                    settings: settings,
+                    isFullscreen: currentSize == CardSize.fullscreen,
+                  ),
           ),
         ],
       ),
     );
   }
+}
 
-  /// Compact Small card view: Empty state matching reference, or habit carousel with 7-day dot matrix.
-  Widget _buildSmallLayout(
-    BuildContext context,
-    WidgetRef ref,
-    HabitsState state,
-    AppSettingsConfig settings,
-  ) {
+/// Completed-today/total badge shown in the card header.
+class _HabitsCountBadge extends StatelessWidget {
+  final HabitsState habitsState;
+
+  const _HabitsCountBadge({required this.habitsState});
+
+  @override
+  Widget build(BuildContext context) {
+    if (habitsState.habits.isEmpty) return const SizedBox.shrink();
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      decoration: BoxDecoration(
+        color: AppColors.tealAccent.withValues(alpha: 0.16),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(
+          color: AppColors.tealAccent.withValues(alpha: 0.35),
+          width: 1.0,
+        ),
+      ),
+      child: Text(
+        '${habitsState.completedTodayCount()}/${habitsState.habits.length}',
+        style: const TextStyle(
+          color: AppColors.tealAccent,
+          fontSize: 11,
+          fontWeight: FontWeight.w700,
+        ),
+      ),
+    );
+  }
+}
+
+/// Compact Small card view: Empty state matching reference, or habit carousel with 7-day dot matrix.
+class _HabitsCarouselView extends ConsumerWidget {
+  final HabitsState state;
+  final AppSettingsConfig settings;
+
+  const _HabitsCarouselView({required this.state, required this.settings});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
     if (state.habits.isEmpty) {
-      return _buildEmptyState(context, ref);
+      return _HabitsEmptyState();
     }
 
     final activeHabit = state.activeHabit ?? state.habits.first;
     final today = DateTime.now();
-    final weekStart = getWeekStart(today, settings.startWeekOnMonday);
+    final weekStart = HabitsCard.getWeekStart(
+      today,
+      settings.startWeekOnMonday,
+    );
     final isDoneToday = activeHabit.isCompletedOn(today);
 
     return LayoutBuilder(
@@ -291,8 +311,7 @@ class HabitsCard extends ConsumerWidget {
             if (!isUltraCompact) ...[
               const SizedBox(height: 10),
               // 7-day dot matrix
-              _buildDuskWeekDots(
-                ref: ref,
+              _HabitWeekDots(
                 habit: activeHabit,
                 weekStart: weekStart,
                 today: today,
@@ -314,15 +333,24 @@ class HabitsCard extends ConsumerWidget {
       },
     );
   }
+}
 
-  /// 7-day circular completion dots matching assets/web Dusk Glass .week__dot
-  Widget _buildDuskWeekDots({
-    required WidgetRef ref,
-    required HabitItem habit,
-    required DateTime weekStart,
-    required DateTime today,
-    required bool startWeekOnMonday,
-  }) {
+/// 7-day circular completion dots matching assets/web Dusk Glass .week__dot
+class _HabitWeekDots extends ConsumerWidget {
+  final HabitItem habit;
+  final DateTime weekStart;
+  final DateTime today;
+  final bool startWeekOnMonday;
+
+  const _HabitWeekDots({
+    required this.habit,
+    required this.weekStart,
+    required this.today,
+    required this.startWeekOnMonday,
+  });
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
     final dayLabels = !startWeekOnMonday
         ? const ['S', 'M', 'T', 'W', 'T', 'F', 'S']
         : const ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
@@ -414,9 +442,14 @@ class HabitsCard extends ConsumerWidget {
       }),
     );
   }
+}
 
-  /// Empty state matching the reference screenshot: sprout circle, title, subtitle, "+ Add a habit".
-  Widget _buildEmptyState(BuildContext context, WidgetRef ref) {
+/// Empty state matching the reference screenshot: sprout circle, title, subtitle, "+ Add a habit".
+class _HabitsEmptyState extends ConsumerWidget {
+  const _HabitsEmptyState();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
     return Center(
       child: FittedBox(
         fit: BoxFit.scaleDown,
@@ -473,7 +506,7 @@ class HabitsCard extends ConsumerWidget {
 
             // + Add a habit button
             DuskGlassButton(
-              onPressed: () => _showHabitFormSheet(context, ref),
+              onPressed: () => _openHabitTwoPaneEditor(context, ref),
               height: 42,
               padding: const EdgeInsets.symmetric(horizontal: 20),
               icon: const Icon(
@@ -495,21 +528,31 @@ class HabitsCard extends ConsumerWidget {
       ),
     );
   }
+}
 
-  /// Expanded Multi-Column Grid layout for Medium & Fullscreen modes.
-  Widget _buildExpandedLayout(
-    BuildContext context,
-    WidgetRef ref,
-    HabitsState state,
-    AppSettingsConfig settings,
-  ) {
+/// Expanded Multi-Column Grid layout for Medium & Fullscreen modes.
+class _HabitsExpandedGrid extends ConsumerWidget {
+  final HabitsState state;
+  final AppSettingsConfig settings;
+  final bool isFullscreen;
+
+  const _HabitsExpandedGrid({
+    required this.state,
+    required this.settings,
+    required this.isFullscreen,
+  });
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
     if (state.habits.isEmpty) {
-      return _buildEmptyState(context, ref);
+      return const _HabitsEmptyState();
     }
 
     final today = DateTime.now();
-    final weekStart = getWeekStart(today, settings.startWeekOnMonday);
-    final isFullscreen = currentSize == CardSize.fullscreen;
+    final weekStart = HabitsCard.getWeekStart(
+      today,
+      settings.startWeekOnMonday,
+    );
 
     return GridView.builder(
       physics: const BouncingScrollPhysics(),
@@ -521,121 +564,153 @@ class HabitsCard extends ConsumerWidget {
       ),
       itemCount: state.habits.length,
       itemBuilder: (context, index) {
-        final habit = state.habits[index];
-        final isDoneToday = habit.isCompletedOn(today);
-
-        return Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: AppColors.well,
-            borderRadius: BorderRadius.circular(22),
-            border: Border.all(
-              color: isDoneToday
-                  ? AppColors.tealAccent.withValues(alpha: 0.5)
-                  : AppColors.line,
-              width: 1.0,
-            ),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Row(
-                children: [
-                  Container(
-                    width: 44,
-                    height: 44,
-                    decoration: BoxDecoration(
-                      color: AppColors.tealAccent.withValues(alpha: 0.14),
-                      shape: BoxShape.circle,
-                      border: Border.all(
-                        color: AppColors.tealAccent.withValues(alpha: 0.35),
-                        width: 1.0,
-                      ),
-                    ),
-                    child: buildHabitGlyph(
-                      habit.iconName,
-                      size: 22,
-                      color: AppColors.tealAccent,
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          habit.title,
-                          style: const TextStyle(
-                            color: AppColors.textPrimary,
-                            fontSize: 16.5,
-                            fontWeight: FontWeight.w700,
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        const SizedBox(height: 2),
-                        Text(
-                          '${habit.completionCountOn(today)} of ${habit.targetValue} completed today',
-                          style: const TextStyle(
-                            color: AppColors.textSecondary,
-                            fontSize: 12.5,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  DuskGlassButton.icon(
-                    onPressed: () =>
-                        _showHabitFormSheet(context, ref, habitToEdit: habit),
-                    size: 34,
-                    icon: const Icon(
-                      Icons.edit_outlined,
-                      size: 16,
-                      color: AppColors.textSecondary,
-                    ),
-                  ),
-                  const SizedBox(width: 6),
-                  DuskGlassButton.icon(
-                    onPressed: () =>
-                        ref.read(habitsProvider.notifier).deleteHabit(habit.id),
-                    size: 34,
-                    icon: const Icon(
-                      Icons.delete_outline_rounded,
-                      size: 16,
-                      color: AppColors.accentRed,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 8),
-              _buildDuskWeekDots(
-                ref: ref,
-                habit: habit,
-                weekStart: weekStart,
-                today: today,
-                startWeekOnMonday: settings.startWeekOnMonday,
-              ),
-              const SizedBox(height: 8),
-              Expanded(
-                child: _buildCalendarHeatmap(
-                  habit: habit,
-                  today: today,
-                  startWeekOnMonday: settings.startWeekOnMonday,
-                ),
-              ),
-            ],
-          ),
+        return _HabitGridTile(
+          habit: state.habits[index],
+          today: today,
+          weekStart: weekStart,
+          startWeekOnMonday: settings.startWeekOnMonday,
         );
       },
     );
   }
+}
 
-  /// Calendar-style monthly contribution heatmap showing daily activity dots.
-  Widget _buildCalendarHeatmap({
-    required HabitItem habit,
-    required DateTime today,
-    required bool startWeekOnMonday,
-  }) {
+/// One habit tile in the expanded grid: header row, week dots, and monthly heatmap.
+class _HabitGridTile extends ConsumerWidget {
+  final HabitItem habit;
+  final DateTime today;
+  final DateTime weekStart;
+  final bool startWeekOnMonday;
+
+  const _HabitGridTile({
+    required this.habit,
+    required this.today,
+    required this.weekStart,
+    required this.startWeekOnMonday,
+  });
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final isDoneToday = habit.isCompletedOn(today);
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppColors.well,
+        borderRadius: BorderRadius.circular(22),
+        border: Border.all(
+          color: isDoneToday
+              ? AppColors.tealAccent.withValues(alpha: 0.5)
+              : AppColors.line,
+          width: 1.0,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  color: AppColors.tealAccent.withValues(alpha: 0.14),
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: AppColors.tealAccent.withValues(alpha: 0.35),
+                    width: 1.0,
+                  ),
+                ),
+                child: buildHabitGlyph(
+                  habit.iconName,
+                  size: 22,
+                  color: AppColors.tealAccent,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      habit.title,
+                      style: const TextStyle(
+                        color: AppColors.textPrimary,
+                        fontSize: 16.5,
+                        fontWeight: FontWeight.w700,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      '${habit.completionCountOn(today)} of ${habit.targetValue} completed today',
+                      style: const TextStyle(
+                        color: AppColors.textSecondary,
+                        fontSize: 12.5,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              DuskGlassButton.icon(
+                onPressed: () =>
+                    _openHabitTwoPaneEditor(context, ref, habitToEdit: habit),
+                size: 34,
+                icon: const Icon(
+                  Icons.edit_outlined,
+                  size: 16,
+                  color: AppColors.textSecondary,
+                ),
+              ),
+              const SizedBox(width: 6),
+              DuskGlassButton.icon(
+                onPressed: () =>
+                    ref.read(habitsProvider.notifier).deleteHabit(habit.id),
+                size: 34,
+                icon: const Icon(
+                  Icons.delete_outline_rounded,
+                  size: 16,
+                  color: AppColors.accentRed,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          _HabitWeekDots(
+            habit: habit,
+            weekStart: weekStart,
+            today: today,
+            startWeekOnMonday: startWeekOnMonday,
+          ),
+          const SizedBox(height: 8),
+          Expanded(
+            child: _HabitHeatmap(
+              habit: habit,
+              today: today,
+              startWeekOnMonday: startWeekOnMonday,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Calendar-style monthly contribution heatmap showing daily activity dots.
+class _HabitHeatmap extends StatelessWidget {
+  final HabitItem habit;
+  final DateTime today;
+  final bool startWeekOnMonday;
+
+  const _HabitHeatmap({
+    required this.habit,
+    required this.today,
+    required this.startWeekOnMonday,
+  });
+
+  @override
+  Widget build(BuildContext context) {
     final weeks = habit.getMonthlyCalendarWeeks(
       today,
       startWeekOnMonday: startWeekOnMonday,
@@ -765,108 +840,97 @@ class HabitsCard extends ConsumerWidget {
       ),
     );
   }
+}
 
-  /// Opens the full-screen two-pane virtual keyboard habit editor.
-  void _openHabitTwoPaneEditor(
-    BuildContext context,
-    WidgetRef ref, {
-    HabitItem? habitToEdit,
-  }) {
-    final isEditing = habitToEdit != null;
-    final titleController = TextEditingController(
-      text: habitToEdit?.title ?? '',
-    );
-    final unitController = TextEditingController(text: habitToEdit?.unit ?? '');
-    var habitType = habitToEdit?.type ?? HabitType.binary;
-    var targetValue =
-        habitToEdit?.targetValue ?? (habitType == HabitType.numeric ? 8 : 1);
-    var iconName = habitToEdit?.iconName ?? 'bolt';
+/// Opens the full-screen two-pane virtual keyboard habit editor.
+void _openHabitTwoPaneEditor(
+  BuildContext context,
+  WidgetRef ref, {
+  HabitItem? habitToEdit,
+}) {
+  final isEditing = habitToEdit != null;
+  final titleController = TextEditingController(text: habitToEdit?.title ?? '');
+  final unitController = TextEditingController(text: habitToEdit?.unit ?? '');
+  var habitType = habitToEdit?.type ?? HabitType.binary;
+  var targetValue =
+      habitToEdit?.targetValue ?? (habitType == HabitType.numeric ? 8 : 1);
+  var iconName = habitToEdit?.iconName ?? 'bolt';
 
-    Navigator.of(context).push<void>(
-      MaterialPageRoute(
-        builder: (context) {
-          return StatefulBuilder(
-            builder: (context, setEditorState) {
-              void saveHabit() {
-                final title = titleController.text.trim();
-                final unit = unitController.text.trim();
-                if (title.isNotEmpty) {
-                  if (isEditing) {
-                    final updated = habitToEdit.copyWith(
-                      title: title,
-                      type: habitType,
-                      targetValue: targetValue,
-                      unit: habitType == HabitType.numeric
-                          ? (unit.isEmpty ? null : unit)
-                          : null,
-                      iconName: iconName,
-                    );
-                    ref.read(habitsProvider.notifier).editHabit(updated);
-                  } else {
-                    final newHabit = HabitItem(
-                      id: DateTime.now().millisecondsSinceEpoch.toString(),
-                      title: title,
-                      type: habitType,
-                      targetValue: targetValue,
-                      unit: habitType == HabitType.numeric
-                          ? (unit.isEmpty ? null : unit)
-                          : null,
-                      iconName: iconName,
-                      createdAt: DateTime.now(),
-                    );
-                    ref.read(habitsProvider.notifier).addHabit(newHabit);
-                  }
-                  Navigator.of(context).pop();
-                }
-              }
-
-              return TwoPaneKeyboardScaffold(
-                title: isEditing ? 'Edit Habit' : 'New Habit',
-                saveLabel: isEditing ? 'Save Changes' : 'Save Habit',
-                saveButtonColor: AppColors.tealFill,
-                saveTextColor: Colors.white,
-                onSave: saveHabit,
-                formBuilder: (context, keyboard) {
-                  return HabitFormContent(
-                    titleController: titleController,
-                    unitController: unitController,
-                    habitType: habitType,
-                    targetCount: targetValue,
-                    selectedIcon: iconName,
-                    onTypeChanged: (type) =>
-                        setEditorState(() => habitType = type),
-                    onTargetCountChanged: (val) =>
-                        setEditorState(() => targetValue = val),
-                    onIconChanged: (icon) =>
-                        setEditorState(() => iconName = icon),
-                    onChanged: () => setEditorState(() {}),
-                  );
-                },
-                previewBuilder: (context) {
-                  return HabitPreviewTile(
-                    title: titleController.text,
+  Navigator.of(context).push<void>(
+    MaterialPageRoute(
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setEditorState) {
+            void saveHabit() {
+              final title = titleController.text.trim();
+              final unit = unitController.text.trim();
+              if (title.isNotEmpty) {
+                if (isEditing) {
+                  final updated = habitToEdit.copyWith(
+                    title: title,
                     type: habitType,
-                    targetCount: targetValue,
-                    unit: unitController.text.trim().isEmpty
-                        ? null
-                        : unitController.text.trim(),
+                    targetValue: targetValue,
+                    unit: habitType == HabitType.numeric
+                        ? (unit.isEmpty ? null : unit)
+                        : null,
                     iconName: iconName,
                   );
-                },
-              );
-            },
-          );
-        },
-      ),
-    );
-  }
+                  ref.read(habitsProvider.notifier).editHabit(updated);
+                } else {
+                  final newHabit = HabitItem(
+                    id: DateTime.now().millisecondsSinceEpoch.toString(),
+                    title: title,
+                    type: habitType,
+                    targetValue: targetValue,
+                    unit: habitType == HabitType.numeric
+                        ? (unit.isEmpty ? null : unit)
+                        : null,
+                    iconName: iconName,
+                    createdAt: DateTime.now(),
+                  );
+                  ref.read(habitsProvider.notifier).addHabit(newHabit);
+                }
+                Navigator.of(context).pop();
+              }
+            }
 
-  /// Opens the 2-pane virtual keyboard editor for creating or editing habits.
-  void _showHabitFormSheet(
-    BuildContext context,
-    WidgetRef ref, {
-    HabitItem? habitToEdit,
-  }) {
-    _openHabitTwoPaneEditor(context, ref, habitToEdit: habitToEdit);
-  }
+            return TwoPaneKeyboardScaffold(
+              title: isEditing ? 'Edit Habit' : 'New Habit',
+              saveLabel: isEditing ? 'Save Changes' : 'Save Habit',
+              saveButtonColor: AppColors.tealFill,
+              saveTextColor: Colors.white,
+              onSave: saveHabit,
+              formBuilder: (context, keyboard) {
+                return HabitFormContent(
+                  titleController: titleController,
+                  unitController: unitController,
+                  habitType: habitType,
+                  targetCount: targetValue,
+                  selectedIcon: iconName,
+                  onTypeChanged: (type) =>
+                      setEditorState(() => habitType = type),
+                  onTargetCountChanged: (val) =>
+                      setEditorState(() => targetValue = val),
+                  onIconChanged: (icon) =>
+                      setEditorState(() => iconName = icon),
+                  onChanged: () => setEditorState(() {}),
+                );
+              },
+              previewBuilder: (context) {
+                return HabitPreviewTile(
+                  title: titleController.text,
+                  type: habitType,
+                  targetCount: targetValue,
+                  unit: unitController.text.trim().isEmpty
+                      ? null
+                      : unitController.text.trim(),
+                  iconName: iconName,
+                );
+              },
+            );
+          },
+        );
+      },
+    ),
+  );
 }

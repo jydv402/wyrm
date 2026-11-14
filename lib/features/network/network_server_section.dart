@@ -33,8 +33,14 @@ class NetworkServerSection implements ServerSection {
       }
       return jsonError('Invalid modal payload');
     });
-    router.get('/api/qr', (Request request) => _handleGetQrSvg(request, runtime));
-    router.get('/api/qr.svg', (Request request) => _handleGetQrSvg(request, runtime));
+    router.get(
+      '/api/qr',
+      (Request request) => _handleGetQrSvg(request, runtime),
+    );
+    router.get(
+      '/api/qr.svg',
+      (Request request) => _handleGetQrSvg(request, runtime),
+    );
   }
 
   @override
@@ -57,11 +63,15 @@ class NetworkServerSection implements ServerSection {
   }
 
   /// Generates a crisp vector SVG QR code representation of the server URL or custom data payload.
-  Future<Response> _handleGetQrSvg(Request request, ServerRuntime runtime) async {
+  Future<Response> _handleGetQrSvg(
+    Request request,
+    ServerRuntime runtime,
+  ) async {
     try {
       final requestedData = request.url.queryParameters['data'];
       final ip = await NetworkInfo.getLocalIpAddress();
-      final currentPort = runtime.port ??
+      final currentPort =
+          runtime.port ??
           (kDebugMode
               ? ShelfWebServerDefaults.debugPort
               : ShelfWebServerDefaults.releasePort);
@@ -76,12 +86,16 @@ class NetworkServerSection implements ServerSection {
       final qrImage = QrImage(qrCode);
       final count = qrImage.moduleCount;
       final buffer = StringBuffer();
-      buffer.write('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 $count $count" shape-rendering="crispEdges">');
+      buffer.write(
+        '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 $count $count" shape-rendering="crispEdges">',
+      );
       buffer.write('<rect width="$count" height="$count" fill="#ffffff"/>');
       for (int r = 0; r < count; r++) {
         for (int c = 0; c < count; c++) {
           if (qrImage.isDark(r, c)) {
-            buffer.write('<rect x="$c" y="$r" width="1" height="1" fill="#020305"/>');
+            buffer.write(
+              '<rect x="$c" y="$r" width="1" height="1" fill="#020305"/>',
+            );
           }
         }
       }
@@ -94,7 +108,9 @@ class NetworkServerSection implements ServerSection {
         },
       );
     } catch (e) {
-      return Response.internalServerError(body: 'Failed to generate QR code: $e');
+      return Response.internalServerError(
+        body: 'Failed to generate QR code: $e',
+      );
     }
   }
 }

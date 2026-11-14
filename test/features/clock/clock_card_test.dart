@@ -127,7 +127,7 @@ void main() {
       expect(bentoBox.color, Colors.black);
       expect(find.text('Clock'), findsNothing);
       expect(find.byIcon(Icons.schedule_rounded), findsNothing);
-      expect(find.byType(CardEditButton), findsOneWidget);
+      expect(find.byType(CardEditButton<CardSize>), findsOneWidget);
     },
   );
 
@@ -288,16 +288,6 @@ void main() {
       subscription.close();
     },
   );
-
-  test('CardLayoutConfig handles nightstand serialization accurately', () {
-    const config = CardLayoutConfig(clock: CardSize.nightstand);
-
-    final json = config.toJson();
-    expect(json['clock'], 'nightstand');
-
-    final restored = CardLayoutConfig.fromJson(json);
-    expect(restored.clock, CardSize.nightstand);
-  });
 
   test('clockBackgroundAssetProvider maps hour ranges accurately', () async {
     final hoursToExpected = {

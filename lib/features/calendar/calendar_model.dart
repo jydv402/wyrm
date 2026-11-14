@@ -27,7 +27,11 @@ class CalendarMilestone {
   int daysRemaining([DateTime? referenceDate]) {
     final ref = referenceDate ?? DateTime.now();
     final todayMidnight = DateTime(ref.year, ref.month, ref.day);
-    final targetMidnight = DateTime(targetDate.year, targetDate.month, targetDate.day);
+    final targetMidnight = DateTime(
+      targetDate.year,
+      targetDate.month,
+      targetDate.day,
+    );
     return targetMidnight.difference(todayMidnight).inDays;
   }
 
@@ -99,11 +103,16 @@ class CalendarMilestone {
         : DateTime.now();
 
     final rawPinned = json['is_pinned'] ?? json['pinned'] ?? json['isPinned'];
-    final isPinned = rawPinned is bool ? rawPinned : (rawPinned == 1 || rawPinned == 'true');
+    final isPinned = rawPinned is bool
+        ? rawPinned
+        : (rawPinned == 1 || rawPinned == 'true');
 
     return CalendarMilestone(
-      id: json['id']?.toString() ?? DateTime.now().millisecondsSinceEpoch.toString(),
-      title: (json['title'] ?? json['text'] ?? json['name'] ?? 'Milestone').toString(),
+      id:
+          json['id']?.toString() ??
+          DateTime.now().millisecondsSinceEpoch.toString(),
+      title: (json['title'] ?? json['text'] ?? json['name'] ?? 'Milestone')
+          .toString(),
       targetDate: parsedTargetDate,
       isPinned: isPinned,
       createdAt: parsedCreatedAt,

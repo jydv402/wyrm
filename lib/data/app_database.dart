@@ -21,7 +21,12 @@ class AppDatabase {
   /// Document keys the backup importer accepts as evidence of a real
   /// database payload. Each key maps 1:1 to a feature-owned section.
   static const Set<String> knownSectionKeys = {
-    'layout', 'settings', 'tasks', 'habits', 'calendar', 'display',
+    'layout',
+    'settings',
+    'tasks',
+    'habits',
+    'calendar',
+    'display',
   };
 
   /// Cached copy of the last-read or last-written document, keyed by file path
@@ -71,9 +76,7 @@ class AppDatabase {
       _cachePath = file.path;
       _cache = data;
 
-      final pending = _writeChain.then(
-        (_) => _writeToDisk(file, data),
-      );
+      final pending = _writeChain.then((_) => _writeToDisk(file, data));
       _writeChain = pending;
       await pending;
     } catch (_) {
@@ -189,7 +192,9 @@ class AppDatabase {
   }
 
   /// Returns the last modified timestamp of the backup file in Downloads, if present.
-  static Future<DateTime?> getDownloadsBackupModified({String? customPath}) async {
+  static Future<DateTime?> getDownloadsBackupModified({
+    String? customPath,
+  }) async {
     try {
       final file = await resolveDownloadsBackupFile(customPath: customPath);
       if (await file.exists()) {

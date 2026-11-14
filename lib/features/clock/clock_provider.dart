@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:math' as math;
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:wyrm_desk/config/app_settings_state.dart';
 
@@ -70,9 +71,9 @@ final clockPeriodProvider = Provider.autoDispose<String?>((ref) {
 /// rebuilding only once per minute alongside the clock minute tick.
 final timeLeftTodayPartsProvider =
     Provider.autoDispose<({int hours, int minutes})>((ref) {
-  final time = ref.watch(clockTimeProvider).value ?? DateTime.now();
-  return timeLeftUntilMidnight(time);
-});
+      final time = ref.watch(clockTimeProvider).value ?? DateTime.now();
+      return timeLeftUntilMidnight(time);
+    });
 
 /// Granular provider calculating the formatted remaining time until midnight,
 /// updating only once per minute.

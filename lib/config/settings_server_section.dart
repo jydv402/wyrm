@@ -63,7 +63,8 @@ class SettingsServerSection implements ServerSection {
       onSetCardFontSize!((data['cardFontSize'] as num).toDouble());
       updated = true;
     }
-    if (data.containsKey('startWeekOnMonday') && onSetStartWeekOnMonday != null) {
+    if (data.containsKey('startWeekOnMonday') &&
+        onSetStartWeekOnMonday != null) {
       onSetStartWeekOnMonday!(data['startWeekOnMonday'] as bool);
       updated = true;
     }

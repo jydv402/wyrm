@@ -20,7 +20,12 @@ class TasksServerSection implements ServerSection {
   });
 
   /// Whitelisted task priority values accepted from the web remote.
-  static const Set<String> _taskPriorities = {'normal', 'medium', 'high', 'low'};
+  static const Set<String> _taskPriorities = {
+    'normal',
+    'medium',
+    'high',
+    'low',
+  };
 
   @override
   void registerRoutes(Router router, ServerRuntime runtime) {

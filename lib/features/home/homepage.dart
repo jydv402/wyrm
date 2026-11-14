@@ -133,11 +133,7 @@ class _HomePageState extends ConsumerState<HomePage>
   }
 
   /// Sets the target card size and animates the viewport to bring that card into view.
-  void _handleSelectSize(
-    DashboardCardType type,
-    CardSize size,
-    GlobalKey targetKey,
-  ) {
+  void _handleSelectSize(DashboardCardType type, CardSize size) {
     ref.read(cardLayoutProvider.notifier).setCardSize(type, size);
     _scrollToCard(type);
   }
@@ -198,10 +194,19 @@ class _HomePageState extends ConsumerState<HomePage>
                   Expanded(
                     child: LayoutBuilder(
                       builder: (context, constraints) {
-                        return _buildScrollableDeck(
-                          context: context,
-                          constraints: constraints,
+                        return _ScrollableDeck(
+                          scrollController: _scrollController,
+                          clockKey: _clockKey,
+                          habitsKey: _habitsKey,
+                          calendarKey: _calendarKey,
+                          tasksKey: _tasksKey,
+                          onSelectSize: _handleSelectSize,
+                          spacing: widget.spacing,
                           config: layoutConfig,
+                          clockWidget: widget.clockWidget,
+                          habitsWidget: widget.habitsWidget,
+                          calendarWidget: widget.calendarWidget,
+                          tasksWidget: widget.tasksWidget,
                         );
                       },
                     ),
@@ -214,13 +219,99 @@ class _HomePageState extends ConsumerState<HomePage>
       ),
     );
   }
+}
 
-  /// Constructs the 3-column desk layout with adaptive expansion.
-  Widget _buildScrollableDeck({
-    required BuildContext context,
-    required BoxConstraints constraints,
-    required CardLayoutConfig config,
-  }) {
+/// The 3-column desk deck: adaptive-width card columns inside a horizontally
+/// scrollable canvas, driven by the active [CardLayoutConfig].
+class _ScrollableDeck extends StatelessWidget {
+  final ScrollController scrollController;
+  final GlobalKey clockKey;
+  final GlobalKey habitsKey;
+  final GlobalKey calendarKey;
+  final GlobalKey tasksKey;
+  final void Function(DashboardCardType type, CardSize size) onSelectSize;
+  final double spacing;
+  final CardLayoutConfig config;
+  final Widget? clockWidget;
+  final Widget? habitsWidget;
+  final Widget? calendarWidget;
+  final Widget? tasksWidget;
+
+  const _ScrollableDeck({
+    required this.scrollController,
+    required this.clockKey,
+    required this.habitsKey,
+    required this.calendarKey,
+    required this.tasksKey,
+    required this.onSelectSize,
+    required this.spacing,
+    required this.config,
+    this.clockWidget,
+    this.habitsWidget,
+    this.calendarWidget,
+    this.tasksWidget,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        return _DeckRow(
+          constraints: constraints,
+          scrollController: scrollController,
+          clockKey: clockKey,
+          habitsKey: habitsKey,
+          calendarKey: calendarKey,
+          tasksKey: tasksKey,
+          onSelectSize: onSelectSize,
+          spacing: spacing,
+          config: config,
+          clockWidget: clockWidget,
+          habitsWidget: habitsWidget,
+          calendarWidget: calendarWidget,
+          tasksWidget: tasksWidget,
+        );
+      },
+    );
+  }
+}
+
+/// One row of adaptive-width card columns inside a horizontally scrollable
+/// canvas; column widths are computed from the viewport constraints and
+/// the active [CardLayoutConfig].
+class _DeckRow extends StatelessWidget {
+  final BoxConstraints constraints;
+  final ScrollController scrollController;
+  final GlobalKey clockKey;
+  final GlobalKey habitsKey;
+  final GlobalKey calendarKey;
+  final GlobalKey tasksKey;
+  final void Function(DashboardCardType type, CardSize size) onSelectSize;
+  final double spacing;
+  final CardLayoutConfig config;
+  final Widget? clockWidget;
+  final Widget? habitsWidget;
+  final Widget? calendarWidget;
+  final Widget? tasksWidget;
+
+  const _DeckRow({
+    required this.constraints,
+    required this.scrollController,
+    required this.clockKey,
+    required this.habitsKey,
+    required this.calendarKey,
+    required this.tasksKey,
+    required this.onSelectSize,
+    required this.spacing,
+    required this.config,
+    this.clockWidget,
+    this.habitsWidget,
+    this.calendarWidget,
+    this.tasksWidget,
+  });
+
+  @override
+  Widget build(BuildContext context) {
     final viewportWidth = constraints.maxWidth;
     final mediumWidth = (viewportWidth * 0.55).clamp(380.0, 900.0);
 
@@ -239,7 +330,7 @@ class _HomePageState extends ConsumerState<HomePage>
       clockWidth = mediumWidth;
     } else {
       clockWidth = (allSmall && viewportWidth > 1100)
-          ? (viewportWidth - widget.spacing * 2) * (3.1 / 14)
+          ? (viewportWidth - spacing * 2) * (3.1 / 14)
           : 300.0;
     }
 
@@ -248,7 +339,7 @@ class _HomePageState extends ConsumerState<HomePage>
         config.habits == CardSize.small && config.calendar == CardSize.small;
 
     final double centerStackedWidth = (allSmall && viewportWidth > 1100)
-        ? (viewportWidth - widget.spacing * 2) * (6.9 / 14)
+        ? (viewportWidth - spacing * 2) * (6.9 / 14)
         : 540.0;
 
     final double habitsWidth = config.habits == CardSize.fullscreen
@@ -267,12 +358,12 @@ class _HomePageState extends ConsumerState<HomePage>
       tasksWidth = mediumWidth;
     } else {
       tasksWidth = (allSmall && viewportWidth > 1100)
-          ? (viewportWidth - widget.spacing * 2) * (4.0 / 14)
+          ? (viewportWidth - spacing * 2) * (4.0 / 14)
           : 340.0;
     }
 
     return SingleChildScrollView(
-      controller: _scrollController,
+      controller: scrollController,
       scrollDirection: Axis.horizontal,
       physics: const BouncingScrollPhysics(
         parent: AlwaysScrollableScrollPhysics(),
@@ -287,19 +378,19 @@ class _HomePageState extends ConsumerState<HomePage>
           children: [
             // Column 1: Clock Container
             AnimatedContainer(
-              key: _clockKey,
+              key: clockKey,
               duration: const Duration(milliseconds: 380),
               curve: Curves.easeInOutCubic,
               width: clockWidth,
               child: ClockContainer(
                 currentSize: config.clock,
                 onSelectSize: (size) =>
-                    _handleSelectSize(DashboardCardType.clock, size, _clockKey),
-                child: widget.clockWidget,
+                    onSelectSize(DashboardCardType.clock, size),
+                child: clockWidget,
               ),
             ),
 
-            SizedBox(width: widget.spacing),
+            SizedBox(width: spacing),
 
             // Column 2: Center Section (Stacked Habits & Calendar)
             if (centerStacked)
@@ -312,28 +403,22 @@ class _HomePageState extends ConsumerState<HomePage>
                     Expanded(
                       flex: 4,
                       child: HabitsCard(
-                        key: _habitsKey,
+                        key: habitsKey,
                         currentSize: config.habits,
-                        onSelectSize: (size) => _handleSelectSize(
-                          DashboardCardType.habits,
-                          size,
-                          _habitsKey,
-                        ),
-                        child: widget.habitsWidget,
+                        onSelectSize: (size) =>
+                            onSelectSize(DashboardCardType.habits, size),
+                        child: habitsWidget,
                       ),
                     ),
-                    SizedBox(height: widget.spacing),
+                    SizedBox(height: spacing),
                     Expanded(
                       flex: 6,
                       child: CalendarCard(
-                        key: _calendarKey,
+                        key: calendarKey,
                         currentSize: config.calendar,
-                        onSelectSize: (size) => _handleSelectSize(
-                          DashboardCardType.calendar,
-                          size,
-                          _calendarKey,
-                        ),
-                        child: widget.calendarWidget,
+                        onSelectSize: (size) =>
+                            onSelectSize(DashboardCardType.calendar, size),
+                        child: calendarWidget,
                       ),
                     ),
                   ],
@@ -341,51 +426,45 @@ class _HomePageState extends ConsumerState<HomePage>
               )
             else ...[
               AnimatedContainer(
-                key: _habitsKey,
+                key: habitsKey,
                 duration: const Duration(milliseconds: 380),
                 curve: Curves.easeInOutCubic,
                 width: habitsWidth,
                 child: HabitsCard(
                   currentSize: config.habits,
-                  onSelectSize: (size) => _handleSelectSize(
-                    DashboardCardType.habits,
-                    size,
-                    _habitsKey,
-                  ),
-                  child: widget.habitsWidget,
+                  onSelectSize: (size) =>
+                      onSelectSize(DashboardCardType.habits, size),
+                  child: habitsWidget,
                 ),
               ),
-              SizedBox(width: widget.spacing),
+              SizedBox(width: spacing),
               AnimatedContainer(
-                key: _calendarKey,
+                key: calendarKey,
                 duration: const Duration(milliseconds: 380),
                 curve: Curves.easeInOutCubic,
                 width: calendarWidth,
                 child: CalendarCard(
                   currentSize: config.calendar,
-                  onSelectSize: (size) => _handleSelectSize(
-                    DashboardCardType.calendar,
-                    size,
-                    _calendarKey,
-                  ),
-                  child: widget.calendarWidget,
+                  onSelectSize: (size) =>
+                      onSelectSize(DashboardCardType.calendar, size),
+                  child: calendarWidget,
                 ),
               ),
             ],
 
-            SizedBox(width: widget.spacing),
+            SizedBox(width: spacing),
 
             // Column 3: Tasks Container
             AnimatedContainer(
-              key: _tasksKey,
+              key: tasksKey,
               duration: const Duration(milliseconds: 380),
               curve: Curves.easeInOutCubic,
               width: tasksWidth,
               child: TasksCard(
                 currentSize: config.tasks,
                 onSelectSize: (size) =>
-                    _handleSelectSize(DashboardCardType.tasks, size, _tasksKey),
-                child: widget.tasksWidget,
+                    onSelectSize(DashboardCardType.tasks, size),
+                child: tasksWidget,
               ),
             ),
           ],

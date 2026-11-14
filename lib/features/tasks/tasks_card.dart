@@ -2,6 +2,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:wyrm_desk/theme/theme.dart';
 import 'package:wyrm_desk/config/card_layout_state.dart';
+import 'package:wyrm_desk/widgets/card_edit_button.dart';
 import 'package:wyrm_desk/features/keyboard/two_pane_keyboard_scaffold.dart';
 import 'package:wyrm_desk/config/app_settings_state.dart';
 import 'package:wyrm_desk/features/tasks/task_form_content.dart';
@@ -30,31 +31,6 @@ class TasksCard extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final tasks = ref.watch(tasksProvider);
     final isSmall = currentSize == CardSize.small;
-    final isFullscreen = currentSize == CardSize.fullscreen;
-
-    final completedCount = tasks.where((t) => t.isCompleted).length;
-
-    final badgeWidget = tasks.isNotEmpty
-        ? Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-            decoration: BoxDecoration(
-              color: AppColors.rustAccent.withValues(alpha: 0.16),
-              borderRadius: BorderRadius.circular(10),
-              border: Border.all(
-                color: AppColors.rustAccent.withValues(alpha: 0.35),
-                width: 1.0,
-              ),
-            ),
-            child: Text(
-              '$completedCount/${tasks.length}',
-              style: const TextStyle(
-                color: AppColors.rustAccent,
-                fontWeight: FontWeight.w700,
-                fontSize: 11,
-              ),
-            ),
-          )
-        : null;
 
     return DuskGlassPanel(
       tone: AppColors.rust,
@@ -71,32 +47,123 @@ class TasksCard extends ConsumerWidget {
             icon: Icons.check_box_outlined,
             title: 'Tasks',
             accentColor: AppColors.rustAccent,
-            badge: badgeWidget,
-            onAdd: () => _showAddTaskSheet(context, ref),
+            badge: _TasksCountBadge(tasks: tasks),
+            onAdd: () => _openTaskTwoPaneEditor(context, ref),
             addColor: AppColors.rustFill,
             addForegroundColor: Colors.white,
-            onSelectSize: onSelectSize,
-            currentSize: currentSize,
+            editButton: onSelectSize == null
+                ? null
+                : CardEditButton<CardSize>(
+                    options: cardSizeMenuOptions(),
+                    currentValue: currentSize,
+                    onSelected: onSelectSize!,
+                  ),
           ),
           const SizedBox(height: 10),
           Expanded(
             child: isSmall
-                ? _buildSmallLayout(context, ref, tasks)
-                : _buildExpandedLayout(context, ref, tasks, isFullscreen),
+                ? _TasksSmallLayout(tasks: tasks)
+                : _TasksExpandedLayout(tasks: tasks),
           ),
         ],
       ),
     );
   }
 
-  /// Compact Small layout: screenshot-matching empty state or glass task checklist.
-  Widget _buildSmallLayout(
-    BuildContext context,
-    WidgetRef ref,
-    List<TaskItem> tasks,
-  ) {
+  /// Opens the full-screen two-pane virtual keyboard task editor.
+  void _openTaskTwoPaneEditor(BuildContext context, WidgetRef ref) {
+    final titleController = TextEditingController();
+    var selectedPriority = 'normal';
+
+    Navigator.of(context).push<void>(
+      MaterialPageRoute(
+        builder: (context) {
+          return StatefulBuilder(
+            builder: (context, setEditorState) {
+              void saveTask() {
+                final text = titleController.text.trim();
+                if (text.isNotEmpty) {
+                  ref
+                      .read(tasksProvider.notifier)
+                      .addTask(text, priority: selectedPriority);
+                  Navigator.of(context).pop();
+                }
+              }
+
+              return TwoPaneKeyboardScaffold(
+                title: 'New Task',
+                saveLabel: 'Save Task',
+                saveButtonColor: AppColors.rustFill,
+                saveTextColor: Colors.white,
+                onSave: saveTask,
+                formBuilder: (context, keyboard) {
+                  return TaskFormContent(
+                    titleController: titleController,
+                    selectedPriority: selectedPriority,
+                    onPriorityChanged: (priority) =>
+                        setEditorState(() => selectedPriority = priority),
+                    onSubmitted: (_) => saveTask(),
+                    onChanged: () => setEditorState(() {}),
+                  );
+                },
+                previewBuilder: (context) {
+                  return TaskPreviewCard(
+                    title: titleController.text,
+                    priority: selectedPriority,
+                  );
+                },
+              );
+            },
+          );
+        },
+      ),
+    );
+  }
+}
+
+/// Completed/total count badge shown in the card header.
+class _TasksCountBadge extends StatelessWidget {
+  final List<TaskItem> tasks;
+
+  const _TasksCountBadge({required this.tasks});
+
+  @override
+  Widget build(BuildContext context) {
+    if (tasks.isEmpty) return const SizedBox.shrink();
+    final completedCount = tasks.where((t) => t.isCompleted).length;
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      decoration: BoxDecoration(
+        color: AppColors.rustAccent.withValues(alpha: 0.16),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(
+          color: AppColors.rustAccent.withValues(alpha: 0.35),
+          width: 1.0,
+        ),
+      ),
+      child: Text(
+        '$completedCount/${tasks.length}',
+        style: const TextStyle(
+          color: AppColors.rustAccent,
+          fontWeight: FontWeight.w700,
+          fontSize: 11,
+        ),
+      ),
+    );
+  }
+}
+
+/// Compact Small layout: screenshot-matching empty state or glass task checklist.
+class _TasksSmallLayout extends StatelessWidget {
+  final List<TaskItem> tasks;
+
+  const _TasksSmallLayout({required this.tasks});
+
+  @override
+  Widget build(BuildContext context) {
     if (tasks.isEmpty) {
-      return _buildEmptyState(context, ref);
+      return const _TasksEmptyState();
     }
 
     return ListView.separated(
@@ -104,15 +171,19 @@ class TasksCard extends ConsumerWidget {
       padding: EdgeInsets.zero,
       itemCount: tasks.length,
       separatorBuilder: (_, _) => const SizedBox(height: 8),
-      itemBuilder: (context, index) {
-        final task = tasks[index];
-        return _buildTaskRow(ref, task);
-      },
+      itemBuilder: (context, index) => _TaskRow(task: tasks[index]),
     );
   }
+}
 
-  /// Single Dusk Glass task item row with circular check toggle and priority pill.
-  Widget _buildTaskRow(WidgetRef ref, TaskItem task) {
+/// Single Dusk Glass task item row with circular check toggle and priority pill.
+class _TaskRow extends ConsumerWidget {
+  final TaskItem task;
+
+  const _TaskRow({required this.task});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
     final cardFontSize = ref.watch(
       appSettingsProvider.select((s) => s.cardFontSize),
     );
@@ -219,10 +290,15 @@ class TasksCard extends ConsumerWidget {
       ),
     );
   }
+}
 
-  /// Empty state matching the screenshot: checkmark circle, "All caught up",
-  /// and "Tap + to add a task or priority." (no quote).
-  Widget _buildEmptyState(BuildContext context, WidgetRef ref) {
+/// Empty state matching the screenshot: checkmark circle, "All caught up",
+/// and "Tap + to add a task or priority." (no quote).
+class _TasksEmptyState extends StatelessWidget {
+  const _TasksEmptyState();
+
+  @override
+  Widget build(BuildContext context) {
     return Center(
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -278,14 +354,16 @@ class TasksCard extends ConsumerWidget {
       ),
     );
   }
+}
 
-  /// Dual-pane split view for Medium & Fullscreen modes.
-  Widget _buildExpandedLayout(
-    BuildContext context,
-    WidgetRef ref,
-    List<TaskItem> tasks,
-    bool isFullscreen,
-  ) {
+/// Dual-pane split view for Medium & Fullscreen modes.
+class _TasksExpandedLayout extends StatelessWidget {
+  final List<TaskItem> tasks;
+
+  const _TasksExpandedLayout({required this.tasks});
+
+  @override
+  Widget build(BuildContext context) {
     final activeTasks = tasks.where((t) => !t.isCompleted).toList();
     final completedTasks = tasks.where((t) => t.isCompleted).toList();
 
@@ -324,7 +402,7 @@ class TasksCard extends ConsumerWidget {
                         itemCount: activeTasks.length,
                         separatorBuilder: (_, _) => const SizedBox(height: 8),
                         itemBuilder: (context, index) =>
-                            _buildTaskRow(ref, activeTasks[index]),
+                            _TaskRow(task: activeTasks[index]),
                       ),
               ),
             ],
@@ -369,7 +447,7 @@ class TasksCard extends ConsumerWidget {
                         itemCount: completedTasks.length,
                         separatorBuilder: (_, _) => const SizedBox(height: 8),
                         itemBuilder: (context, index) =>
-                            _buildTaskRow(ref, completedTasks[index]),
+                            _TaskRow(task: completedTasks[index]),
                       ),
               ),
             ],
@@ -377,61 +455,6 @@ class TasksCard extends ConsumerWidget {
         ),
       ],
     );
-  }
-
-  /// Opens the full-screen two-pane virtual keyboard task editor.
-  void _openTaskTwoPaneEditor(BuildContext context, WidgetRef ref) {
-    final titleController = TextEditingController();
-    var selectedPriority = 'normal';
-
-    Navigator.of(context).push<void>(
-      MaterialPageRoute(
-        builder: (context) {
-          return StatefulBuilder(
-            builder: (context, setEditorState) {
-              void saveTask() {
-                final text = titleController.text.trim();
-                if (text.isNotEmpty) {
-                  ref
-                      .read(tasksProvider.notifier)
-                      .addTask(text, priority: selectedPriority);
-                  Navigator.of(context).pop();
-                }
-              }
-
-              return TwoPaneKeyboardScaffold(
-                title: 'New Task',
-                saveLabel: 'Save Task',
-                saveButtonColor: AppColors.rustFill,
-                saveTextColor: Colors.white,
-                onSave: saveTask,
-                formBuilder: (context, keyboard) {
-                  return TaskFormContent(
-                    titleController: titleController,
-                    selectedPriority: selectedPriority,
-                    onPriorityChanged: (priority) =>
-                        setEditorState(() => selectedPriority = priority),
-                    onSubmitted: (_) => saveTask(),
-                    onChanged: () => setEditorState(() {}),
-                  );
-                },
-                previewBuilder: (context) {
-                  return TaskPreviewCard(
-                    title: titleController.text,
-                    priority: selectedPriority,
-                  );
-                },
-              );
-            },
-          );
-        },
-      ),
-    );
-  }
-
-  /// Opens the 2-pane virtual keyboard editor for adding a new task priority.
-  void _showAddTaskSheet(BuildContext context, WidgetRef ref) {
-    _openTaskTwoPaneEditor(context, ref);
   }
 }
 

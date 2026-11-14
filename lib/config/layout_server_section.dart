@@ -24,7 +24,10 @@ class LayoutServerSection implements ServerSection {
     router.post('/api/layout', (Request request) async {
       try {
         final data = await readJsonBody(request);
-        if (_executeSetLayout(data['card'] as String?, data['size'] as String?)) {
+        if (_executeSetLayout(
+          data['card'] as String?,
+          data['size'] as String?,
+        )) {
           return jsonOk();
         }
       } catch (_) {}

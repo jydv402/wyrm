@@ -82,7 +82,10 @@ class ShelfWebServer implements ServerRuntime {
     router.get('/icon_flat.png', _handleFavicon);
     router.get('/assets/icons/icon_flat.png', _handleFavicon);
     router.get('/assets/web/<file|.*>', _handleStaticAsset);
-    router.get('/<file|.*\\.(?:js|css|png|svg|json|webmanifest|ico|woff2?)>', _handleStaticAsset);
+    router.get(
+      '/<file|.*\\.(?:js|css|png|svg|json|webmanifest|ico|woff2?)>',
+      _handleStaticAsset,
+    );
 
     // --- Feature-owned REST routes ---
     for (final section in sections) {
@@ -90,7 +93,10 @@ class ShelfWebServer implements ServerRuntime {
     }
 
     // --- Shared status endpoint (envelope + every section's slice) ---
-    router.get('/api/status', (Request request) => jsonResponse(_buildStateSnapshot()));
+    router.get(
+      '/api/status',
+      (Request request) => jsonResponse(_buildStateSnapshot()),
+    );
 
     // --- Backup endpoints (whole-database concern, kept in the transport) ---
     router.get('/api/backup/export', _handleGetBackupExport);
@@ -157,8 +163,7 @@ class ShelfWebServer implements ServerRuntime {
       'status': 'online',
       'serverUrl': 'http://$_ipAddress:${port ?? defaultPort}',
       'ipAddress': _ipAddress,
-      for (final section in sections)
-        ...?section.snapshot(),
+      for (final section in sections) ...?section.snapshot(),
     };
   }
 
@@ -199,7 +204,9 @@ class ShelfWebServer implements ServerRuntime {
           if (data['type'] == 'ping') {
             final timestamp =
                 data['timestamp'] ?? DateTime.now().millisecondsSinceEpoch;
-            webSocket.sink.add(jsonEncode({'type': 'pong', 'timestamp': timestamp}));
+            webSocket.sink.add(
+              jsonEncode({'type': 'pong', 'timestamp': timestamp}),
+            );
             return;
           }
 
@@ -226,7 +233,8 @@ class ShelfWebServer implements ServerRuntime {
         jsonString,
         headers: {
           'Content-Type': 'application/json; charset=utf-8',
-          'Content-Disposition': 'attachment; filename="${AppDatabase.backupFileName}"',
+          'Content-Disposition':
+              'attachment; filename="${AppDatabase.backupFileName}"',
           'Cache-Control': 'no-cache, no-store, must-revalidate',
         },
       );
@@ -255,7 +263,9 @@ class ShelfWebServer implements ServerRuntime {
 
       if (!success) {
         return Response.badRequest(
-          body: jsonEncode({'error': 'Invalid or corrupted database backup JSON'}),
+          body: jsonEncode({
+            'error': 'Invalid or corrupted database backup JSON',
+          }),
           headers: {'Content-Type': 'application/json'},
         );
       }
@@ -300,11 +310,17 @@ class ShelfWebServer implements ServerRuntime {
   /// Serves the root HTML client document.
   Future<Response> _handleIndexHtml(Request request) async {
     if (htmlOverride != null) {
-      return Response.ok(htmlOverride!, headers: _assetHeaders('text/html; charset=utf-8', isDynamic: true));
+      return Response.ok(
+        htmlOverride!,
+        headers: _assetHeaders('text/html; charset=utf-8', isDynamic: true),
+      );
     }
     final bytes = await _loadAssetBytes('assets/web/index.html');
     if (bytes != null) {
-      return Response.ok(bytes, headers: _assetHeaders('text/html; charset=utf-8', isDynamic: true));
+      return Response.ok(
+        bytes,
+        headers: _assetHeaders('text/html; charset=utf-8', isDynamic: true),
+      );
     }
     return Response.ok(
       '<!DOCTYPE html><html><body><h1>WYRM Desk Server Running</h1></body></html>',
@@ -315,11 +331,17 @@ class ShelfWebServer implements ServerRuntime {
   /// Serves the modular CSS stylesheet.
   Future<Response> _handleStyleCss(Request request) async {
     if (cssOverride != null) {
-      return Response.ok(cssOverride!, headers: _assetHeaders('text/css; charset=utf-8', isDynamic: true));
+      return Response.ok(
+        cssOverride!,
+        headers: _assetHeaders('text/css; charset=utf-8', isDynamic: true),
+      );
     }
     final bytes = await _loadAssetBytes('assets/web/style.css');
     if (bytes != null) {
-      return Response.ok(bytes, headers: _assetHeaders('text/css; charset=utf-8', isDynamic: true));
+      return Response.ok(
+        bytes,
+        headers: _assetHeaders('text/css; charset=utf-8', isDynamic: true),
+      );
     }
     return Response.notFound('/* CSS asset not found */');
   }
@@ -327,11 +349,23 @@ class ShelfWebServer implements ServerRuntime {
   /// Serves the client JavaScript logic.
   Future<Response> _handleAppJs(Request request) async {
     if (jsOverride != null) {
-      return Response.ok(jsOverride!, headers: _assetHeaders('application/javascript; charset=utf-8', isDynamic: true));
+      return Response.ok(
+        jsOverride!,
+        headers: _assetHeaders(
+          'application/javascript; charset=utf-8',
+          isDynamic: true,
+        ),
+      );
     }
     final bytes = await _loadAssetBytes('assets/web/app.js');
     if (bytes != null) {
-      return Response.ok(bytes, headers: _assetHeaders('application/javascript; charset=utf-8', isDynamic: true));
+      return Response.ok(
+        bytes,
+        headers: _assetHeaders(
+          'application/javascript; charset=utf-8',
+          isDynamic: true,
+        ),
+      );
     }
     return Response.notFound('// JS asset not found');
   }
@@ -339,12 +373,19 @@ class ShelfWebServer implements ServerRuntime {
   /// Serves the web favicon icon.
   Future<Response> _handleFavicon(Request request) async {
     if (faviconOverride != null) {
-      return Response.ok(faviconOverride!, headers: _assetHeaders('image/png', isDynamic: false));
+      return Response.ok(
+        faviconOverride!,
+        headers: _assetHeaders('image/png', isDynamic: false),
+      );
     }
-    final bytes = await _loadAssetBytes('assets/icons/icon_flat.png') ??
+    final bytes =
+        await _loadAssetBytes('assets/icons/icon_flat.png') ??
         await _loadAssetBytes('assets/web/icon_flat.png');
     if (bytes != null) {
-      return Response.ok(bytes, headers: _assetHeaders('image/png', isDynamic: false));
+      return Response.ok(
+        bytes,
+        headers: _assetHeaders('image/png', isDynamic: false),
+      );
     }
     return Response.notFound('Favicon asset not found');
   }
@@ -359,20 +400,29 @@ class ShelfWebServer implements ServerRuntime {
     final bytes = await _loadAssetBytes(assetPath);
     if (bytes != null) {
       final mime = _getMimeType(filePath);
-      final isDynamic = filePath.endsWith('.js') ||
+      final isDynamic =
+          filePath.endsWith('.js') ||
           filePath.endsWith('.css') ||
           filePath.endsWith('.html') ||
           filePath.endsWith('.webmanifest');
-      return Response.ok(bytes, headers: _assetHeaders(mime, isDynamic: isDynamic));
+      return Response.ok(
+        bytes,
+        headers: _assetHeaders(mime, isDynamic: isDynamic),
+      );
     }
     return Response.notFound('Asset not found: $filePath');
   }
 
   /// Formats standard asset headers with cache directives (strict no-cache for scripts/styles).
-  static Map<String, String> _assetHeaders(String contentType, {required bool isDynamic}) {
+  static Map<String, String> _assetHeaders(
+    String contentType, {
+    required bool isDynamic,
+  }) {
     return {
       'Content-Type': contentType,
-      'Cache-Control': isDynamic ? 'no-cache, no-store, must-revalidate' : 'public, max-age=86400',
+      'Cache-Control': isDynamic
+          ? 'no-cache, no-store, must-revalidate'
+          : 'public, max-age=86400',
       if (isDynamic) 'Pragma': 'no-cache',
       if (isDynamic) 'Expires': '0',
     };

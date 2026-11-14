@@ -1,11 +1,13 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
+import 'package:wyrm_desk/features/calendar/calendar_model.dart';
 import 'package:wyrm_desk/features/calendar/calendar_state.dart';
 import 'package:wyrm_desk/features/calendar/milestone_form_content.dart';
 import 'package:wyrm_desk/core/date_names.dart';
 import 'package:wyrm_desk/theme/theme.dart';
 import 'package:wyrm_desk/config/card_layout_state.dart';
+import 'package:wyrm_desk/widgets/card_edit_button.dart';
 import 'package:wyrm_desk/features/keyboard/two_pane_keyboard_scaffold.dart';
 import 'package:wyrm_desk/config/app_settings_state.dart';
 import 'package:wyrm_desk/widgets/dusk_card_header.dart';
@@ -26,53 +28,11 @@ class CalendarCard extends ConsumerWidget {
     this.currentSize = CardSize.small,
   });
 
-  static const List<String> weekdayLabelsSunday = [
-    'S',
-    'M',
-    'T',
-    'W',
-    'T',
-    'F',
-    'S',
-  ];
-  static const List<String> weekdayLabelsMonday = [
-    'M',
-    'T',
-    'W',
-    'T',
-    'F',
-    'S',
-    'S',
-  ];
-
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final calendarState = ref.watch(calendarProvider);
     final settings = ref.watch(appSettingsProvider);
     final isSmall = currentSize == CardSize.small;
-    final isFullscreen = currentSize == CardSize.fullscreen;
-
-    final badgeWidget = calendarState.milestones.isNotEmpty
-        ? Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-            decoration: BoxDecoration(
-              color: AppColors.goldAccent.withValues(alpha: 0.16),
-              borderRadius: BorderRadius.circular(10),
-              border: Border.all(
-                color: AppColors.goldAccent.withValues(alpha: 0.35),
-                width: 1.0,
-              ),
-            ),
-            child: Text(
-              '${calendarState.milestones.length}',
-              style: const TextStyle(
-                color: AppColors.goldAccent,
-                fontWeight: FontWeight.w700,
-                fontSize: 11,
-              ),
-            ),
-          )
-        : null;
 
     return DuskGlassPanel(
       tone: AppColors.gold,
@@ -88,36 +48,73 @@ class CalendarCard extends ConsumerWidget {
             icon: Icons.calendar_today_rounded,
             title: 'Calendar',
             accentColor: AppColors.goldAccent,
-            badge: badgeWidget,
-            onAdd: () => _showAddMilestoneSheet(context, ref),
+            badge: _CalendarCountBadge(calendarState: calendarState),
+            onAdd: () => _openMilestoneTwoPaneEditor(context, ref),
             addColor: null, // Circular glass '+' button
-            onSelectSize: onSelectSize,
-            currentSize: currentSize,
+            editButton: onSelectSize == null
+                ? null
+                : CardEditButton<CardSize>(
+                    options: cardSizeMenuOptions(),
+                    currentValue: currentSize,
+                    onSelected: onSelectSize!,
+                  ),
           ),
           const SizedBox(height: 10),
           Expanded(
             child: isSmall
-                ? _buildSmallLayout(context, ref, calendarState, settings)
-                : _buildExpandedLayout(
-                    context,
-                    ref,
-                    calendarState,
-                    settings,
-                    isFullscreen,
+                ? _CalendarMonthView(state: calendarState, settings: settings)
+                : _CalendarExpandedLayout(
+                    state: calendarState,
+                    settings: settings,
                   ),
           ),
         ],
       ),
     );
   }
+}
 
-  /// Compact Small card layout matching screenshot reference.
-  Widget _buildSmallLayout(
-    BuildContext context,
-    WidgetRef ref,
-    CalendarState state,
-    AppSettingsConfig settings,
-  ) {
+/// Milestone count badge shown in the card header.
+class _CalendarCountBadge extends StatelessWidget {
+  final CalendarState calendarState;
+
+  const _CalendarCountBadge({required this.calendarState});
+
+  @override
+  Widget build(BuildContext context) {
+    if (calendarState.milestones.isEmpty) return const SizedBox.shrink();
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      decoration: BoxDecoration(
+        color: AppColors.goldAccent.withValues(alpha: 0.16),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(
+          color: AppColors.goldAccent.withValues(alpha: 0.35),
+          width: 1.0,
+        ),
+      ),
+      child: Text(
+        '${calendarState.milestones.length}',
+        style: const TextStyle(
+          color: AppColors.goldAccent,
+          fontWeight: FontWeight.w700,
+          fontSize: 11,
+        ),
+      ),
+    );
+  }
+}
+
+/// Compact month view: date banner, month title, and day grid.
+class _CalendarMonthView extends StatelessWidget {
+  final CalendarState state;
+  final AppSettingsConfig settings;
+
+  const _CalendarMonthView({required this.state, required this.settings});
+
+  @override
+  Widget build(BuildContext context) {
     final monthName = monthNames[state.viewMonth.month - 1];
     final yearString = state.viewMonth.year.toString();
 
@@ -125,7 +122,7 @@ class CalendarCard extends ConsumerWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         // Top Info & Navigation Pill Bar
-        _buildDuskDateBanner(context, ref, state),
+        _CalendarDateBanner(state: state),
 
         const SizedBox(height: 12),
 
@@ -144,25 +141,26 @@ class CalendarCard extends ConsumerWidget {
 
         // Day Grid
         Expanded(
-          child: _buildDuskCalendarGrid(
-            ref,
-            state,
-            settings.startWeekOnMonday,
-            isSmall: true,
+          child: _CalendarGrid(
+            state: state,
+            startWeekOnMonday: settings.startWeekOnMonday,
           ),
         ),
       ],
     );
   }
+}
 
-  /// Top Date Banner Bar matching reference screenshot:
-  /// Left: [Sat, Sep 19 • Day 262/365 · Year 72%]
-  /// Right: [Today] [Travel] [<] [>]
-  Widget _buildDuskDateBanner(
-    BuildContext context,
-    WidgetRef ref,
-    CalendarState state,
-  ) {
+/// Top Date Banner Bar matching reference screenshot:
+/// Left: [Sat, Sep 19 • Day 262/365 · Year 72%]
+/// Right: [Today] [Travel] [<] [>]
+class _CalendarDateBanner extends ConsumerWidget {
+  final CalendarState state;
+
+  const _CalendarDateBanner({required this.state});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
     final today = CalendarState.todayMidnight;
     final isSelectedToday =
         state.selectedDate.year == today.year &&
@@ -304,49 +302,39 @@ class CalendarCard extends ConsumerWidget {
       },
     );
   }
+}
 
-  /// Opens Flutter built-in date picker configured with TRAVEL confirm text.
-  Future<void> _openTravelDatePicker(
-    BuildContext context,
-    WidgetRef ref,
-    DateTime initialDate,
-  ) async {
-    final picked = await showDatePicker(
-      context: context,
-      initialDate: initialDate,
-      firstDate: DateTime(1970),
-      lastDate: DateTime(2100),
-      confirmText: 'TRAVEL',
-      cancelText: 'CANCEL',
-      builder: (context, child) {
-        return Theme(
-          data: ThemeData.dark().copyWith(
-            colorScheme: const ColorScheme.dark(
-              primary: AppColors.goldAccent,
-              onPrimary: Colors.black,
-              surface: AppColors.surface,
-              onSurface: AppColors.textPrimary,
-            ),
-          ),
-          child: child!,
-        );
-      },
-    );
-    if (picked != null) {
-      ref.read(calendarProvider.notifier).selectDate(picked);
-    }
-  }
+/// 7-column calendar grid with rounded day tiles matching the screenshot.
+class _CalendarGrid extends ConsumerWidget {
+  static const List<String> _weekdayLabelsSunday = [
+    'S',
+    'M',
+    'T',
+    'W',
+    'T',
+    'F',
+    'S',
+  ];
+  static const List<String> _weekdayLabelsMonday = [
+    'M',
+    'T',
+    'W',
+    'T',
+    'F',
+    'S',
+    'S',
+  ];
 
-  /// 7-column calendar grid with rounded day tiles matching the screenshot.
-  Widget _buildDuskCalendarGrid(
-    WidgetRef ref,
-    CalendarState state,
-    bool startWeekOnMonday, {
-    required bool isSmall,
-  }) {
+  final CalendarState state;
+  final bool startWeekOnMonday;
+
+  const _CalendarGrid({required this.state, required this.startWeekOnMonday});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
     final weekdayLabels = startWeekOnMonday
-        ? weekdayLabelsMonday
-        : weekdayLabelsSunday;
+        ? _weekdayLabelsMonday
+        : _weekdayLabelsSunday;
     final year = state.viewMonth.year;
     final month = state.viewMonth.month;
 
@@ -510,22 +498,24 @@ class CalendarCard extends ConsumerWidget {
       ],
     );
   }
+}
 
-  /// Dual-pane expanded view for Medium and Fullscreen modes.
-  Widget _buildExpandedLayout(
-    BuildContext context,
-    WidgetRef ref,
-    CalendarState state,
-    AppSettingsConfig settings,
-    bool isFullscreen,
-  ) {
+/// Dual-pane expanded view for Medium and Fullscreen modes.
+class _CalendarExpandedLayout extends ConsumerWidget {
+  final CalendarState state;
+  final AppSettingsConfig settings;
+
+  const _CalendarExpandedLayout({required this.state, required this.settings});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         // Left Pane: Calendar Month Grid
         Expanded(
           flex: 6,
-          child: _buildSmallLayout(context, ref, state, settings),
+          child: _CalendarMonthView(state: state, settings: settings),
         ),
 
         const SizedBox(width: 16),
@@ -556,7 +546,7 @@ class CalendarCard extends ConsumerWidget {
                   ),
                   const SizedBox(width: 8),
                   DuskGlassButton(
-                    onPressed: () => _showAddMilestoneSheet(context, ref),
+                    onPressed: () => _openMilestoneTwoPaneEditor(context, ref),
                     height: 34,
                     padding: const EdgeInsets.symmetric(horizontal: 12),
                     icon: const Icon(
@@ -592,86 +582,8 @@ class CalendarCard extends ConsumerWidget {
                         physics: const BouncingScrollPhysics(),
                         itemCount: state.milestones.length,
                         separatorBuilder: (_, _) => const SizedBox(height: 8),
-                        itemBuilder: (context, index) {
-                          final milestone = state.milestones[index];
-                          final formattedDate = DateFormat('MMM d, yyyy')
-                              .format(milestone.targetDate);
-
-                          return Container(
-                            padding: const EdgeInsets.all(12),
-                            decoration: BoxDecoration(
-                              color: AppColors.well,
-                              borderRadius: BorderRadius.circular(16),
-                              border: Border.all(
-                                color: AppColors.line,
-                                width: 1.0,
-                              ),
-                            ),
-                            child: Row(
-                              children: [
-                                Container(
-                                  width: 32,
-                                  height: 32,
-                                  decoration: BoxDecoration(
-                                    color: AppColors.goldAccent.withValues(
-                                      alpha: 0.12,
-                                    ),
-                                    shape: BoxShape.circle,
-                                  ),
-                                  child: const Icon(
-                                    Icons.flag_rounded,
-                                    size: 16,
-                                    color: AppColors.goldAccent,
-                                  ),
-                                ),
-                                const SizedBox(width: 10),
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        milestone.title,
-                                        style: const TextStyle(
-                                          color: AppColors.textPrimary,
-                                          fontSize: 14,
-                                          fontWeight: FontWeight.w600,
-                                        ),
-                                      ),
-                                      Text(
-                                        formattedDate,
-                                        style: const TextStyle(
-                                          color: AppColors.textSecondary,
-                                          fontSize: 12,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                                Text(
-                                  milestone.relativeLabel,
-                                  style: const TextStyle(
-                                    color: AppColors.goldAccent,
-                                    fontSize: 12.5,
-                                    fontWeight: FontWeight.w700,
-                                  ),
-                                ),
-                                const SizedBox(width: 4),
-                                DuskGlassButton.icon(
-                                  onPressed: () => ref
-                                      .read(calendarProvider.notifier)
-                                      .deleteMilestone(milestone.id),
-                                  size: 28,
-                                  icon: const Icon(
-                                    Icons.close_rounded,
-                                    size: 14,
-                                    color: AppColors.textSecondary,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          );
-                        },
+                        itemBuilder: (context, index) =>
+                            _MilestoneTile(milestone: state.milestones[index]),
                       ),
               ),
             ],
@@ -680,76 +592,181 @@ class CalendarCard extends ConsumerWidget {
       ],
     );
   }
+}
 
-  /// Opens the full-screen two-pane virtual keyboard milestone editor.
-  void _openMilestoneTwoPaneEditor(
-    BuildContext context,
-    WidgetRef ref, {
-    DateTime? initialDate,
-  }) {
-    final titleController = TextEditingController();
-    var selectedTargetDate =
-        initialDate ?? ref.read(calendarProvider).selectedDate;
-    var isPinned = false;
+/// Single Dusk Glass milestone row with countdown label and delete action.
+class _MilestoneTile extends ConsumerWidget {
+  final CalendarMilestone milestone;
 
-    Navigator.of(context).push<void>(
-      MaterialPageRoute(
-        builder: (context) {
-          return StatefulBuilder(
-            builder: (context, setEditorState) {
-              void saveMilestone() {
-                final title = titleController.text.trim();
-                if (title.isNotEmpty) {
-                  ref
-                      .read(calendarProvider.notifier)
-                      .addMilestone(
-                        title,
-                        selectedTargetDate,
-                        isPinned: isPinned,
-                      );
-                  Navigator.of(context).pop();
-                }
-              }
+  const _MilestoneTile({required this.milestone});
 
-              return TwoPaneKeyboardScaffold(
-                title: 'New Milestone',
-                saveLabel: 'Save Milestone',
-                saveButtonColor: AppColors.goldAccent,
-                saveTextColor: Colors.black,
-                onSave: saveMilestone,
-                formBuilder: (context, keyboard) {
-                  return MilestoneFormContent(
-                    titleController: titleController,
-                    selectedDate: selectedTargetDate,
-                    isPinned: isPinned,
-                    onDateChanged: (picked) =>
-                        setEditorState(() => selectedTargetDate = picked),
-                    onPinnedChanged: (val) =>
-                        setEditorState(() => isPinned = val),
-                    onChanged: () => setEditorState(() {}),
-                  );
-                },
-                previewBuilder: (context) {
-                  return MilestonePreviewCard(
-                    title: titleController.text,
-                    targetDate: selectedTargetDate,
-                    isPinned: isPinned,
-                  );
-                },
-              );
-            },
-          );
-        },
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final formattedDate = DateFormat('MMM d, yyyy')
+        .format(milestone.targetDate);
+
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: AppColors.well,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.line, width: 1.0),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 32,
+            height: 32,
+            decoration: BoxDecoration(
+              color: AppColors.goldAccent.withValues(alpha: 0.12),
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(
+              Icons.flag_rounded,
+              size: 16,
+              color: AppColors.goldAccent,
+            ),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  milestone.title,
+                  style: const TextStyle(
+                    color: AppColors.textPrimary,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                Text(
+                  formattedDate,
+                  style: const TextStyle(
+                    color: AppColors.textSecondary,
+                    fontSize: 12,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Text(
+            milestone.relativeLabel,
+            style: const TextStyle(
+              color: AppColors.goldAccent,
+              fontSize: 12.5,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const SizedBox(width: 4),
+          DuskGlassButton.icon(
+            onPressed: () => ref
+                .read(calendarProvider.notifier)
+                .deleteMilestone(milestone.id),
+            size: 28,
+            icon: const Icon(
+              Icons.close_rounded,
+              size: 14,
+              color: AppColors.textSecondary,
+            ),
+          ),
+        ],
       ),
     );
   }
+}
 
-  /// Opens the 2-pane virtual keyboard editor for adding a milestone.
-  void _showAddMilestoneSheet(
-    BuildContext context,
-    WidgetRef ref, {
-    DateTime? initialDate,
-  }) {
-    _openMilestoneTwoPaneEditor(context, ref, initialDate: initialDate);
+/// Opens Flutter built-in date picker configured with TRAVEL confirm text.
+Future<void> _openTravelDatePicker(
+  BuildContext context,
+  WidgetRef ref,
+  DateTime initialDate,
+) async {
+  final picked = await showDatePicker(
+    context: context,
+    initialDate: initialDate,
+    firstDate: DateTime(1970),
+    lastDate: DateTime(2100),
+    confirmText: 'TRAVEL',
+    cancelText: 'CANCEL',
+    builder: (context, child) {
+      return Theme(
+        data: ThemeData.dark().copyWith(
+          colorScheme: const ColorScheme.dark(
+            primary: AppColors.goldAccent,
+            onPrimary: Colors.black,
+            surface: AppColors.surface,
+            onSurface: AppColors.textPrimary,
+          ),
+        ),
+        child: child!,
+      );
+    },
+  );
+  if (picked != null) {
+    ref.read(calendarProvider.notifier).selectDate(picked);
   }
+}
+
+/// Opens the full-screen two-pane virtual keyboard milestone editor.
+void _openMilestoneTwoPaneEditor(
+  BuildContext context,
+  WidgetRef ref, {
+  DateTime? initialDate,
+}) {
+  final titleController = TextEditingController();
+  var selectedTargetDate =
+      initialDate ?? ref.read(calendarProvider).selectedDate;
+  var isPinned = false;
+
+  Navigator.of(context).push<void>(
+    MaterialPageRoute(
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setEditorState) {
+            void saveMilestone() {
+              final title = titleController.text.trim();
+              if (title.isNotEmpty) {
+                ref
+                    .read(calendarProvider.notifier)
+                    .addMilestone(
+                      title,
+                      selectedTargetDate,
+                      isPinned: isPinned,
+                    );
+                Navigator.of(context).pop();
+              }
+            }
+
+            return TwoPaneKeyboardScaffold(
+              title: 'New Milestone',
+              saveLabel: 'Save Milestone',
+              saveButtonColor: AppColors.goldAccent,
+              saveTextColor: Colors.black,
+              onSave: saveMilestone,
+              formBuilder: (context, keyboard) {
+                return MilestoneFormContent(
+                  titleController: titleController,
+                  selectedDate: selectedTargetDate,
+                  isPinned: isPinned,
+                  onDateChanged: (picked) =>
+                      setEditorState(() => selectedTargetDate = picked),
+                  onPinnedChanged: (val) =>
+                      setEditorState(() => isPinned = val),
+                  onChanged: () => setEditorState(() {}),
+                );
+              },
+              previewBuilder: (context) {
+                return MilestonePreviewCard(
+                  title: titleController.text,
+                  targetDate: selectedTargetDate,
+                  isPinned: isPinned,
+                );
+              },
+            );
+          },
+        );
+      },
+    ),
+  );
 }

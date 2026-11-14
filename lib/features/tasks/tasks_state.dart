@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:wyrm_desk/data/app_database.dart';
+
 import 'task_model.dart';
 
 /// Manages reactive task checklist items and persists updates to AppDatabase.
@@ -62,5 +63,6 @@ class TasksNotifier extends Notifier<List<TaskItem>> {
 }
 
 /// Riverpod provider exposing reactive task items.
-final tasksProvider =
-    NotifierProvider<TasksNotifier, List<TaskItem>>(TasksNotifier.new);
+final tasksProvider = NotifierProvider<TasksNotifier, List<TaskItem>>(
+  TasksNotifier.new,
+);

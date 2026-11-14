@@ -10,8 +10,14 @@ import 'package:wyrm_desk/server/server_section.dart';
 /// create/toggle/step/delete WebSocket commands, and the `habits` snapshot.
 class HabitsServerSection implements ServerSection {
   final HabitsState Function() getHabits;
-  final void Function(String title, HabitType type, int targetValue,
-      {String? unit, String? iconName}) onAddHabit;
+  final void Function(
+    String title,
+    HabitType type,
+    int targetValue, {
+    String? unit,
+    String? iconName,
+  })
+  onAddHabit;
   final void Function(String id, [DateTime? date]) onToggleHabit;
   final void Function(String id, int delta, [DateTime? date]) onStepHabit;
   final void Function(String id) onDeleteHabit;
@@ -27,9 +33,7 @@ class HabitsServerSection implements ServerSection {
   @override
   void registerRoutes(Router router, ServerRuntime runtime) {
     router.get('/api/habits', (Request request) async {
-      return jsonResponse(
-        getHabits().habits.map((h) => h.toJson()).toList(),
-      );
+      return jsonResponse(getHabits().habits.map((h) => h.toJson()).toList());
     });
     router.post('/api/habits', (Request request) async {
       try {
@@ -78,7 +82,11 @@ class HabitsServerSection implements ServerSection {
       case 'toggle_habit':
         return _executeToggleHabit(data['id'], data['date'] as String?);
       case 'step_habit':
-        return _executeStepHabit(data['id'], data['delta'], data['date'] as String?);
+        return _executeStepHabit(
+          data['id'],
+          data['delta'],
+          data['date'] as String?,
+        );
       case 'delete_habit':
         return _executeDeleteHabit(data['id']);
       default:
@@ -95,12 +103,15 @@ class HabitsServerSection implements ServerSection {
   bool _executeCreateHabit(Map<String, dynamic> data) {
     final title = (data['title'] ?? data['name']) as String?;
     final typeStr = (data['habit_type'] ?? data['type'] ?? 'binary') as String;
-    final rawTarget = data['target_value'] ?? data['targetValue'] ?? data['target'];
+    final rawTarget =
+        data['target_value'] ?? data['targetValue'] ?? data['target'];
     final targetValue = rawTarget is num
         ? rawTarget.toInt()
         : (int.tryParse(rawTarget?.toString() ?? '1') ?? 1);
     final unit = data['unit'] as String?;
-    final rawIcon = (data['icon_name'] ?? data['iconName'] ?? data['glyph'] ?? 'bolt').toString();
+    final rawIcon =
+        (data['icon_name'] ?? data['iconName'] ?? data['glyph'] ?? 'bolt')
+            .toString();
     final iconName = emojiToHabitIcon[rawIcon] ?? rawIcon;
 
     if (title != null && title.trim().isNotEmpty) {

@@ -63,7 +63,14 @@ class _TwoPaneKeyboardScaffoldState extends State<TwoPaneKeyboardScaffold> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                _buildTopNavigation(context),
+                _TwoPaneTopBar(
+                  title: widget.title,
+                  onSave: widget.onSave,
+                  saveLabel: widget.saveLabel,
+                  saveButtonColor: widget.saveButtonColor,
+                  saveTextColor: widget.saveTextColor,
+                  saveIcon: widget.saveIcon,
+                ),
                 const SizedBox(height: 14),
                 Expanded(
                   child: LayoutBuilder(
@@ -74,15 +81,33 @@ class _TwoPaneKeyboardScaffoldState extends State<TwoPaneKeyboardScaffold> {
                           crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
                             // Left Pane: Form Fields (40% width)
-                            Expanded(flex: 4, child: _buildLeftCard(context)),
+                            Expanded(
+                              flex: 4,
+                              child: _TwoPaneFormCard(
+                                formBuilder: widget.formBuilder,
+                                keyboardController: _keyboardController,
+                              ),
+                            ),
                             const SizedBox(width: 14),
                             // Right Pane: Live Preview & In-App Keyboard (60% width)
-                            Expanded(flex: 6, child: _buildRightCard(context)),
+                            Expanded(
+                              flex: 6,
+                              child: _TwoPanePreviewCard(
+                                previewBuilder: widget.previewBuilder,
+                                keyboardController: _keyboardController,
+                                onSave: widget.onSave,
+                              ),
+                            ),
                           ],
                         );
                       } else {
                         // Narrow fallback for compact screens
-                        return _buildNarrowLayout(context);
+                        return _TwoPaneNarrowLayout(
+                          formBuilder: widget.formBuilder,
+                          previewBuilder: widget.previewBuilder,
+                          keyboardController: _keyboardController,
+                          onSave: widget.onSave,
+                        );
                       }
                     },
                   ),
@@ -94,8 +119,28 @@ class _TwoPaneKeyboardScaffoldState extends State<TwoPaneKeyboardScaffold> {
       ),
     );
   }
+}
 
-  Widget _buildTopNavigation(BuildContext context) {
+/// Top bar with back button, editor title, Cancel, and Save actions.
+class _TwoPaneTopBar extends StatelessWidget {
+  final String title;
+  final VoidCallback onSave;
+  final String saveLabel;
+  final Color saveButtonColor;
+  final Color saveTextColor;
+  final IconData saveIcon;
+
+  const _TwoPaneTopBar({
+    required this.title,
+    required this.onSave,
+    required this.saveLabel,
+    required this.saveButtonColor,
+    required this.saveTextColor,
+    required this.saveIcon,
+  });
+
+  @override
+  Widget build(BuildContext context) {
     return Row(
       children: [
         IconButton(
@@ -106,7 +151,7 @@ class _TwoPaneKeyboardScaffoldState extends State<TwoPaneKeyboardScaffold> {
         ),
         const SizedBox(width: 8),
         Text(
-          widget.title,
+          title,
           style: const TextStyle(
             color: AppColors.textPrimary,
             fontSize: 20,
@@ -127,15 +172,15 @@ class _TwoPaneKeyboardScaffoldState extends State<TwoPaneKeyboardScaffold> {
         ),
         const SizedBox(width: 10),
         ElevatedButton.icon(
-          onPressed: widget.onSave,
-          icon: Icon(widget.saveIcon, size: 18),
+          onPressed: onSave,
+          icon: Icon(saveIcon, size: 18),
           label: Text(
-            widget.saveLabel,
+            saveLabel,
             style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 14),
           ),
           style: ElevatedButton.styleFrom(
-            backgroundColor: widget.saveButtonColor,
-            foregroundColor: widget.saveTextColor,
+            backgroundColor: saveButtonColor,
+            foregroundColor: saveTextColor,
             elevation: 0,
             padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
             shape: RoundedRectangleBorder(
@@ -146,8 +191,21 @@ class _TwoPaneKeyboardScaffoldState extends State<TwoPaneKeyboardScaffold> {
       ],
     );
   }
+}
 
-  Widget _buildLeftCard(BuildContext context) {
+/// Left pane card hosting the scrollable form fields.
+class _TwoPaneFormCard extends StatelessWidget {
+  final Widget Function(BuildContext context, InAppKeyboardController keyboard)
+  formBuilder;
+  final InAppKeyboardController keyboardController;
+
+  const _TwoPaneFormCard({
+    required this.formBuilder,
+    required this.keyboardController,
+  });
+
+  @override
+  Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
         color: AppColors.surface,
@@ -156,12 +214,26 @@ class _TwoPaneKeyboardScaffoldState extends State<TwoPaneKeyboardScaffold> {
       ),
       padding: const EdgeInsets.all(20),
       child: SingleChildScrollView(
-        child: widget.formBuilder(context, _keyboardController),
+        child: formBuilder(context, keyboardController),
       ),
     );
   }
+}
 
-  Widget _buildRightCard(BuildContext context) {
+/// Right pane card hosting the WYSIWYG preview and the in-app keyboard.
+class _TwoPanePreviewCard extends StatelessWidget {
+  final Widget Function(BuildContext context) previewBuilder;
+  final InAppKeyboardController keyboardController;
+  final VoidCallback onSave;
+
+  const _TwoPanePreviewCard({
+    required this.previewBuilder,
+    required this.keyboardController,
+    required this.onSave,
+  });
+
+  @override
+  Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
         color: AppColors.surface,
@@ -200,7 +272,7 @@ class _TwoPaneKeyboardScaffoldState extends State<TwoPaneKeyboardScaffold> {
                 Expanded(
                   child: Center(
                     child: SingleChildScrollView(
-                      child: widget.previewBuilder(context),
+                      child: previewBuilder(context),
                     ),
                   ),
                 ),
@@ -210,15 +282,32 @@ class _TwoPaneKeyboardScaffoldState extends State<TwoPaneKeyboardScaffold> {
           const SizedBox(height: 12),
           // Lower Area: Touch Virtual Keyboard
           InAppKeyboardWidget(
-            controller: _keyboardController,
-            onDonePressed: widget.onSave,
+            controller: keyboardController,
+            onDonePressed: onSave,
           ),
         ],
       ),
     );
   }
+}
 
-  Widget _buildNarrowLayout(BuildContext context) {
+/// Narrow fallback stacking form, preview, and keyboard vertically.
+class _TwoPaneNarrowLayout extends StatelessWidget {
+  final Widget Function(BuildContext context, InAppKeyboardController keyboard)
+  formBuilder;
+  final Widget Function(BuildContext context) previewBuilder;
+  final InAppKeyboardController keyboardController;
+  final VoidCallback onSave;
+
+  const _TwoPaneNarrowLayout({
+    required this.formBuilder,
+    required this.previewBuilder,
+    required this.keyboardController,
+    required this.onSave,
+  });
+
+  @override
+  Widget build(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -234,7 +323,7 @@ class _TwoPaneKeyboardScaffoldState extends State<TwoPaneKeyboardScaffold> {
                     borderRadius: BorderRadius.circular(18),
                     border: Border.all(color: AppColors.borderDark),
                   ),
-                  child: widget.formBuilder(context, _keyboardController),
+                  child: formBuilder(context, keyboardController),
                 ),
                 const SizedBox(height: 12),
                 Container(
@@ -244,7 +333,7 @@ class _TwoPaneKeyboardScaffoldState extends State<TwoPaneKeyboardScaffold> {
                     borderRadius: BorderRadius.circular(18),
                     border: Border.all(color: AppColors.borderDark),
                   ),
-                  child: widget.previewBuilder(context),
+                  child: previewBuilder(context),
                 ),
               ],
             ),
@@ -252,8 +341,8 @@ class _TwoPaneKeyboardScaffoldState extends State<TwoPaneKeyboardScaffold> {
         ),
         const SizedBox(height: 10),
         InAppKeyboardWidget(
-          controller: _keyboardController,
-          onDonePressed: widget.onSave,
+          controller: keyboardController,
+          onDonePressed: onSave,
         ),
       ],
     );

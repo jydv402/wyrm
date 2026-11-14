@@ -1,34 +1,50 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:wyrm_desk/theme/theme.dart';
-import 'package:wyrm_desk/config/card_layout_state.dart';
 
-/// Corner button that triggers an in-place pop-up menu for selecting container dimensions
-/// with Dusk Glass styling.
-class CardEditButton extends StatelessWidget {
-  /// Invoked when the user selects a size tier from the in-place menu.
-  final ValueChanged<CardSize> onSelectSize;
+/// One selectable entry in a [CardEditButton] popup menu.
+class EditMenuOption<T> {
+  /// Value reported through the button's callback when this entry is picked.
+  final T value;
 
-  /// Active sizing state of the host card.
-  final CardSize currentSize;
+  /// Visible entry label.
+  final String label;
 
-  /// Dark mode toggle for the button glyph and container based on card contrast.
-  final bool isDarkGlyph;
+  /// Leading icon for the entry.
+  final IconData icon;
 
-  /// Enables the 4th Nightstand mode option for dedicated clock cards.
-  final bool showNightstandOption;
+  const EditMenuOption({
+    required this.value,
+    required this.label,
+    required this.icon,
+  });
+}
+
+/// Corner button that opens an in-place pop-up menu for selecting an option
+/// (typically a card size) with Dusk Glass styling.
+///
+/// The button is generic: callers supply the option list, so this design
+/// system widget knows nothing about card layout state.
+class CardEditButton<T> extends StatelessWidget {
+  /// Menu entries, in display order.
+  final List<EditMenuOption<T>> options;
+
+  /// Currently selected value, highlighted in the menu.
+  final T currentValue;
+
+  /// Invoked when the user selects an entry from the menu.
+  final ValueChanged<T> onSelected;
 
   const CardEditButton({
     super.key,
-    required this.onSelectSize,
-    this.currentSize = CardSize.small,
-    this.isDarkGlyph = true,
-    this.showNightstandOption = false,
+    required this.options,
+    required this.currentValue,
+    required this.onSelected,
   });
 
   @override
   Widget build(BuildContext context) {
-    return PopupMenuButton<CardSize>(
-      onSelected: onSelectSize,
+    return PopupMenuButton<T>(
+      onSelected: onSelected,
       tooltip: 'Select card size',
       position: PopupMenuPosition.under,
       offset: const Offset(0, 8),
@@ -38,33 +54,14 @@ class CardEditButton extends StatelessWidget {
         borderRadius: BorderRadius.circular(18),
         side: const BorderSide(color: AppColors.lineStrong, width: 1.0),
       ),
-      itemBuilder: (context) => [
-        _buildMenuItem(
-          size: CardSize.small,
-          label: 'Small',
-          icon: Icons.crop_square_rounded,
-          isSelected: currentSize == CardSize.small,
-        ),
-        _buildMenuItem(
-          size: CardSize.medium,
-          label: 'Medium',
-          icon: Icons.view_column_rounded,
-          isSelected: currentSize == CardSize.medium,
-        ),
-        _buildMenuItem(
-          size: CardSize.fullscreen,
-          label: 'Fullscreen',
-          icon: Icons.fullscreen_rounded,
-          isSelected: currentSize == CardSize.fullscreen,
-        ),
-        if (showNightstandOption)
-          _buildMenuItem(
-            size: CardSize.nightstand,
-            label: 'Nightstand',
-            icon: Icons.bedtime_rounded,
-            isSelected: currentSize == CardSize.nightstand,
-          ),
-      ],
+      itemBuilder: (context) => options
+          .map(
+            (option) => _buildMenuItem(
+              option: option,
+              isSelected: option.value == currentValue,
+            ),
+          )
+          .toList(),
       child: Container(
         width: 36,
         height: 36,
@@ -82,19 +79,17 @@ class CardEditButton extends StatelessWidget {
     );
   }
 
-  PopupMenuItem<CardSize> _buildMenuItem({
-    required CardSize size,
-    required String label,
-    required IconData icon,
+  PopupMenuItem<T> _buildMenuItem({
+    required EditMenuOption<T> option,
     required bool isSelected,
   }) {
-    return PopupMenuItem<CardSize>(
-      value: size,
+    return PopupMenuItem<T>(
+      value: option.value,
       height: 44,
       child: Row(
         children: [
           Icon(
-            icon,
+            option.icon,
             size: 18,
             color: isSelected
                 ? AppColors.accentOrange
@@ -102,7 +97,7 @@ class CardEditButton extends StatelessWidget {
           ),
           const SizedBox(width: 12),
           Text(
-            label,
+            option.label,
             style: TextStyle(
               color: isSelected
                   ? AppColors.textPrimary

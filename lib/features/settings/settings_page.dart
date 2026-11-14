@@ -32,18 +32,6 @@ class SettingsPage extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final settings = ref.watch(appSettingsProvider);
-    final notifier = ref.read(appSettingsProvider.notifier);
-    final displayState = ref.watch(displayProvider);
-    final layoutConfig = ref.watch(cardLayoutProvider);
-    final isNightstand = layoutConfig.clock == CardSize.nightstand;
-
-    final ipAsync = ref.watch(localIpProvider);
-    final ipAddress = ipAsync.value ?? '127.0.0.1';
-    final server = ref.watch(webServerProvider);
-    final serverPort = server.port ?? ShelfWebServer.defaultPort;
-    final serverUrl = 'http://$ipAddress:$serverPort';
-
     return Scaffold(
       backgroundColor: AppColors.background,
       body: Stack(
@@ -64,7 +52,7 @@ class SettingsPage extends ConsumerWidget {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   // Top Navigation Bar
-                  _buildTopBar(context),
+                  const _SettingsTopBar(),
 
                   const SizedBox(height: 16),
 
@@ -73,16 +61,7 @@ class SettingsPage extends ConsumerWidget {
                     child: Center(
                       child: ConstrainedBox(
                         constraints: const BoxConstraints(maxWidth: 860),
-                        child: _buildContentPane(
-                          context: context,
-                          ref: ref,
-                          settings: settings,
-                          notifier: notifier,
-                          displayState: displayState,
-                          isNightstand: isNightstand,
-                          ipAddress: ipAddress,
-                          serverUrl: serverUrl,
-                        ),
+                        child: const _SettingsContentPane(),
                       ),
                     ),
                   ),
@@ -94,9 +73,14 @@ class SettingsPage extends ConsumerWidget {
       ),
     );
   }
+}
 
-  /// Top navigation bar with back button, branded title, and close action.
-  Widget _buildTopBar(BuildContext context) {
+/// Top navigation bar with back button, branded title, and close action.
+class _SettingsTopBar extends StatelessWidget {
+  const _SettingsTopBar();
+
+  @override
+  Widget build(BuildContext context) {
     return Row(
       children: [
         DuskGlassButton.icon(
@@ -168,71 +152,67 @@ class SettingsPage extends ConsumerWidget {
       ],
     );
   }
+}
 
-  /// Scrollable content pane containing grouped Dusk Glass panels for each category.
-  Widget _buildContentPane({
-    required BuildContext context,
-    required WidgetRef ref,
-    required AppSettingsConfig settings,
-    required AppSettingsNotifier notifier,
-    required DisplayState displayState,
-    required bool isNightstand,
-    required String ipAddress,
-    required String serverUrl,
-  }) {
+/// Scrollable content pane containing grouped Dusk Glass panels for each category.
+class _SettingsContentPane extends ConsumerWidget {
+  const _SettingsContentPane();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final layoutConfig = ref.watch(cardLayoutProvider);
+    final isNightstand = layoutConfig.clock == CardSize.nightstand;
+
+    final ipAsync = ref.watch(localIpProvider);
+    final ipAddress = ipAsync.value ?? '127.0.0.1';
+    final server = ref.watch(webServerProvider);
+    final serverPort = server.port ?? ShelfWebServer.defaultPort;
+    final serverUrl = 'http://$ipAddress:$serverPort';
+
     return SingleChildScrollView(
       physics: const BouncingScrollPhysics(),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           // Section 1: Display & Brightness
-          _buildDisplaySection(
-            ref: ref,
-            displayState: displayState,
-            isNightstand: isNightstand,
-          ),
+          _DisplaySection(isNightstand: isNightstand),
 
           const SizedBox(height: 16),
 
           // Section 2: Clock & Calendar
-          _buildClockCalendarSection(settings: settings, notifier: notifier),
+          const _ClockCalendarSection(),
 
           const SizedBox(height: 16),
 
           // Section 3: Card Appearance
-          _buildAppearanceSection(settings: settings, notifier: notifier),
+          const _AppearanceSection(),
 
           const SizedBox(height: 16),
 
           // Section 4: Web Remote Companion
-          _buildNetworkSection(
-            context: context,
-            ref: ref,
-            ipAddress: ipAddress,
-            serverUrl: serverUrl,
-          ),
+          const _NetworkSection(),
 
           const SizedBox(height: 16),
 
           // Section 5: Data & Backups
-          _buildDataBackupSection(
-            context: context,
-            ref: ref,
-            serverUrl: serverUrl,
-          ),
+          _DataBackupSection(serverUrl: serverUrl),
 
           const SizedBox(height: 32),
         ],
       ),
     );
   }
+}
 
-  /// Section 1: Display & Brightness panel
-  Widget _buildDisplaySection({
-    required WidgetRef ref,
-    required DisplayState displayState,
-    required bool isNightstand,
-  }) {
+/// Section 1: Display & Brightness panel
+class _DisplaySection extends ConsumerWidget {
+  final bool isNightstand;
+
+  const _DisplaySection({required this.isNightstand});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final displayState = ref.watch(displayProvider);
     final pct = (displayState.brightness * 100).round();
 
     return DuskGlassPanel(
@@ -242,7 +222,7 @@ class SettingsPage extends ConsumerWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          _buildSectionHeader(
+          const _SectionHeader(
             icon: Icons.brightness_6_rounded,
             title: 'Display & Brightness',
             subtitle: 'Screen intensity and ambient nightstand behavior',
@@ -250,7 +230,7 @@ class SettingsPage extends ConsumerWidget {
           const SizedBox(height: 18),
 
           // Brightness Slider Row
-          _buildSettingRow(
+          _SettingRow(
             icon: Icons.brightness_medium_rounded,
             title: 'Brightness',
             subtitle: 'Screen intensity of the tablet ambient display',
@@ -316,7 +296,7 @@ class SettingsPage extends ConsumerWidget {
           const SizedBox(height: 12),
 
           // Nightstand Mode Toggle
-          _buildSettingRow(
+          _SettingRow(
             icon: Icons.bedtime_rounded,
             title: 'Nightstand Mode',
             subtitle: 'Pitch-black ultra-low glare glowing clock for bedtime',
@@ -340,12 +320,16 @@ class SettingsPage extends ConsumerWidget {
       ),
     );
   }
+}
 
-  /// Section 2: Clock & Calendar panel
-  Widget _buildClockCalendarSection({
-    required AppSettingsConfig settings,
-    required AppSettingsNotifier notifier,
-  }) {
+/// Section 2: Clock & Calendar panel
+class _ClockCalendarSection extends ConsumerWidget {
+  const _ClockCalendarSection();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final settings = ref.watch(appSettingsProvider);
+
     return DuskGlassPanel(
       tone: AppColors.glacier,
       borderRadius: 26.0,
@@ -353,7 +337,7 @@ class SettingsPage extends ConsumerWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          _buildSectionHeader(
+          const _SectionHeader(
             icon: Icons.schedule_rounded,
             title: 'Clock & Calendar',
             subtitle: 'Time format and calendar week start conventions',
@@ -361,7 +345,7 @@ class SettingsPage extends ConsumerWidget {
           const SizedBox(height: 18),
 
           // 24-Hour Time Format
-          _buildSettingRow(
+          _SettingRow(
             icon: Icons.access_time_filled_rounded,
             title: 'Time Format',
             subtitle:
@@ -372,7 +356,8 @@ class SettingsPage extends ConsumerWidget {
                 values: const [false, true],
                 selectedValue: settings.is24HourFormat,
                 labelBuilder: (v) => v ? '24-hour' : '12-hour',
-                onValueChanged: (v) => notifier.set24HourFormat(v),
+                onValueChanged: (v) =>
+                    ref.read(appSettingsProvider.notifier).set24HourFormat(v),
                 activeColor: AppColors.glacierAccent,
                 activeTextColor: AppColors.glacierInk,
                 height: 38,
@@ -383,7 +368,7 @@ class SettingsPage extends ConsumerWidget {
           const SizedBox(height: 12),
 
           // Week Starts On
-          _buildSettingRow(
+          _SettingRow(
             icon: Icons.calendar_view_week_rounded,
             title: 'Week Starts On',
             subtitle: 'First day of the week in calendar and habit cards',
@@ -393,7 +378,9 @@ class SettingsPage extends ConsumerWidget {
                 values: const [false, true],
                 selectedValue: settings.startWeekOnMonday,
                 labelBuilder: (v) => v ? 'Monday' : 'Sunday',
-                onValueChanged: (v) => notifier.setStartWeekOnMonday(v),
+                onValueChanged: (v) => ref
+                    .read(appSettingsProvider.notifier)
+                    .setStartWeekOnMonday(v),
                 activeColor: AppColors.glacierAccent,
                 activeTextColor: AppColors.glacierInk,
                 height: 38,
@@ -404,12 +391,17 @@ class SettingsPage extends ConsumerWidget {
       ),
     );
   }
+}
 
-  /// Section 3: Card Appearance panel
-  Widget _buildAppearanceSection({
-    required AppSettingsConfig settings,
-    required AppSettingsNotifier notifier,
-  }) {
+/// Section 3: Card Appearance panel
+class _AppearanceSection extends ConsumerWidget {
+  const _AppearanceSection();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final settings = ref.watch(appSettingsProvider);
+    final notifier = ref.read(appSettingsProvider.notifier);
+
     return DuskGlassPanel(
       tone: AppColors.glacier,
       borderRadius: 26.0,
@@ -417,7 +409,7 @@ class SettingsPage extends ConsumerWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          _buildSectionHeader(
+          const _SectionHeader(
             icon: Icons.palette_rounded,
             title: 'Card Appearance',
             subtitle: 'Typography scale for tasks, habits, and cards',
@@ -425,7 +417,7 @@ class SettingsPage extends ConsumerWidget {
           const SizedBox(height: 18),
 
           // Card Font Size Slider
-          _buildSettingRow(
+          _SettingRow(
             icon: Icons.format_size_rounded,
             title: 'Card Font Size',
             subtitle:
@@ -548,14 +540,20 @@ class SettingsPage extends ConsumerWidget {
       ),
     );
   }
+}
 
-  /// Section 4: Web Remote Companion panel
-  Widget _buildNetworkSection({
-    required BuildContext context,
-    required WidgetRef ref,
-    required String ipAddress,
-    required String serverUrl,
-  }) {
+/// Section 4: Web Remote Companion panel
+class _NetworkSection extends ConsumerWidget {
+  const _NetworkSection();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final ipAsync = ref.watch(localIpProvider);
+    final ipAddress = ipAsync.value ?? '127.0.0.1';
+    final server = ref.watch(webServerProvider);
+    final serverPort = server.port ?? ShelfWebServer.defaultPort;
+    final serverUrl = 'http://$ipAddress:$serverPort';
+
     return DuskGlassPanel(
       tone: AppColors.glacier,
       borderRadius: 26.0,
@@ -563,7 +561,7 @@ class SettingsPage extends ConsumerWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          _buildSectionHeader(
+          const _SectionHeader(
             icon: Icons.wifi_rounded,
             title: 'Web Remote Companion',
             subtitle: 'Control and sync Wyrm Desk wirelessly from any browser',
@@ -676,13 +674,16 @@ class SettingsPage extends ConsumerWidget {
       ),
     );
   }
+}
 
-  /// Section 5: Data & Backups panel
-  Widget _buildDataBackupSection({
-    required BuildContext context,
-    required WidgetRef ref,
-    required String serverUrl,
-  }) {
+/// Section 5: Data & Backups panel
+class _DataBackupSection extends ConsumerWidget {
+  final String serverUrl;
+
+  const _DataBackupSection({required this.serverUrl});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
     return DuskGlassPanel(
       tone: AppColors.glacier,
       borderRadius: 26.0,
@@ -690,7 +691,7 @@ class SettingsPage extends ConsumerWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          _buildSectionHeader(
+          const _SectionHeader(
             icon: Icons.storage_rounded,
             title: 'Data & Backups',
             subtitle: 'Backup or restore dashboard data between release and test versions',
@@ -698,7 +699,7 @@ class SettingsPage extends ConsumerWidget {
           const SizedBox(height: 18),
 
           // Export Backup Row
-          _buildSettingRow(
+          _SettingRow(
             icon: Icons.upload_file_rounded,
             title: 'Export to Downloads',
             subtitle:
@@ -737,7 +738,7 @@ class SettingsPage extends ConsumerWidget {
           const SizedBox(height: 12),
 
           // Import Backup Row
-          _buildSettingRow(
+          _SettingRow(
             icon: Icons.download_rounded,
             title: 'Import from Downloads',
             subtitle:
@@ -855,12 +856,22 @@ class SettingsPage extends ConsumerWidget {
       ),
     );
   }
+}
 
-  Widget _buildSectionHeader({
-    required IconData icon,
-    required String title,
-    required String subtitle,
-  }) {
+/// Glacier icon badge with bold title and muted subtitle used atop each panel.
+class _SectionHeader extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  final String subtitle;
+
+  const _SectionHeader({
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+  });
+
+  @override
+  Widget build(BuildContext context) {
     return Row(
       children: [
         Container(
@@ -904,13 +915,24 @@ class SettingsPage extends ConsumerWidget {
       ],
     );
   }
+}
 
-  Widget _buildSettingRow({
-    required IconData icon,
-    required String title,
-    required String subtitle,
-    required Widget trailing,
-  }) {
+/// Well-tinted setting row that stacks label and control on narrow widths.
+class _SettingRow extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  final String subtitle;
+  final Widget trailing;
+
+  const _SettingRow({
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+    required this.trailing,
+  });
+
+  @override
+  Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(

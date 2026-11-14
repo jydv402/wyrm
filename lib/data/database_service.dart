@@ -36,7 +36,9 @@ class DatabaseService {
 
   /// Imports from public Downloads, reloads in-memory state, and returns success.
   Future<bool> importFromDownloadsAndReload({String? customPath}) async {
-    final success = await AppDatabase.importFromDownloads(customPath: customPath);
+    final success = await AppDatabase.importFromDownloads(
+      customPath: customPath,
+    );
     if (success) {
       await reloadAllState();
     }

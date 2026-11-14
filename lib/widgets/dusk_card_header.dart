@@ -1,10 +1,12 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:wyrm_desk/theme/theme.dart';
-import 'package:wyrm_desk/config/card_layout_state.dart';
-import 'package:wyrm_desk/widgets/card_edit_button.dart';
 import 'package:wyrm_desk/widgets/dusk_glass_button.dart';
 
 /// Uniform Dusk Glass card header hosting domain icon, card title, badge, and circular glass actions.
+///
+/// App-specific trailing controls (such as the card-size menu button) are
+/// passed in through [editButton], keeping this design system widget free of
+/// card layout knowledge.
 class DuskCardHeader extends StatelessWidget {
   final IconData? icon;
   final Widget? iconWidget;
@@ -14,9 +16,7 @@ class DuskCardHeader extends StatelessWidget {
   final VoidCallback? onAdd;
   final Color? addColor;
   final Color? addForegroundColor;
-  final ValueChanged<CardSize>? onSelectSize;
-  final CardSize currentSize;
-  final bool showNightstandOption;
+  final Widget? editButton;
   final List<Widget>? extraActions;
 
   const DuskCardHeader({
@@ -29,9 +29,7 @@ class DuskCardHeader extends StatelessWidget {
     this.onAdd,
     this.addColor,
     this.addForegroundColor,
-    this.onSelectSize,
-    this.currentSize = CardSize.small,
-    this.showNightstandOption = false,
+    this.editButton,
     this.extraActions,
   });
 
@@ -87,15 +85,8 @@ class DuskCardHeader extends StatelessWidget {
           ),
         ],
 
-        // Sizing slider/filter button
-        if (onSelectSize != null) ...[
-          const SizedBox(width: 8),
-          CardEditButton(
-            onSelectSize: onSelectSize!,
-            currentSize: currentSize,
-            showNightstandOption: showNightstandOption,
-          ),
-        ],
+        // App-supplied trailing control (e.g. card-size menu)
+        if (editButton != null) ...[const SizedBox(width: 8), editButton!],
       ],
     );
   }
