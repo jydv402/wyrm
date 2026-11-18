@@ -38,6 +38,10 @@ class _DuskDatePickerDialogState extends State<DuskDatePickerDialog> {
   late DateTime _viewMonth;
   _DuskDatePickerMode _mode = _DuskDatePickerMode.day;
   final ScrollController _yearScrollController = ScrollController();
+  late int _minLoadedYear;
+  late int _maxLoadedYear;
+  bool _isExtendingYears = false;
+  double _lastItemWidth = 100.0;
 
   static const List<String> _shortMonthNames = [
     'Jan',
@@ -73,21 +77,103 @@ class _DuskDatePickerDialogState extends State<DuskDatePickerDialog> {
       widget.initialDate.day,
     );
     _viewMonth = DateTime(_selectedDate.year, _selectedDate.month, 1);
+    _initYearRange();
+    _yearScrollController.addListener(_onYearScroll);
   }
 
   @override
   void dispose() {
+    _yearScrollController.removeListener(_onYearScroll);
     _yearScrollController.dispose();
     super.dispose();
+  }
+
+  void _initYearRange() {
+    final curYear = _viewMonth.year;
+    // Window of ~60 years (20 rows of 3 columns) centered on the active year
+    var start = curYear - 30;
+    var end = curYear + 29;
+    if (start < widget.firstDate.year) {
+      final diff = widget.firstDate.year - start;
+      start = widget.firstDate.year;
+      end = (end + diff).clamp(widget.firstDate.year, widget.lastDate.year);
+    }
+    if (end > widget.lastDate.year) {
+      final diff = end - widget.lastDate.year;
+      end = widget.lastDate.year;
+      start = (start - diff).clamp(widget.firstDate.year, widget.lastDate.year);
+    }
+    _minLoadedYear = start;
+    _maxLoadedYear = end;
+  }
+
+  void _onYearScroll() {
+    if (!_yearScrollController.hasClients || _isExtendingYears) return;
+
+    final pos = _yearScrollController.position;
+    // 150px threshold from top (scrolling towards year 1)
+    if (pos.pixels <= 150.0 && _minLoadedYear > widget.firstDate.year) {
+      _extendYearsUpward();
+    }
+    // 150px threshold from bottom (scrolling towards year 9999)
+    else if (pos.maxScrollExtent - pos.pixels <= 150.0 &&
+        _maxLoadedYear < widget.lastDate.year) {
+      _extendYearsDownward();
+    }
+  }
+
+  void _extendYearsDownward() {
+    if (_maxLoadedYear >= widget.lastDate.year) return;
+    _isExtendingYears = true;
+    final toAdd = (widget.lastDate.year - _maxLoadedYear).clamp(1, 30);
+    setState(() {
+      _maxLoadedYear += toAdd;
+    });
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _isExtendingYears = false;
+    });
+  }
+
+  void _extendYearsUpward() {
+    if (_minLoadedYear <= widget.firstDate.year) return;
+    _isExtendingYears = true;
+    final available = _minLoadedYear - widget.firstDate.year;
+    final toAdd = available >= 30
+        ? 30
+        : (available >= 3 ? (available ~/ 3) * 3 : available);
+    if (toAdd <= 0) {
+      _isExtendingYears = false;
+      return;
+    }
+
+    final addedRows = (toAdd / 3.0).ceil();
+    final rowHeight = (_lastItemWidth / 2.2) + 10.0;
+    final heightToAdd = addedRows * rowHeight;
+
+    setState(() {
+      _minLoadedYear -= toAdd;
+    });
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_yearScrollController.hasClients) {
+        _yearScrollController.jumpTo(
+          _yearScrollController.offset + heightToAdd,
+        );
+      }
+      _isExtendingYears = false;
+    });
   }
 
   void _scrollToCurrentYear() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!_yearScrollController.hasClients) return;
-      final yearIndex = _viewMonth.year - widget.firstDate.year;
-      // 3 items per row, ~52px per row
-      final targetRow = yearIndex ~/ 3;
-      final offset = (targetRow * 52.0).clamp(
+      final yearIndex = _viewMonth.year - _minLoadedYear;
+      final targetRow = (yearIndex / 3).floor();
+      final rowHeight = (_lastItemWidth / 2.2) + 10.0;
+      final viewportHeight = _yearScrollController.position.viewportDimension;
+      final targetOffset =
+          (targetRow * rowHeight) - (viewportHeight / 2.0) + (rowHeight / 2.0);
+      final offset = targetOffset.clamp(
         0.0,
         _yearScrollController.position.maxScrollExtent,
       );
@@ -109,14 +195,29 @@ class _DuskDatePickerDialogState extends State<DuskDatePickerDialog> {
           ? _DuskDatePickerMode.day
           : _DuskDatePickerMode.year;
       if (_mode == _DuskDatePickerMode.year) {
+        if (_viewMonth.year < _minLoadedYear ||
+            _viewMonth.year > _maxLoadedYear) {
+          _initYearRange();
+        }
         _scrollToCurrentYear();
       }
     });
   }
 
   void _shiftMonth(int delta) {
+    final nextMonth = DateTime(_viewMonth.year, _viewMonth.month + delta, 1);
+    if (nextMonth.isBefore(
+      DateTime(widget.firstDate.year, widget.firstDate.month, 1),
+    )) {
+      return;
+    }
+    if (nextMonth.isAfter(
+      DateTime(widget.lastDate.year, widget.lastDate.month, 1),
+    )) {
+      return;
+    }
     setState(() {
-      _viewMonth = DateTime(_viewMonth.year, _viewMonth.month + delta, 1);
+      _viewMonth = nextMonth;
     });
   }
 
@@ -559,8 +660,9 @@ class _DuskDatePickerDialogState extends State<DuskDatePickerDialog> {
                           ? AppColors.goldInk
                           : AppColors.textPrimary,
                       fontSize: 14.5,
-                      fontWeight:
-                          isSelected ? FontWeight.w800 : FontWeight.w600,
+                      fontWeight: isSelected
+                          ? FontWeight.w800
+                          : FontWeight.w600,
                     ),
                   ),
                 ),
@@ -573,48 +675,62 @@ class _DuskDatePickerDialogState extends State<DuskDatePickerDialog> {
   }
 
   Widget _buildYearPicker() {
-    final startYear = widget.firstDate.year;
-    final totalYears = widget.lastDate.year - startYear + 1;
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final usableWidth = (constraints.maxWidth - 20.0).clamp(
+          0.0,
+          double.infinity,
+        );
+        final itemWidth = usableWidth / 3.0;
+        _lastItemWidth = itemWidth;
 
-    return GridView.builder(
-      key: const ValueKey('year_picker'),
-      controller: _yearScrollController,
-      physics: const BouncingScrollPhysics(),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 3,
-        crossAxisSpacing: 10,
-        mainAxisSpacing: 10,
-        childAspectRatio: 2.2,
-      ),
-      itemCount: totalYears,
-      itemBuilder: (context, index) {
-        final year = startYear + index;
-        final isSelected = _viewMonth.year == year;
+        final totalYears = _maxLoadedYear - _minLoadedYear + 1;
 
-        return InkWell(
-          onTap: () => _selectYear(year),
-          borderRadius: BorderRadius.circular(12),
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 150),
-            decoration: BoxDecoration(
-              color: isSelected ? AppColors.goldFill : AppColors.well,
+        return GridView.builder(
+          key: const ValueKey('year_picker'),
+          controller: _yearScrollController,
+          physics: const BouncingScrollPhysics(),
+          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: 3,
+            crossAxisSpacing: 10,
+            mainAxisSpacing: 10,
+            childAspectRatio: 2.2,
+          ),
+          itemCount: totalYears,
+          itemBuilder: (context, index) {
+            final year = _minLoadedYear + index;
+            final isSelected = _viewMonth.year == year;
+
+            return InkWell(
+              onTap: () => _selectYear(year),
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(
-                color: isSelected ? Colors.transparent : AppColors.line,
-                width: 1.0,
-              ),
-            ),
-            child: Center(
-              child: Text(
-                '$year',
-                style: TextStyle(
-                  color: isSelected ? AppColors.goldInk : AppColors.textPrimary,
-                  fontSize: 14.5,
-                  fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 150),
+                decoration: BoxDecoration(
+                  color: isSelected ? AppColors.goldFill : AppColors.well,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: isSelected ? Colors.transparent : AppColors.line,
+                    width: 1.0,
+                  ),
+                ),
+                child: Center(
+                  child: Text(
+                    '$year',
+                    style: TextStyle(
+                      color: isSelected
+                          ? AppColors.goldInk
+                          : AppColors.textPrimary,
+                      fontSize: 14.5,
+                      fontWeight: isSelected
+                          ? FontWeight.w800
+                          : FontWeight.w600,
+                    ),
+                  ),
                 ),
               ),
-            ),
-          ),
+            );
+          },
         );
       },
     );

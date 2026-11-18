@@ -642,8 +642,8 @@ Future<void> _openTravelDatePicker(
     context: context,
     builder: (context) => DuskDatePickerDialog(
       initialDate: initialDate,
-      firstDate: DateTime(1970),
-      lastDate: DateTime(2100),
+      firstDate: DateTime(1),
+      lastDate: DateTime(9999, 12, 31),
       confirmText: 'TRAVEL',
       cancelText: 'CANCEL',
     ),

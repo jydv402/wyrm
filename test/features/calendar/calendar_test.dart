@@ -7,6 +7,7 @@ import 'package:wyrm_desk/features/calendar/calendar_state.dart';
 import 'package:wyrm_desk/core/date_names.dart';
 import 'package:wyrm_desk/config/card_layout_state.dart';
 import 'package:wyrm_desk/config/app_settings_state.dart';
+import 'package:wyrm_desk/features/calendar/dusk_date_picker_dialog.dart';
 
 void main() {
   group('CalendarMilestone Model', () {
@@ -438,6 +439,80 @@ void main() {
         expect(tester.takeException(), isNull);
       },
     );
+  });
+
+  group('DuskDatePickerDialog Year Scrolling', () {
+    testWidgets(
+      'toggles to year mode and displays dynamically windowed years',
+      (WidgetTester tester) async {
+        final initialDate = DateTime(2026, 9, 19);
+
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Scaffold(
+              body: DuskDatePickerDialog(
+                initialDate: initialDate,
+                firstDate: DateTime(1),
+                lastDate: DateTime(9999, 12, 31),
+              ),
+            ),
+          ),
+        );
+
+        // Initially in day mode
+        expect(find.byKey(const ValueKey('day_picker')), findsOneWidget);
+        expect(find.text('2026'), findsOneWidget);
+
+        // Tap year chip to switch to year mode
+        await tester.tap(find.text('2026'));
+        await tester.pumpAndSettle();
+
+        // Now in year picker mode
+        expect(find.byKey(const ValueKey('year_picker')), findsOneWidget);
+        // Selected year tile is visible
+        expect(find.text('2026'), findsWidgets);
+        // Surrounding windowed years are generated
+        expect(find.text('2025'), findsOneWidget);
+        expect(find.text('2027'), findsOneWidget);
+
+        // Tap on another year tile to travel there
+        await tester.tap(find.text('2027'));
+        await tester.pumpAndSettle();
+
+        // Should return to day mode with 2027 selected
+        expect(find.byKey(const ValueKey('day_picker')), findsOneWidget);
+        expect(find.text('2027'), findsOneWidget);
+      },
+    );
+
+    testWidgets('clamps lower bound to Year 1 and never creates Year 0', (
+      WidgetTester tester,
+    ) async {
+      final initialDate = DateTime(2, 1, 15);
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: DuskDatePickerDialog(
+              initialDate: initialDate,
+              firstDate: DateTime(1),
+              lastDate: DateTime(9999, 12, 31),
+            ),
+          ),
+        ),
+      );
+
+      // Tap year chip
+      await tester.tap(find.text('2'));
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(const ValueKey('year_picker')), findsOneWidget);
+      // Year 1 is present as the lower bound
+      expect(find.text('1'), findsOneWidget);
+      // Year 0 or negative years must not exist
+      expect(find.text('0'), findsNothing);
+      expect(find.text('-1'), findsNothing);
+    });
   });
 }
 

@@ -217,9 +217,10 @@ function createWyrmActions(store, ws) {
   const draft = Vue.reactive({ glyph: '💧' });
 
   const pad = (n) => String(n).padStart(2, '0');
+  const padYear = (y) => String(y).padStart(4, '0');
   // Local calendar date as YYYY-MM-DD. Used everywhere so "today" can never
   // disagree with the week strip (toISOString is UTC and flips at the wrong hour).
-  const dateKey = (d = new Date()) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+  const dateKey = (d = new Date()) => `${padYear(d.getFullYear())}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 
   const post = (endpoint, data, type) => ws.sendOrPost(endpoint, data, type);
 
@@ -347,7 +348,9 @@ function createWyrmActions(store, ws) {
       const key = dateKey(d);
       store.markPendingOnce('calendar', state.calendar);
       state.calendar.selectedDate = d.toISOString();
-      state.calendar.viewMonth = new Date(d.getFullYear(), d.getMonth(), 1).toISOString();
+      const vm = new Date(d.getFullYear(), d.getMonth(), 1);
+      if (d.getFullYear() >= 0 && d.getFullYear() < 100) vm.setFullYear(d.getFullYear());
+      state.calendar.viewMonth = vm.toISOString();
       post('/api/calendar/travel', { date: key }, 'travel_to_date');
       return true;
     },

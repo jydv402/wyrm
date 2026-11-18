@@ -755,14 +755,19 @@
       const cells = computed(() => {
         const year = props.viewDate.getFullYear();
         const month = props.viewDate.getMonth();
-        const first = new Date(year, month, 1);
+        const makeDate = (y, m, d) => {
+          const dt = new Date(y, m, d);
+          if (y >= 0 && y < 100) dt.setFullYear(y);
+          return dt;
+        };
+        const first = makeDate(year, month, 1);
         const lead = mondayFirst.value ? (first.getDay() + 6) % 7 : first.getDay();
-        const daysInMonth = new Date(year, month + 1, 0).getDate();
+        const daysInMonth = makeDate(year, month + 1, 0).getDate();
         const total = Math.ceil((lead + daysInMonth) / 7) * 7;
         const todayKey = wyrm.dateKey();
         const out = [];
         for (let i = 0; i < total; i++) {
-          const d = new Date(year, month, 1 - lead + i);
+          const d = makeDate(year, month, 1 - lead + i);
           const key = wyrm.dateKey(d);
           out.push({
             key,
@@ -876,16 +881,46 @@
       const yearsEl = ref(null);
 
       const initial = props.initialDate ? new Date(props.initialDate) : new Date();
-      const selectedYear = ref(initial.getFullYear());
+      const initialYear = Math.max(1, Math.min(9999, initial.getFullYear()));
+      const selectedYear = ref(initialYear);
       const selectedMonth = ref(initial.getMonth());
       const selectedDay = ref(initial.getDate());
       const mode = ref('day'); // 'day' | 'month' | 'year'
 
-      const yearsList = [];
-      for (let y = 2000; y <= 2050; y++) yearsList.push(y);
+      function makeDate(y, m, d, h = 0, min = 0, s = 0) {
+        const dt = new Date(y, m, d, h, min, s);
+        if (y >= 0 && y < 100) dt.setFullYear(y);
+        return dt;
+      }
+
+      function computeInitialBounds(targetYear) {
+        let start = targetYear - 30;
+        let end = targetYear + 29;
+        if (start < 1) {
+          end = Math.min(9999, end + (1 - start));
+          start = 1;
+        }
+        if (end > 9999) {
+          start = Math.max(1, start - (end - 9999));
+          end = 9999;
+        }
+        return { start, end };
+      }
+
+      const initialBounds = computeInitialBounds(initialYear);
+      const minLoadedYear = ref(initialBounds.start);
+      const maxLoadedYear = ref(initialBounds.end);
+
+      const yearsList = computed(() => {
+        const list = [];
+        for (let y = minLoadedYear.value; y <= maxLoadedYear.value; y++) {
+          list.push(y);
+        }
+        return list;
+      });
 
       function clampDay() {
-        const maxDays = new Date(selectedYear.value, selectedMonth.value + 1, 0).getDate();
+        const maxDays = makeDate(selectedYear.value, selectedMonth.value + 1, 0).getDate();
         if (selectedDay.value > maxDays) selectedDay.value = maxDays;
       }
 
@@ -896,12 +931,45 @@
       function toggleYearMode() {
         mode.value = mode.value === 'year' ? 'day' : 'year';
         if (mode.value === 'year') {
-          // Center the chosen year inside the list only. scrollIntoView could also scroll the page behind.
+          if (selectedYear.value < minLoadedYear.value || selectedYear.value > maxLoadedYear.value) {
+            const bounds = computeInitialBounds(selectedYear.value);
+            minLoadedYear.value = bounds.start;
+            maxLoadedYear.value = bounds.end;
+          }
           nextTick(() => {
             const box = yearsEl.value;
             const tile = box && box.querySelector('.is-selected');
-            if (tile) box.scrollTop = tile.offsetTop - box.clientHeight / 2 + tile.offsetHeight / 2;
+            if (tile && box) {
+              box.scrollTop = tile.offsetTop - box.clientHeight / 2 + tile.offsetHeight / 2;
+            }
           });
+        }
+      }
+
+      function onYearsScroll(e) {
+        const box = e.target;
+        if (!box) return;
+        const { scrollTop, scrollHeight, clientHeight } = box;
+
+        // Near top (within 150px): prepend up to 30 years down to Year 1 (AC)
+        if (scrollTop <= 150 && minLoadedYear.value > 1) {
+          const delta = Math.min(30, minLoadedYear.value - 1);
+          if (delta > 0) {
+            const prevScrollHeight = box.scrollHeight;
+            minLoadedYear.value -= delta;
+            nextTick(() => {
+              const diff = box.scrollHeight - prevScrollHeight;
+              box.scrollTop += diff;
+            });
+          }
+        }
+
+        // Near bottom (within 150px): append up to 30 years up to Year 9999
+        if (scrollHeight - scrollTop - clientHeight <= 150 && maxLoadedYear.value < 9999) {
+          const delta = Math.min(30, 9999 - maxLoadedYear.value);
+          if (delta > 0) {
+            maxLoadedYear.value += delta;
+          }
         }
       }
 
@@ -916,13 +984,19 @@
             newM = 0;
             newY++;
           }
-          selectedYear.value = newY;
+          selectedYear.value = Math.max(1, Math.min(9999, newY));
           selectedMonth.value = newM;
           clampDay();
         } else if (mode.value === 'year') {
-          selectedYear.value += delta * 3;
+          const target = Math.max(1, Math.min(9999, selectedYear.value + delta * 3));
+          selectedYear.value = target;
+          if (target < minLoadedYear.value) {
+            minLoadedYear.value = Math.max(1, target - 15);
+          } else if (target > maxLoadedYear.value) {
+            maxLoadedYear.value = Math.min(9999, target + 15);
+          }
         } else {
-          selectedYear.value += delta;
+          selectedYear.value = Math.max(1, Math.min(9999, selectedYear.value + delta));
         }
       }
 
@@ -933,7 +1007,7 @@
       }
 
       function setYear(y) {
-        selectedYear.value = y;
+        selectedYear.value = Math.max(1, Math.min(9999, y));
         clampDay();
         mode.value = 'day';
       }
@@ -948,9 +1022,9 @@
       const dayCells = computed(() => {
         const y = selectedYear.value;
         const m = selectedMonth.value;
-        const firstDay = new Date(y, m, 1);
-        const daysInCur = new Date(y, m + 1, 0).getDate();
-        const prevMonthDays = new Date(y, m, 0).getDate();
+        const firstDay = makeDate(y, m, 1);
+        const daysInCur = makeDate(y, m + 1, 0).getDate();
+        const prevMonthDays = makeDate(y, m, 0).getDate();
 
         const offset = mondayFirst.value ? (firstDay.getDay() + 6) % 7 : firstDay.getDay();
         const total = Math.ceil((offset + daysInCur) / 7) * 7;
@@ -975,12 +1049,12 @@
       });
 
       const selectedDateFormatted = computed(() => {
-        const d = new Date(selectedYear.value, selectedMonth.value, selectedDay.value);
+        const d = makeDate(selectedYear.value, selectedMonth.value, selectedDay.value);
         return d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
       });
 
       function confirm() {
-        const target = new Date(selectedYear.value, selectedMonth.value, selectedDay.value, 12, 0, 0);
+        const target = makeDate(selectedYear.value, selectedMonth.value, selectedDay.value, 12, 0, 0);
         emit('travel', target);
       }
 
@@ -992,6 +1066,7 @@
         weekdayHeaders,
         yearsEl,
         yearsList,
+        onYearsScroll,
         selectedYear,
         selectedMonth,
         selectedDay,
@@ -1056,7 +1131,7 @@
                 </button>
               </div>
 
-              <div v-else class="travel-years-scroll" ref="yearsEl">
+              <div v-else class="travel-years-scroll" ref="yearsEl" @scroll="onYearsScroll">
                 <button v-for="y in yearsList" :key="y" type="button" class="day travel-year-tile"
                         :class="{ 'is-selected': selectedYear === y }" @click="setYear(y)">
                   <span>{{ y }}</span>

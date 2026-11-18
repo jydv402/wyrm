@@ -2122,6 +2122,7 @@ p {
   max-height: var(--travel-h);
   padding-right: 4px;
   overflow-y: auto;
+  overflow-anchor: none;
   overscroll-behavior: contain;
   scrollbar-width: thin;
   scrollbar-color: rgb(255 255 255 / 0.18) transparent;
