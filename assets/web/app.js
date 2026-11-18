@@ -264,7 +264,7 @@ function createWyrmActions(store, ws) {
       const t = state.tasks.find((item) => item.id === id);
       if (t) {
         store.markPendingOnce('tasks', state.tasks);
-        t.isCompleted = !t.isCompleted;
+        t.is_completed = !t.is_completed;
       }
       post('/api/tasks/toggle', { id }, 'toggle_task');
     },

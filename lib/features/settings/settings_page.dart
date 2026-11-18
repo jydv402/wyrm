@@ -14,6 +14,13 @@ import 'package:wyrm_desk/config/card_layout_state.dart';
 import 'package:wyrm_desk/features/network/network_info.dart';
 import 'package:wyrm_desk/features/network/network_modal.dart';
 import 'package:wyrm_desk/config/app_settings_state.dart';
+import 'package:package_info_plus/package_info_plus.dart';
+import 'package:wyrm_desk/features/update_checker/presentation/update_checker_provider.dart';
+
+/// Provider exposing platform package version information.
+final packageInfoProvider = FutureProvider.autoDispose<PackageInfo>((ref) {
+  return PackageInfo.fromPlatform();
+});
 
 /// Fullscreen Dusk Glass settings page for Wyrm Desk.
 ///
@@ -196,6 +203,11 @@ class _SettingsContentPane extends ConsumerWidget {
 
           // Section 5: Data & Backups
           _DataBackupSection(serverUrl: serverUrl),
+
+          const SizedBox(height: 16),
+
+          // Section 6: App Updates
+          const _AppUpdatesSection(),
 
           const SizedBox(height: 32),
         ],
@@ -850,6 +862,122 @@ class _DataBackupSection extends ConsumerWidget {
                   ),
                 ),
               ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Section 6: App Updates panel
+class _AppUpdatesSection extends ConsumerWidget {
+  const _AppUpdatesSection();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final settings = ref.watch(appSettingsProvider);
+    final packageInfoAsync = ref.watch(packageInfoProvider);
+    final isChecking = ref.watch(isCheckingUpdatesProvider);
+
+    final versionStr = packageInfoAsync.when(
+      data: (info) => 'v${info.version}+${info.buildNumber}',
+      loading: () => 'Loading...',
+      error: (_, _) => 'v1.0.0+1',
+    );
+
+    return DuskGlassPanel(
+      tone: AppColors.glacier,
+      borderRadius: 26.0,
+      padding: const EdgeInsets.all(22.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          const _SectionHeader(
+            icon: Icons.system_update_rounded,
+            title: 'App Updates',
+            subtitle: 'Version tracking and automated release alerts',
+          ),
+          const SizedBox(height: 18),
+
+          // Installed Version Row
+          _SettingRow(
+            icon: Icons.info_outline_rounded,
+            title: 'Current Version',
+            subtitle: 'Wyrm Desk on ${settings.githubRepo}',
+            trailing: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              decoration: BoxDecoration(
+                color: AppColors.well,
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: AppColors.line, width: 1.0),
+              ),
+              child: Text(
+                versionStr,
+                style: const TextStyle(
+                  color: AppColors.glacierAccent,
+                  fontSize: 12.5,
+                  fontWeight: FontWeight.w700,
+                  fontFamily: 'monospace',
+                ),
+              ),
+            ),
+          ),
+
+          const SizedBox(height: 12),
+
+          // Hourly Auto-Check Toggle
+          _SettingRow(
+            icon: Icons.update_rounded,
+            title: 'Hourly Auto-Check',
+            subtitle:
+                'Silently checks for new releases in the background every hour',
+            trailing: Switch.adaptive(
+              value: settings.enableAutoUpdateChecks,
+              activeThumbColor: AppColors.glacierAccent,
+              activeTrackColor: AppColors.glacierAccent.withValues(alpha: 0.35),
+              inactiveThumbColor: AppColors.textSecondary,
+              inactiveTrackColor: AppColors.well,
+              onChanged: (val) {
+                ref.read(appSettingsProvider.notifier).setAutoUpdateChecks(val);
+              },
+            ),
+          ),
+
+          const SizedBox(height: 12),
+
+          // Check for Updates Manual Button
+          _SettingRow(
+            icon: Icons.cloud_download_rounded,
+            title: 'Check for Updates',
+            subtitle: 'Manually fetch the latest GitHub release',
+            trailing: DuskGlassButton(
+              onPressed: isChecking
+                  ? null
+                  : () => ref
+                        .read(updateCheckerProvider.notifier)
+                        .checkManual(context),
+              height: 38,
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              label: isChecking
+                  ? const SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        valueColor: AlwaysStoppedAnimation<Color>(
+                          AppColors.glacierAccent,
+                        ),
+                      ),
+                    )
+                  : const Text(
+                      'Check Now',
+                      style: TextStyle(
+                        color: AppColors.textPrimary,
+                        fontSize: 12.5,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
             ),
           ),
         ],

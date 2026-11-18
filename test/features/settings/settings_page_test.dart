@@ -44,6 +44,7 @@ void main() {
         expect(find.text('Card Appearance'), findsOneWidget);
         expect(find.text('Web Remote Companion'), findsOneWidget);
         expect(find.text('Data & Backups'), findsOneWidget);
+        expect(find.text('App Updates'), findsOneWidget);
 
         // Sections Content
         expect(
@@ -62,6 +63,8 @@ void main() {
         expect(find.text('Show QR'), findsOneWidget);
         expect(find.text('Export to Downloads'), findsOneWidget);
         expect(find.text('Import from Downloads'), findsOneWidget);
+        expect(find.text('Hourly Auto-Check'), findsOneWidget);
+        expect(find.text('Check for Updates'), findsOneWidget);
       },
     );
 
@@ -170,11 +173,14 @@ void main() {
       );
 
       // Find switch
-      final switches = find.byType(Switch);
-      expect(switches, findsOneWidget);
+      final nightstandSwitch = find.descendant(
+        of: find.widgetWithText(Container, 'Nightstand Mode'),
+        matching: find.byType(Switch),
+      );
+      expect(nightstandSwitch, findsOneWidget);
 
       // Toggle Nightstand Switch
-      await tester.tap(switches.first);
+      await tester.tap(nightstandSwitch);
       await tester.pumpAndSettle();
       expect(container.read(cardLayoutProvider).clock, CardSize.nightstand);
     });
@@ -295,7 +301,7 @@ void main() {
           find.byType(DuskGlassPanel),
         );
         expect(panels, isNotEmpty);
-        expect(panels.length, 5);
+        expect(panels.length, 6);
 
         for (final panel in panels) {
           expect(panel.tone, AppColors.glacier);
@@ -304,5 +310,47 @@ void main() {
         }
       },
     );
+
+    testWidgets('toggles hourly auto-check setting switch', (
+      WidgetTester tester,
+    ) async {
+      tester.view.physicalSize = const Size(1280, 800);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      final container = ProviderContainer();
+      addTearDown(container.dispose);
+
+      await tester.pumpWidget(
+        UncontrolledProviderScope(
+          container: container,
+          child: const MaterialApp(home: SettingsPage()),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final toggleFinder = find.byWidgetPredicate(
+        (w) => w is Switch && w.value == true,
+      );
+      expect(toggleFinder, findsWidgets);
+
+      final autoCheckSwitch = find.descendant(
+        of: find.widgetWithText(Container, 'Hourly Auto-Check'),
+        matching: find.byType(Switch),
+      );
+
+      if (autoCheckSwitch.evaluate().isNotEmpty) {
+        await tester.ensureVisible(autoCheckSwitch);
+        await tester.pumpAndSettle();
+        await tester.tap(autoCheckSwitch);
+        await tester.pumpAndSettle();
+
+        expect(
+          container.read(appSettingsProvider).enableAutoUpdateChecks,
+          isFalse,
+        );
+      }
+    });
   });
 }

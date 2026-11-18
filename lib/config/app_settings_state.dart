@@ -12,10 +12,18 @@ class AppSettingsConfig {
   /// Whether the calendar week starts on Monday (false defaults to Sunday).
   final bool startWeekOnMonday;
 
+  /// Whether automated hourly update checks against GitHub releases are enabled.
+  final bool enableAutoUpdateChecks;
+
+  /// GitHub repository slug queried for updates (format: 'owner/repo').
+  final String githubRepo;
+
   const AppSettingsConfig({
     this.is24HourFormat = false,
     this.cardFontSize = 14.0,
     this.startWeekOnMonday = false,
+    this.enableAutoUpdateChecks = true,
+    this.githubRepo = 'jydv402/wyrm',
   });
 
   /// Returns a copy of the configuration with specified overrides.
@@ -23,11 +31,16 @@ class AppSettingsConfig {
     bool? is24HourFormat,
     double? cardFontSize,
     bool? startWeekOnMonday,
+    bool? enableAutoUpdateChecks,
+    String? githubRepo,
   }) {
     return AppSettingsConfig(
       is24HourFormat: is24HourFormat ?? this.is24HourFormat,
       cardFontSize: cardFontSize ?? this.cardFontSize,
       startWeekOnMonday: startWeekOnMonday ?? this.startWeekOnMonday,
+      enableAutoUpdateChecks:
+          enableAutoUpdateChecks ?? this.enableAutoUpdateChecks,
+      githubRepo: githubRepo ?? this.githubRepo,
     );
   }
 
@@ -37,6 +50,8 @@ class AppSettingsConfig {
       'is_24_hour_format': is24HourFormat,
       'card_font_size': cardFontSize,
       'start_week_on_monday': startWeekOnMonday,
+      'enable_auto_update_checks': enableAutoUpdateChecks,
+      'github_repo': githubRepo,
     };
   }
 
@@ -46,6 +61,9 @@ class AppSettingsConfig {
       is24HourFormat: json['is_24_hour_format'] as bool? ?? false,
       cardFontSize: (json['card_font_size'] as num?)?.toDouble() ?? 14.0,
       startWeekOnMonday: json['start_week_on_monday'] as bool? ?? false,
+      enableAutoUpdateChecks:
+          json['enable_auto_update_checks'] as bool? ?? true,
+      githubRepo: json['github_repo'] as String? ?? 'jydv402/wyrm',
     );
   }
 }
@@ -94,6 +112,25 @@ class AppSettingsNotifier extends Notifier<AppSettingsConfig> {
   /// Sets an explicit value for whether calendar weeks start on Monday.
   void setStartWeekOnMonday(bool value) {
     final updated = state.copyWith(startWeekOnMonday: value);
+    state = updated;
+    AppDatabase.writeSection('settings', updated.toJson());
+  }
+
+  /// Toggles automatic hourly update checks.
+  void toggleAutoUpdateChecks() {
+    setAutoUpdateChecks(!state.enableAutoUpdateChecks);
+  }
+
+  /// Sets whether automatic hourly update checks are enabled.
+  void setAutoUpdateChecks(bool value) {
+    final updated = state.copyWith(enableAutoUpdateChecks: value);
+    state = updated;
+    AppDatabase.writeSection('settings', updated.toJson());
+  }
+
+  /// Sets the GitHub repository slug for update checks.
+  void setGithubRepo(String repo) {
+    final updated = state.copyWith(githubRepo: repo.trim());
     state = updated;
     AppDatabase.writeSection('settings', updated.toJson());
   }

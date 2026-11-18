@@ -267,7 +267,7 @@
     setup() {
       const wyrm = inject('wyrm');
       const index = computed(() => Math.max(0, DESTINATIONS.findIndex((d) => d.id === wyrm.state.currentChannel)));
-      const openTasks = computed(() => wyrm.state.tasks.filter((t) => !t.isCompleted).length);
+      const openTasks = computed(() => wyrm.state.tasks.filter((t) => !t.is_completed).length);
       return { wyrm, destinations: DESTINATIONS, index, openTasks };
     },
     template: `
@@ -480,11 +480,11 @@
       return { wyrm, tone, label };
     },
     template: `
-      <li class="task" :class="{ 'is-done': task.isCompleted }">
-        <button type="button" role="checkbox" class="check glass" :class="{ 'is-on': task.isCompleted }"
-                :aria-checked="!!task.isCompleted" :aria-label="task.title"
+      <li class="task" :class="{ 'is-done': task.is_completed }">
+        <button type="button" role="checkbox" class="check glass" :class="{ 'is-on': task.is_completed }"
+                :aria-checked="!!task.is_completed" :aria-label="task.title"
                 @click="wyrm.toggleTask(task.id)">
-          <ui-icon v-if="task.isCompleted" name="check" :size="16" :stroke="2.8" />
+          <ui-icon v-if="task.is_completed" name="check" :size="16" :stroke="2.8" />
         </button>
         <span class="task__title">{{ task.title }}</span>
         <status-pill v-if="tone" :tone="tone">{{ label }}</status-pill>
@@ -930,7 +930,7 @@
       const wyrm = inject('wyrm');
       const tasks = computed(() => wyrm.state.tasks);
       const subtitle = computed(() => {
-        const open = tasks.value.filter((t) => !t.isCompleted).length;
+        const open = tasks.value.filter((t) => !t.is_completed).length;
         return open + ' open of ' + tasks.value.length;
       });
       return { tasks, subtitle };
@@ -1157,7 +1157,7 @@
       const subtitle = computed(() => {
         switch (current.value.id) {
           case 'tasks': {
-            const open = wyrm.state.tasks.filter((t) => !t.isCompleted).length;
+            const open = wyrm.state.tasks.filter((t) => !t.is_completed).length;
             return open ? open + ' open' : 'All clear';
           }
           case 'habits': {
