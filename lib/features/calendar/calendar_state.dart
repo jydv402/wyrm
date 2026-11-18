@@ -82,6 +82,14 @@ class CalendarState {
     return null;
   }
 
+  /// Whether the currently selected date is today.
+  bool get isSelectedToday {
+    final today = todayMidnight;
+    return selectedDate.year == today.year &&
+        selectedDate.month == today.month &&
+        selectedDate.day == today.day;
+  }
+
   /// Calculates relative difference string between selected date and today.
   String get relativeDistanceText {
     final today = todayMidnight;

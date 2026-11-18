@@ -122,6 +122,8 @@ class CalendarServerSection implements ServerSection {
         'currentQuarter': 1,
         'startWeekOnMonday': startWeekOnMonday,
         'milestones': <dynamic>[],
+        'relativeDistanceText': 'Today',
+        'isSelectedToday': true,
       };
     }
     return {
@@ -135,6 +137,8 @@ class CalendarServerSection implements ServerSection {
       'currentQuarter': cal.currentQuarter,
       'startWeekOnMonday': startWeekOnMonday,
       'milestones': cal.milestones.map((m) => m.toJson()).toList(),
+      'relativeDistanceText': cal.relativeDistanceText,
+      'isSelectedToday': cal.isSelectedToday,
     };
   }
 
@@ -174,6 +178,10 @@ class CalendarServerSection implements ServerSection {
     final dateStr =
         (data['date'] ?? data['target_date'] ?? data['targetDate']) as String?;
     if (dateStr != null && dateStr.trim().isNotEmpty) {
+      if (dateStr.trim().toLowerCase() == 'today') {
+        onTravelToDate!(DateTime.now());
+        return true;
+      }
       final parsed =
           DateTime.tryParse(dateStr.trim()) ??
           parseMilestoneDate(dateStr.trim());

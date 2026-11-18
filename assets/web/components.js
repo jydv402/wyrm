@@ -862,36 +862,109 @@
     },
     emits: ['close', 'travel'],
     setup(props, { emit }) {
-      const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+      const MONTH_NAMES = [
+        'January', 'February', 'March', 'April', 'May', 'June',
+        'July', 'August', 'September', 'October', 'November', 'December'
+      ];
+      const SHORT_MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+      const WEEKDAY_HEADERS = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
+
       const initial = props.initialDate ? new Date(props.initialDate) : new Date();
       const selectedYear = ref(initial.getFullYear());
       const selectedMonth = ref(initial.getMonth());
       const selectedDay = ref(initial.getDate());
+      const mode = ref('day'); // 'day' | 'month' | 'year'
 
-      const daysInMonth = computed(() => {
-        return new Date(selectedYear.value, selectedMonth.value + 1, 0).getDate();
-      });
+      const yearsList = [];
+      for (let y = 2000; y <= 2050; y++) yearsList.push(y);
 
       function clampDay() {
         const maxDays = new Date(selectedYear.value, selectedMonth.value + 1, 0).getDate();
-        if (selectedDay.value > maxDays) {
-          selectedDay.value = maxDays;
+        if (selectedDay.value > maxDays) selectedDay.value = maxDays;
+      }
+
+      function toggleMonthMode() {
+        mode.value = mode.value === 'month' ? 'day' : 'month';
+      }
+
+      function toggleYearMode() {
+        mode.value = mode.value === 'year' ? 'day' : 'year';
+        if (mode.value === 'year') {
+          setTimeout(() => {
+            const activeEl = document.querySelector('.travel-year-tile.is-selected');
+            if (activeEl) activeEl.scrollIntoView({ block: 'center', behavior: 'smooth' });
+          }, 50);
         }
       }
 
-      function changeYear(delta) {
-        selectedYear.value += delta;
-        clampDay();
+      function shift(delta) {
+        if (mode.value === 'day') {
+          let newM = selectedMonth.value + delta;
+          let newY = selectedYear.value;
+          if (newM < 0) {
+            newM = 11;
+            newY--;
+          } else if (newM > 11) {
+            newM = 0;
+            newY++;
+          }
+          selectedYear.value = newY;
+          selectedMonth.value = newM;
+          clampDay();
+        } else if (mode.value === 'year') {
+          selectedYear.value += delta * 3;
+        } else {
+          selectedYear.value += delta;
+        }
       }
 
       function setMonth(m) {
         selectedMonth.value = m;
         clampDay();
+        mode.value = 'day';
       }
 
-      function setDay(d) {
+      function setYear(y) {
+        selectedYear.value = y;
+        clampDay();
+        mode.value = 'day';
+      }
+
+      function setDay(d, mDelta = 0) {
+        if (mDelta !== 0) {
+          shift(mDelta);
+        }
         selectedDay.value = d;
       }
+
+      const dayCells = computed(() => {
+        const y = selectedYear.value;
+        const m = selectedMonth.value;
+        const firstDay = new Date(y, m, 1);
+        const daysInCur = new Date(y, m + 1, 0).getDate();
+        const prevMonthDays = new Date(y, m, 0).getDate();
+
+        const offset = firstDay.getDay(); // Sunday = 0
+        const total = Math.ceil((offset + daysInCur) / 7) * 7;
+        const cells = [];
+
+        for (let i = 0; i < total; i++) {
+          const dayNum = i - offset + 1;
+          if (dayNum < 1) {
+            const num = prevMonthDays + dayNum;
+            cells.push({ num, inMonth: false, delta: -1, isSelected: false });
+          } else if (dayNum > daysInCur) {
+            const num = dayNum - daysInCur;
+            cells.push({ num, inMonth: false, delta: 1, isSelected: false });
+          } else {
+            const isSel = dayNum === selectedDay.value;
+            const now = new Date();
+            const isToday = now.getFullYear() === y && now.getMonth() === m && now.getDate() === dayNum;
+            cells.push({ num: dayNum, inMonth: true, delta: 0, isSelected: isSel, isToday });
+          }
+        }
+        return cells;
+      });
 
       const selectedDateFormatted = computed(() => {
         const d = new Date(selectedYear.value, selectedMonth.value, selectedDay.value);
@@ -904,14 +977,21 @@
       }
 
       return {
-        months: MONTHS,
+        monthNames: MONTH_NAMES,
+        shortMonths: SHORT_MONTHS,
+        weekdayHeaders: WEEKDAY_HEADERS,
+        yearsList,
         selectedYear,
         selectedMonth,
         selectedDay,
-        daysInMonth,
+        mode,
+        dayCells,
         selectedDateFormatted,
-        changeYear,
+        toggleMonthMode,
+        toggleYearMode,
+        shift,
         setMonth,
+        setYear,
         setDay,
         confirm,
       };
@@ -919,7 +999,7 @@
     template: `
       <teleport to="body">
         <div class="modal-backdrop" @click.self="$emit('close')">
-          <div class="modal-card modal-card--travel" role="dialog" aria-modal="true" aria-labelledby="travel-modal-title">
+          <div class="modal-card modal-card--travel" data-tone="gold" role="dialog" aria-modal="true" aria-labelledby="travel-modal-title">
             <div class="modal-card__header">
               <div class="modal-card__icon-box modal-card__icon-box--gold">
                 <ui-icon name="compass" :size="20" />
@@ -931,43 +1011,75 @@
               <ui-button size="icon" icon="x" aria-label="Close" @click="$emit('close')" />
             </div>
 
-            <div class="travel-picker">
-              <div class="travel-year-row">
-                <ui-button size="icon" icon="chevron-left" aria-label="Previous year" @click="changeYear(-1)" />
-                <span class="travel-year-display">{{ selectedYear }}</span>
-                <ui-button size="icon" icon="chevron-right" aria-label="Next year" @click="changeYear(1)" />
-              </div>
-
-              <div class="travel-months-grid">
-                <button
-                  v-for="(mName, idx) in months"
-                  :key="idx"
-                  type="button"
-                  class="travel-month-btn"
-                  :class="{ 'is-selected': selectedMonth === idx }"
-                  @click="setMonth(idx)"
-                >
-                  {{ mName }}
+            <!-- Chips Bar: Month Chip + Year Chip + Chevrons -->
+            <div class="travel-chips-row">
+              <div class="travel-chips-group">
+                <button type="button" class="travel-chip" :class="{ 'is-active': mode === 'month' }" @click="toggleMonthMode">
+                  <span>{{ monthNames[selectedMonth] }}</span>
+                  <span class="travel-chip__arrow">{{ mode === 'month' ? '▲' : '▼' }}</span>
+                </button>
+                <button type="button" class="travel-chip" :class="{ 'is-active': mode === 'year' }" @click="toggleYearMode">
+                  <span>{{ selectedYear }}</span>
+                  <span class="travel-chip__arrow">{{ mode === 'year' ? '▲' : '▼' }}</span>
                 </button>
               </div>
-
-              <div class="travel-days-container">
-                <div class="travel-days-label">Select Day</div>
-                <div class="travel-days-grid">
-                  <button
-                    v-for="d in daysInMonth"
-                    :key="d"
-                    type="button"
-                    class="travel-day-btn"
-                    :class="{ 'is-selected': selectedDay === d }"
-                    @click="setDay(d)"
-                  >
-                    {{ d }}
-                  </button>
-                </div>
+              <div v-if="mode === 'day'" class="travel-nav-chevrons">
+                <ui-button size="icon" icon="chevron-left" aria-label="Previous month" @click="shift(-1)" />
+                <ui-button size="icon" icon="chevron-right" aria-label="Next month" @click="shift(1)" />
               </div>
             </div>
 
+            <!-- Content Switcher -->
+            <div class="travel-picker-body">
+              <!-- Day Grid -->
+              <div v-if="mode === 'day'" class="travel-day-view">
+                <div class="travel-weekdays">
+                  <span v-for="(h, i) in weekdayHeaders" :key="i">{{ h }}</span>
+                </div>
+                <div class="travel-days-grid">
+                  <button
+                    v-for="(c, i) in dayCells"
+                    :key="i"
+                    type="button"
+                    class="day"
+                    :class="{ 'is-out': !c.inMonth, 'is-selected': c.isSelected, 'is-today': c.isToday }"
+                    @click="setDay(c.num, c.delta)"
+                  >
+                    <span>{{ c.num }}</span>
+                  </button>
+                </div>
+              </div>
+
+              <!-- Month Grid -->
+              <div v-else-if="mode === 'month'" class="travel-months-grid">
+                <button
+                  v-for="(mName, idx) in shortMonths"
+                  :key="idx"
+                  type="button"
+                  class="day travel-month-tile"
+                  :class="{ 'is-selected': selectedMonth === idx }"
+                  @click="setMonth(idx)"
+                >
+                  <span>{{ mName }}</span>
+                </button>
+              </div>
+
+              <!-- Year Grid -->
+              <div v-else-if="mode === 'year'" class="travel-years-scroll">
+                <button
+                  v-for="y in yearsList"
+                  :key="y"
+                  type="button"
+                  class="day travel-year-tile"
+                  :class="{ 'is-selected': selectedYear === y }"
+                  @click="setYear(y)"
+                >
+                  <span>{{ y }}</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- Bottom Actions -->
             <div class="travel-actions">
               <ui-button variant="ghost" @click="$emit('close')">Cancel</ui-button>
               <ui-button variant="primary" class="btn--gold" icon="compass" @click="confirm">Travel</ui-button>
@@ -1102,6 +1214,116 @@
       </div>`,
   };
 
+  components.CalDateCard = {
+    name: 'CalDateCard',
+    props: {
+      date: { type: [Date, String], default: () => new Date() },
+    },
+    setup(props) {
+      const wyrm = inject('wyrm');
+      const d = computed(() => props.date instanceof Date ? props.date : new Date(props.date));
+
+      const dayNumber = computed(() => d.value.getDate());
+      const weekday = computed(() => d.value.toLocaleDateString('en-US', { weekday: 'long' }));
+      const monthYear = computed(() => d.value.toLocaleDateString('en-US', { month: 'long', year: 'numeric' }));
+
+      const telemetry = computed(() => {
+        const cur = d.value;
+        const start = new Date(cur.getFullYear(), 0, 0);
+        const diff = cur - start;
+        const oneDay = 1000 * 60 * 60 * 24;
+        const dayOfYear = Math.floor(diff / oneDay);
+        const y = cur.getFullYear();
+        const daysInYear = (y % 4 === 0 && (y % 100 !== 0 || y % 400 === 0)) ? 366 : 365;
+        const startOfYear = new Date(y, 0, 1);
+        const endOfYear = new Date(y + 1, 0, 1);
+        const pct = Math.min(100, Math.max(0, Math.round(((cur - startOfYear) / (endOfYear - startOfYear)) * 100)));
+        return `Day ${dayOfYear}/${daysInYear} · Year ${pct}%`;
+      });
+
+      return { dayNumber, weekday, monthYear, telemetry };
+    },
+    template: `
+      <ui-panel class="cal-date-card" data-tone="gold">
+        <div class="cal-date-card__body">
+          <div class="cal-date-card__day">{{ dayNumber }}</div>
+          <div class="cal-date-card__meta">
+            <div class="cal-date-card__weekday">{{ weekday }}</div>
+            <div class="cal-date-card__month-year">{{ monthYear }}</div>
+            <div class="cal-date-card__telemetry">{{ telemetry }}</div>
+          </div>
+        </div>
+      </ui-panel>`,
+  };
+
+  components.TravelInsightCard = {
+    name: 'TravelInsightCard',
+    props: {
+      date: { type: [Date, String], required: true },
+    },
+    emits: ['reset'],
+    setup(props) {
+      const wyrm = inject('wyrm');
+      const d = computed(() => props.date instanceof Date ? props.date : new Date(props.date));
+
+      const formatted = computed(() => {
+        return d.value.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
+      });
+
+      const distanceText = computed(() => {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const target = new Date(d.value);
+        target.setHours(0, 0, 0, 0);
+        const diffMs = target.getTime() - today.getTime();
+        const diffDays = Math.round(diffMs / (1000 * 60 * 60 * 24));
+
+        if (diffDays === 0) return 'Today';
+        if (diffDays === 1) return '+1 day from today';
+        if (diffDays === -1) return '1 day ago';
+
+        const absDiff = Math.abs(diffDays);
+        const weeks = Math.floor(absDiff / 7);
+        const remDays = absDiff % 7;
+        let breakdown = '';
+        if (weeks > 0 && remDays > 0) breakdown = `${weeks}w ${remDays}d`;
+        else if (weeks > 0) breakdown = `${weeks} weeks`;
+        else breakdown = `${absDiff} days`;
+
+        return diffDays > 0 ? `+${absDiff} days from now (${breakdown})` : `${absDiff} days ago (${breakdown})`;
+      });
+
+      const milestonesOnDate = computed(() => {
+        const key = wyrm.dateKey(d.value);
+        return (wyrm.state.calendar.milestones || []).filter(m => {
+          const mDate = new Date(m.targetDate);
+          return wyrm.dateKey(mDate) === key;
+        });
+      });
+
+      return { formatted, distanceText, milestonesOnDate };
+    },
+    template: `
+      <ui-panel class="travel-insight" data-tone="gold">
+        <panel-head title="Time Travel" subtitle="Active Destination" icon="compass">
+          <ui-button size="sm" class="btn--gold" icon="check" @click="$emit('reset')">Return to Today</ui-button>
+        </panel-head>
+        <div class="travel-insight__content">
+          <div class="travel-insight__date-row">
+            <span class="travel-insight__target">{{ formatted }}</span>
+            <status-pill tone="accent">{{ distanceText }}</status-pill>
+          </div>
+          <div v-if="milestonesOnDate.length" class="travel-insight__milestones">
+            <div class="travel-insight__ms-head">Milestones on this date:</div>
+            <div v-for="m in milestonesOnDate" :key="m.id" class="travel-insight__ms-item">
+              <ui-icon name="star" :size="14" />
+              <span>{{ m.title }}</span>
+            </div>
+          </div>
+        </div>
+      </ui-panel>`,
+  };
+
   components.ViewCalendar = {
     name: 'ViewCalendar',
     setup() {
@@ -1110,7 +1332,9 @@
       const selectedKey = ref(wyrm.dateKey());
       const showTravel = ref(false);
 
-      const title = computed(() => viewDate.value.toLocaleDateString('en-US', { month: 'long', year: 'numeric' }));
+      const isTraveled = computed(() => {
+        return selectedKey.value !== wyrm.dateKey(new Date());
+      });
 
       const metrics = computed(() => {
         const now = new Date();
@@ -1127,12 +1351,15 @@
         viewDate.value = new Date(viewDate.value.getFullYear(), viewDate.value.getMonth() + delta, 1);
       }
       function today() {
-        viewDate.value = new Date();
-        selectedKey.value = wyrm.dateKey();
+        const now = new Date();
+        viewDate.value = now;
+        selectedKey.value = wyrm.dateKey(now);
+        wyrm.travelToDate(now);
       }
       function select(date) {
         selectedKey.value = wyrm.dateKey(date);
         viewDate.value = new Date(date);
+        wyrm.travelToDate(date);
       }
       function travel(date) {
         wyrm.travelToDate(date);
@@ -1140,12 +1367,12 @@
         selectedKey.value = wyrm.dateKey(date);
         showTravel.value = false;
       }
-      return { viewDate, selectedKey, title, metrics, shift, today, select, showTravel, travel };
+      return { viewDate, selectedKey, isTraveled, metrics, shift, today, select, showTravel, travel };
     },
     template: `
       <div class="view view--cal">
         <ui-panel class="cal-main">
-          <panel-head :title="title" icon="calendar">
+          <panel-head title="Calendar" icon="calendar">
             <ui-button size="icon" icon="chevron-left" aria-label="Previous month" @click="shift(-1)" />
             <ui-button size="sm" @click="today">Today</ui-button>
             <ui-button size="sm" class="btn--gold" icon="compass" @click="showTravel = true">Travel</ui-button>
@@ -1155,6 +1382,8 @@
         </ui-panel>
         <travel-modal v-if="showTravel" :initial-date="viewDate" @close="showTravel = false" @travel="travel" />
         <div class="cal-side">
+          <cal-date-card :date="viewDate" />
+          <travel-insight-card v-if="isTraveled" :date="viewDate" @reset="today" />
           <ui-panel>
             <panel-head title="Progress" icon="pulse" />
             <div class="meters">

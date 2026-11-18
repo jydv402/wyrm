@@ -520,6 +520,8 @@ void main() {
       expect(data.containsKey('yearProgress'), true);
       expect(data.containsKey('quarterProgress'), true);
       expect(data.containsKey('milestones'), true);
+      expect(data.containsKey('relativeDistanceText'), true);
+      expect(data.containsKey('isSelectedToday'), true);
 
       final milestones = data['milestones'] as List;
       expect(milestones.isNotEmpty, true);
@@ -867,6 +869,8 @@ void main() {
         expect(components, contains('NetworkModalButton'));
         expect(components, contains('NetworkModal'));
         expect(components, contains('TravelModal'));
+        expect(components, contains('CalDateCard'));
+        expect(components, contains('TravelInsightCard'));
         expect(components, contains('qr:'));
 
         final css = await cssFile.readAsString();
@@ -877,6 +881,9 @@ void main() {
         expect(css, contains('.modal-card'));
         expect(css, contains('.modal-card--travel'));
         expect(css, contains('.btn--gold'));
+        expect(css, contains('.cal-date-card'));
+        expect(css, contains('.travel-insight'));
+        expect(css, contains('.travel-chips-row'));
 
         final js = await jsFile.readAsString();
         expect(js, contains('WyrmStateStore'));

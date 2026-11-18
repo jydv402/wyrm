@@ -1,7 +1,9 @@
 import 'package:material_ui/material_ui.dart';
+import 'package:intl/intl.dart';
 import 'package:wyrm_desk/core/date_names.dart';
 import 'package:wyrm_desk/theme/theme.dart';
 import 'package:wyrm_desk/widgets/dusk_glass_button.dart';
+import 'package:wyrm_desk/widgets/dusk_glass_panel.dart';
 
 enum _DuskDatePickerMode { day, month, year }
 
@@ -149,50 +151,113 @@ class _DuskDatePickerDialogState extends State<DuskDatePickerDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final screenSize = MediaQuery.sizeOf(context);
+    final dialogWidth = (screenSize.width * 0.5).clamp(380.0, 720.0);
+    final dialogHeight = (screenSize.height * 0.5).clamp(440.0, 760.0);
+
     return Dialog(
-      backgroundColor: AppColors.surfaceElevated,
-      insetPadding: const EdgeInsets.symmetric(
-        horizontal: 12.0,
-        vertical: 24.0,
+      backgroundColor: Colors.transparent,
+      elevation: 0,
+      insetPadding: const EdgeInsets.all(16.0),
+      child: DuskGlassPanel(
+        tone: AppColors.gold,
+        borderRadius: 32.0,
+        width: dialogWidth,
+        height: dialogHeight,
+        padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // Top card header: Icon box + Title + Subtitle + Close button
+            _buildDialogHeader(),
+
+            const SizedBox(height: 12),
+
+            // Mode controls: Month chip + Year chip + Nav Chevrons
+            _buildHeaderControls(),
+
+            const SizedBox(height: 14),
+
+            // Content Area: Day grid / Month grid / Year grid
+            Expanded(
+              child: AnimatedSwitcher(
+                duration: const Duration(milliseconds: 200),
+                child: switch (_mode) {
+                  _DuskDatePickerMode.day => _buildDayPicker(),
+                  _DuskDatePickerMode.month => _buildMonthPicker(),
+                  _DuskDatePickerMode.year => _buildYearPicker(),
+                },
+              ),
+            ),
+
+            const SizedBox(height: 14),
+
+            // Bottom Actions: CANCEL and gold TRAVEL button
+            _buildActionButtons(),
+          ],
+        ),
       ),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(24.0),
-        side: const BorderSide(color: AppColors.lineStrong, width: 1.0),
-      ),
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 360),
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
+    );
+  }
+
+  Widget _buildDialogHeader() {
+    final dateStr = DateFormat('EEEE, MMM d, yyyy').format(_selectedDate);
+
+    return Row(
+      children: [
+        Container(
+          width: 38,
+          height: 38,
+          decoration: BoxDecoration(
+            color: AppColors.goldAccent.withValues(alpha: 0.15),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: AppColors.goldAccent.withValues(alpha: 0.3),
+              width: 1.0,
+            ),
+          ),
+          child: const Icon(
+            Icons.explore_rounded,
+            size: 20,
+            color: AppColors.goldAccent,
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
           child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              // Top Bar: Month and Year Chips + Navigation Chevrons
-              _buildHeaderControls(),
-
-              const SizedBox(height: 16),
-
-              // Content Area: Day grid / Month grid / Year grid
-              SizedBox(
-                height: 250,
-                child: AnimatedSwitcher(
-                  duration: const Duration(milliseconds: 200),
-                  child: switch (_mode) {
-                    _DuskDatePickerMode.day => _buildDayPicker(),
-                    _DuskDatePickerMode.month => _buildMonthPicker(),
-                    _DuskDatePickerMode.year => _buildYearPicker(),
-                  },
+              const Text(
+                'Time Travel',
+                style: TextStyle(
+                  color: AppColors.textPrimary,
+                  fontSize: 16.5,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: -0.2,
                 ),
               ),
-
-              const SizedBox(height: 18),
-
-              // Bottom Actions: CANCEL and gold TRAVEL button
-              _buildActionButtons(),
+              const SizedBox(height: 2),
+              Text(
+                dateStr,
+                style: const TextStyle(
+                  color: AppColors.goldAccent,
+                  fontSize: 12.5,
+                  fontWeight: FontWeight.w500,
+                ),
+                overflow: TextOverflow.ellipsis,
+              ),
             ],
           ),
         ),
-      ),
+        IconButton(
+          onPressed: () => Navigator.of(context).pop(null),
+          icon: const Icon(Icons.close_rounded, size: 20),
+          color: AppColors.textSecondary,
+          tooltip: 'Close',
+          splashRadius: 20,
+        ),
+      ],
     );
   }
 
@@ -453,44 +518,55 @@ class _DuskDatePickerDialogState extends State<DuskDatePickerDialog> {
   }
 
   Widget _buildMonthPicker() {
-    return GridView.builder(
-      key: const ValueKey('month_picker'),
-      physics: const NeverScrollableScrollPhysics(),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 3,
-        crossAxisSpacing: 10,
-        mainAxisSpacing: 10,
-        childAspectRatio: 2.2,
-      ),
-      itemCount: 12,
-      itemBuilder: (context, index) {
-        final monthNumber = index + 1;
-        final isSelected = _viewMonth.month == monthNumber;
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final itemWidth = (constraints.maxWidth - 24) / 3;
+        final itemHeight = (constraints.maxHeight - 36) / 4;
+        final ratio = (itemWidth / itemHeight).clamp(1.2, 3.2);
 
-        return InkWell(
-          onTap: () => _selectMonth(monthNumber),
-          borderRadius: BorderRadius.circular(12),
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 150),
-            decoration: BoxDecoration(
-              color: isSelected ? AppColors.goldFill : AppColors.well,
+        return GridView.builder(
+          key: const ValueKey('month_picker'),
+          physics: const NeverScrollableScrollPhysics(),
+          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: 3,
+            crossAxisSpacing: 12,
+            mainAxisSpacing: 12,
+            childAspectRatio: ratio,
+          ),
+          itemCount: 12,
+          itemBuilder: (context, index) {
+            final monthNumber = index + 1;
+            final isSelected = _viewMonth.month == monthNumber;
+
+            return InkWell(
+              onTap: () => _selectMonth(monthNumber),
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(
-                color: isSelected ? Colors.transparent : AppColors.line,
-                width: 1.0,
-              ),
-            ),
-            child: Center(
-              child: Text(
-                _shortMonthNames[index],
-                style: TextStyle(
-                  color: isSelected ? AppColors.goldInk : AppColors.textPrimary,
-                  fontSize: 14.5,
-                  fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 150),
+                decoration: BoxDecoration(
+                  color: isSelected ? AppColors.goldFill : AppColors.well,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: isSelected ? Colors.transparent : AppColors.line,
+                    width: 1.0,
+                  ),
+                ),
+                child: Center(
+                  child: Text(
+                    _shortMonthNames[index],
+                    style: TextStyle(
+                      color: isSelected
+                          ? AppColors.goldInk
+                          : AppColors.textPrimary,
+                      fontSize: 14.5,
+                      fontWeight:
+                          isSelected ? FontWeight.w800 : FontWeight.w600,
+                    ),
+                  ),
                 ),
               ),
-            ),
-          ),
+            );
+          },
         );
       },
     );
