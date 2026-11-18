@@ -15,7 +15,7 @@
  * Components get state and actions through inject('wyrm'), see createWyrmActions().
  */
 (function () {
-  const { ref, computed, inject, onMounted, onUnmounted } = Vue;
+  const { ref, computed, inject, onMounted, onUnmounted, nextTick } = Vue;
 
   const components = {};
   const directives = {};
@@ -38,6 +38,7 @@
     check: '<path d="m5 12.5 4.6 4.6L19 7.6"/>',
     'chevron-left': '<path d="m14.5 6-6 6 6 6"/>',
     'chevron-right': '<path d="m9.5 6 6 6-6 6"/>',
+    'chevron-down': '<path d="m6 9.5 6 6 6-6"/>',
     star: '<path d="m12 3.5 2.6 5.4 5.9.8-4.3 4.1 1 5.9L12 16.9l-5.2 2.8 1-5.9-4.3-4.1 5.9-.8z"/>',
     locate: '<circle cx="12" cy="12" r="3"/><path d="M12 3v3.5M12 17.5V21M3 12h3.5M17.5 12H21"/>',
     leaf: '<path d="M5 19C5 10.5 10.5 5 20 5c0 9.5-5.5 14-13.5 14"/><path d="M5 19 13 11"/>',
@@ -333,6 +334,23 @@
                  @click="wyrm.toggleNetworkModal()" />`,
   };
 
+  /** Shared modal behavior: Escape closes, and the page behind stops scrolling. */
+  function useModal(emit) {
+    const root = document.documentElement;
+    const prevOverflow = root.style.overflow;
+    function onKeydown(e) {
+      if (e.key === 'Escape') emit('close');
+    }
+    onMounted(() => {
+      root.style.overflow = 'hidden';
+      window.addEventListener('keydown', onKeydown);
+    });
+    onUnmounted(() => {
+      root.style.overflow = prevOverflow;
+      window.removeEventListener('keydown', onKeydown);
+    });
+  }
+
   components.NetworkModal = {
     name: 'NetworkModal',
     emits: ['close'],
@@ -341,6 +359,12 @@
       const copied = ref(false);
       const qrSvg = ref('');
       let copyTimer = null;
+
+      // The modal is teleported out of .app, so it carries its own tone: the one of the page it was opened from.
+      const tone = computed(() => {
+        const d = DESTINATIONS.find((x) => x.id === wyrm.state.currentChannel);
+        return (d && d.tone) || 'slate';
+      });
 
       const connectionUrl = computed(() => {
         const loc = typeof window !== 'undefined' ? window.location : null;
@@ -356,9 +380,7 @@
         return origin || wyrm.state.serverUrl || 'http://127.0.0.1:8080';
       });
 
-      const qrSrc = computed(() => {
-        return '/api/qr?data=' + encodeURIComponent(connectionUrl.value);
-      });
+      const qrSrc = computed(() => '/api/qr?data=' + encodeURIComponent(connectionUrl.value));
 
       async function fetchQrSvg(url) {
         try {
@@ -385,60 +407,38 @@
         } catch (_) { }
       }
 
-      function onKeydown(e) {
-        if (e.key === 'Escape') {
-          emit('close');
-        }
-      }
+      useModal(emit);
+      onMounted(() => fetchQrSvg(connectionUrl.value));
+      onUnmounted(() => clearTimeout(copyTimer));
 
-      onMounted(() => {
-        window.addEventListener('keydown', onKeydown);
-        fetchQrSvg(connectionUrl.value);
-      });
-
-      onUnmounted(() => {
-        window.removeEventListener('keydown', onKeydown);
-        clearTimeout(copyTimer);
-      });
-
-      return { wyrm, copied, connectionUrl, qrSrc, qrSvg, copyUrl };
+      return { wyrm, tone, copied, connectionUrl, qrSrc, qrSvg, copyUrl };
     },
     template: `
       <teleport to="body">
         <div class="modal-backdrop" @click.self="$emit('close')">
-          <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="network-modal-title">
-            <div class="modal-card__header">
-              <div class="modal-card__icon-box">
-                <ui-icon name="wifi" :size="20" />
-              </div>
-              <div class="modal-card__titles">
-                <h2 id="network-modal-title" class="modal-card__title">Web Remote</h2>
-                <p class="modal-card__subtitle">Connect from your phone or laptop</p>
-              </div>
+          <ui-panel class="modal-card modal-card--network" :data-tone="tone" role="dialog" aria-modal="true" aria-label="Web remote">
+            <panel-head title="Web remote" subtitle="Open it on your phone or laptop" icon="wifi">
               <ui-button size="icon" icon="x" aria-label="Close" @click="$emit('close')" />
+            </panel-head>
+
+            <div class="net-qr">
+              <div class="net-qr__frame">
+                <div v-if="qrSvg" class="net-qr__svg" v-html="qrSvg"></div>
+                <img v-else :src="qrSrc" alt="QR code for the web remote" class="net-qr__img" width="200" height="200">
+              </div>
+              <p class="net-qr__hint">Point your phone camera at the code to open Wyrm Desk in your browser.</p>
             </div>
 
-            <div class="modal-card__body">
-              <div class="modal-card__qr-box">
-                <div v-if="qrSvg" class="modal-card__qr-svg" v-html="qrSvg"></div>
-                <img v-else :src="qrSrc" alt="Web Remote QR Code" class="modal-card__qr-img" width="180" height="180" />
+            <div class="net-address">
+              <div class="net-address__text">
+                <span class="net-address__label">Address</span>
+                <code class="net-address__url">{{ connectionUrl }}</code>
               </div>
-
-              <div class="modal-card__url-box">
-                <span class="modal-card__url-label">Address</span>
-                <div class="modal-card__url-row">
-                  <code class="modal-card__url-text">{{ connectionUrl }}</code>
-                  <ui-button size="sm" :icon="copied ? 'check' : 'copy'" @click="copyUrl">
-                    {{ copied ? 'Copied' : 'Copy' }}
-                  </ui-button>
-                </div>
-              </div>
-
-              <p class="modal-card__hint">
-                Scan with your phone camera to open Wyrm Desk in your mobile browser.
-              </p>
+              <ui-button size="sm" :variant="copied ? 'primary' : 'default'" :icon="copied ? 'check' : 'copy'" @click="copyUrl">
+                {{ copied ? 'Copied' : 'Copy' }}
+              </ui-button>
             </div>
-          </div>
+          </ui-panel>
         </div>
       </teleport>`,
   };
@@ -862,12 +862,18 @@
     },
     emits: ['close', 'travel'],
     setup(props, { emit }) {
+      const wyrm = inject('wyrm');
       const MONTH_NAMES = [
         'January', 'February', 'March', 'April', 'May', 'June',
         'July', 'August', 'September', 'October', 'November', 'December'
       ];
       const SHORT_MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-      const WEEKDAY_HEADERS = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
+      // Follows the same "week starts on" setting as the calendar behind it.
+      const mondayFirst = computed(() => !!wyrm.state.settings.startWeekOnMonday);
+      const weekdayHeaders = computed(() =>
+        mondayFirst.value ? ['M', 'T', 'W', 'T', 'F', 'S', 'S'] : ['S', 'M', 'T', 'W', 'T', 'F', 'S']
+      );
+      const yearsEl = ref(null);
 
       const initial = props.initialDate ? new Date(props.initialDate) : new Date();
       const selectedYear = ref(initial.getFullYear());
@@ -890,10 +896,12 @@
       function toggleYearMode() {
         mode.value = mode.value === 'year' ? 'day' : 'year';
         if (mode.value === 'year') {
-          setTimeout(() => {
-            const activeEl = document.querySelector('.travel-year-tile.is-selected');
-            if (activeEl) activeEl.scrollIntoView({ block: 'center', behavior: 'smooth' });
-          }, 50);
+          // Center the chosen year inside the list only. scrollIntoView could also scroll the page behind.
+          nextTick(() => {
+            const box = yearsEl.value;
+            const tile = box && box.querySelector('.is-selected');
+            if (tile) box.scrollTop = tile.offsetTop - box.clientHeight / 2 + tile.offsetHeight / 2;
+          });
         }
       }
 
@@ -944,7 +952,7 @@
         const daysInCur = new Date(y, m + 1, 0).getDate();
         const prevMonthDays = new Date(y, m, 0).getDate();
 
-        const offset = firstDay.getDay(); // Sunday = 0
+        const offset = mondayFirst.value ? (firstDay.getDay() + 6) % 7 : firstDay.getDay();
         const total = Math.ceil((offset + daysInCur) / 7) * 7;
         const cells = [];
 
@@ -976,10 +984,13 @@
         emit('travel', target);
       }
 
+      useModal(emit);
+
       return {
         monthNames: MONTH_NAMES,
         shortMonths: SHORT_MONTHS,
-        weekdayHeaders: WEEKDAY_HEADERS,
+        weekdayHeaders,
+        yearsEl,
         yearsList,
         selectedYear,
         selectedMonth,
@@ -999,92 +1010,65 @@
     template: `
       <teleport to="body">
         <div class="modal-backdrop" @click.self="$emit('close')">
-          <div class="modal-card modal-card--travel" data-tone="gold" role="dialog" aria-modal="true" aria-labelledby="travel-modal-title">
-            <div class="modal-card__header">
-              <div class="modal-card__icon-box modal-card__icon-box--gold">
-                <ui-icon name="compass" :size="20" />
-              </div>
-              <div class="modal-card__titles">
-                <h2 id="travel-modal-title" class="modal-card__title">Time Travel</h2>
-                <p class="modal-card__subtitle">{{ selectedDateFormatted }}</p>
-              </div>
+          <ui-panel class="modal-card modal-card--travel" data-tone="gold" role="dialog" aria-modal="true" aria-label="Time travel">
+            <panel-head title="Time travel" :subtitle="selectedDateFormatted" icon="compass">
               <ui-button size="icon" icon="x" aria-label="Close" @click="$emit('close')" />
-            </div>
+            </panel-head>
 
-            <!-- Chips Bar: Month Chip + Year Chip + Chevrons -->
-            <div class="travel-chips-row">
-              <div class="travel-chips-group">
-                <button type="button" class="travel-chip" :class="{ 'is-active': mode === 'month' }" @click="toggleMonthMode">
-                  <span>{{ monthNames[selectedMonth] }}</span>
-                  <span class="travel-chip__arrow">{{ mode === 'month' ? '▲' : '▼' }}</span>
+            <div class="cal-toolbar">
+              <div class="travel-chips">
+                <button type="button" class="btn btn--sm travel-chip" :class="{ 'is-active': mode === 'month' }"
+                        :aria-expanded="mode === 'month'" @click="toggleMonthMode">
+                  <span class="travel-chip__full">{{ monthNames[selectedMonth] }}</span>
+                  <span class="travel-chip__short">{{ shortMonths[selectedMonth] }}</span>
+                  <ui-icon name="chevron-down" :size="16" class="travel-chip__arrow" />
                 </button>
-                <button type="button" class="travel-chip" :class="{ 'is-active': mode === 'year' }" @click="toggleYearMode">
+                <button type="button" class="btn btn--sm travel-chip" :class="{ 'is-active': mode === 'year' }"
+                        :aria-expanded="mode === 'year'" @click="toggleYearMode">
                   <span>{{ selectedYear }}</span>
-                  <span class="travel-chip__arrow">{{ mode === 'year' ? '▲' : '▼' }}</span>
+                  <ui-icon name="chevron-down" :size="16" class="travel-chip__arrow" />
                 </button>
               </div>
-              <div v-if="mode === 'day'" class="travel-nav-chevrons">
-                <ui-button size="icon" icon="chevron-left" aria-label="Previous month" @click="shift(-1)" />
-                <ui-button size="icon" icon="chevron-right" aria-label="Next month" @click="shift(1)" />
+              <div v-if="mode === 'day'" class="cal-nav">
+                <ui-button size="icon" variant="ghost" icon="chevron-left" aria-label="Previous month" @click="shift(-1)" />
+                <ui-button size="icon" variant="ghost" icon="chevron-right" aria-label="Next month" @click="shift(1)" />
               </div>
             </div>
 
-            <!-- Content Switcher -->
             <div class="travel-picker-body">
-              <!-- Day Grid -->
               <div v-if="mode === 'day'" class="travel-day-view">
-                <div class="travel-weekdays">
+                <div class="travel-weekdays" aria-hidden="true">
                   <span v-for="(h, i) in weekdayHeaders" :key="i">{{ h }}</span>
                 </div>
                 <div class="travel-days-grid">
-                  <button
-                    v-for="(c, i) in dayCells"
-                    :key="i"
-                    type="button"
-                    class="day"
-                    :class="{ 'is-out': !c.inMonth, 'is-selected': c.isSelected, 'is-today': c.isToday }"
-                    @click="setDay(c.num, c.delta)"
-                  >
+                  <button v-for="(c, i) in dayCells" :key="i" type="button" class="day"
+                          :class="{ 'is-out': !c.inMonth, 'is-selected': c.isSelected, 'is-today': c.isToday }"
+                          :aria-pressed="c.isSelected" @click="setDay(c.num, c.delta)">
                     <span>{{ c.num }}</span>
                   </button>
                 </div>
               </div>
 
-              <!-- Month Grid -->
               <div v-else-if="mode === 'month'" class="travel-months-grid">
-                <button
-                  v-for="(mName, idx) in shortMonths"
-                  :key="idx"
-                  type="button"
-                  class="day travel-month-tile"
-                  :class="{ 'is-selected': selectedMonth === idx }"
-                  @click="setMonth(idx)"
-                >
+                <button v-for="(mName, idx) in shortMonths" :key="idx" type="button" class="day travel-month-tile"
+                        :class="{ 'is-selected': selectedMonth === idx }" @click="setMonth(idx)">
                   <span>{{ mName }}</span>
                 </button>
               </div>
 
-              <!-- Year Grid -->
-              <div v-else-if="mode === 'year'" class="travel-years-scroll">
-                <button
-                  v-for="y in yearsList"
-                  :key="y"
-                  type="button"
-                  class="day travel-year-tile"
-                  :class="{ 'is-selected': selectedYear === y }"
-                  @click="setYear(y)"
-                >
+              <div v-else class="travel-years-scroll" ref="yearsEl">
+                <button v-for="y in yearsList" :key="y" type="button" class="day travel-year-tile"
+                        :class="{ 'is-selected': selectedYear === y }" @click="setYear(y)">
                   <span>{{ y }}</span>
                 </button>
               </div>
             </div>
 
-            <!-- Bottom Actions -->
             <div class="travel-actions">
               <ui-button variant="ghost" @click="$emit('close')">Cancel</ui-button>
-              <ui-button variant="primary" class="btn--gold" icon="compass" @click="confirm">Travel</ui-button>
+              <ui-button variant="primary" icon="compass" @click="confirm">Travel</ui-button>
             </div>
-          </div>
+          </ui-panel>
         </div>
       </teleport>`,
   };
@@ -1220,28 +1204,22 @@
       date: { type: [Date, String], default: () => new Date() },
     },
     setup(props) {
-      const wyrm = inject('wyrm');
-      const d = computed(() => props.date instanceof Date ? props.date : new Date(props.date));
+      const d = computed(() => (props.date instanceof Date ? props.date : new Date(props.date)));
 
       const dayNumber = computed(() => d.value.getDate());
       const weekday = computed(() => d.value.toLocaleDateString('en-US', { weekday: 'long' }));
       const monthYear = computed(() => d.value.toLocaleDateString('en-US', { month: 'long', year: 'numeric' }));
 
-      const telemetry = computed(() => {
+      // Day-of-year from UTC midnights, so daylight saving can never shift the count by one.
+      const year = computed(() => {
         const cur = d.value;
-        const start = new Date(cur.getFullYear(), 0, 0);
-        const diff = cur - start;
-        const oneDay = 1000 * 60 * 60 * 24;
-        const dayOfYear = Math.floor(diff / oneDay);
         const y = cur.getFullYear();
+        const dayOfYear = Math.round((Date.UTC(y, cur.getMonth(), cur.getDate()) - Date.UTC(y, 0, 1)) / 86400000) + 1;
         const daysInYear = (y % 4 === 0 && (y % 100 !== 0 || y % 400 === 0)) ? 366 : 365;
-        const startOfYear = new Date(y, 0, 1);
-        const endOfYear = new Date(y + 1, 0, 1);
-        const pct = Math.min(100, Math.max(0, Math.round(((cur - startOfYear) / (endOfYear - startOfYear)) * 100)));
-        return `Day ${dayOfYear}/${daysInYear} · Year ${pct}%`;
+        return { dayOfYear, daysInYear, pct: Math.round((dayOfYear / daysInYear) * 100) };
       });
 
-      return { dayNumber, weekday, monthYear, telemetry };
+      return { dayNumber, weekday, monthYear, year };
     },
     template: `
       <ui-panel class="cal-date-card" data-tone="gold">
@@ -1250,8 +1228,11 @@
           <div class="cal-date-card__meta">
             <div class="cal-date-card__weekday">{{ weekday }}</div>
             <div class="cal-date-card__month-year">{{ monthYear }}</div>
-            <div class="cal-date-card__telemetry">{{ telemetry }}</div>
           </div>
+        </div>
+        <div class="cal-date-card__chips">
+          <span class="cal-date-card__chip"><i class="cal-date-card__dot"></i>Day {{ year.dayOfYear }}/{{ year.daysInYear }}</span>
+          <span class="cal-date-card__chip">Year {{ year.pct }}%</span>
         </div>
       </ui-panel>`,
   };
@@ -1264,62 +1245,60 @@
     emits: ['reset'],
     setup(props) {
       const wyrm = inject('wyrm');
-      const d = computed(() => props.date instanceof Date ? props.date : new Date(props.date));
+      const d = computed(() => (props.date instanceof Date ? props.date : new Date(props.date)));
 
-      const formatted = computed(() => {
-        return d.value.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
-      });
+      const formatted = computed(() =>
+        d.value.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })
+      );
 
-      const distanceText = computed(() => {
+      const diffDays = computed(() => {
         const today = new Date();
         today.setHours(0, 0, 0, 0);
         const target = new Date(d.value);
         target.setHours(0, 0, 0, 0);
-        const diffMs = target.getTime() - today.getTime();
-        const diffDays = Math.round(diffMs / (1000 * 60 * 60 * 24));
+        return Math.round((target.getTime() - today.getTime()) / 86400000);
+      });
 
-        if (diffDays === 0) return 'Today';
-        if (diffDays === 1) return '+1 day from today';
-        if (diffDays === -1) return '1 day ago';
+      const distance = computed(() => {
+        const n = diffDays.value;
+        if (n === 0) return 'Today';
+        if (n === 1) return 'Tomorrow';
+        if (n === -1) return 'Yesterday';
+        return n > 0 ? 'In ' + n + ' days' : Math.abs(n) + ' days ago';
+      });
 
-        const absDiff = Math.abs(diffDays);
-        const weeks = Math.floor(absDiff / 7);
-        const remDays = absDiff % 7;
-        let breakdown = '';
-        if (weeks > 0 && remDays > 0) breakdown = `${weeks}w ${remDays}d`;
-        else if (weeks > 0) breakdown = `${weeks} weeks`;
-        else breakdown = `${absDiff} days`;
-
-        return diffDays > 0 ? `+${absDiff} days from now (${breakdown})` : `${absDiff} days ago (${breakdown})`;
+      const breakdown = computed(() => {
+        const abs = Math.abs(diffDays.value);
+        if (abs < 7) return '';
+        const weeks = Math.floor(abs / 7);
+        const rem = abs % 7;
+        return rem ? weeks + 'w ' + rem + 'd' : weeks + (weeks === 1 ? ' week' : ' weeks');
       });
 
       const milestonesOnDate = computed(() => {
         const key = wyrm.dateKey(d.value);
-        return (wyrm.state.calendar.milestones || []).filter(m => {
-          const mDate = new Date(m.targetDate);
-          return wyrm.dateKey(mDate) === key;
-        });
+        return (wyrm.state.calendar.milestones || []).filter((m) => wyrm.dateKey(new Date(m.targetDate)) === key);
       });
 
-      return { formatted, distanceText, milestonesOnDate };
+      return { formatted, distance, breakdown, milestonesOnDate };
     },
     template: `
       <ui-panel class="travel-insight" data-tone="gold">
-        <panel-head title="Time Travel" subtitle="Active Destination" icon="compass">
-          <ui-button size="sm" class="btn--gold" icon="check" @click="$emit('reset')">Return to Today</ui-button>
+        <panel-head title="Time travel" :subtitle="formatted" icon="compass">
+          <ui-button size="sm" variant="primary" icon="check" @click="$emit('reset')">Today</ui-button>
         </panel-head>
-        <div class="travel-insight__content">
-          <div class="travel-insight__date-row">
-            <span class="travel-insight__target">{{ formatted }}</span>
-            <status-pill tone="accent">{{ distanceText }}</status-pill>
-          </div>
-          <div v-if="milestonesOnDate.length" class="travel-insight__milestones">
-            <div class="travel-insight__ms-head">Milestones on this date:</div>
-            <div v-for="m in milestonesOnDate" :key="m.id" class="travel-insight__ms-item">
-              <ui-icon name="star" :size="14" />
+        <div class="travel-insight__chips">
+          <status-pill tone="accent">{{ distance }}</status-pill>
+          <status-pill v-if="breakdown" tone="neutral">{{ breakdown }}</status-pill>
+        </div>
+        <div v-if="milestonesOnDate.length" class="travel-insight__milestones">
+          <div class="travel-insight__ms-head">Milestones that day</div>
+          <ul class="travel-insight__ms-list">
+            <li v-for="m in milestonesOnDate" :key="m.id" class="travel-insight__ms-item">
+              <ui-icon name="star" :size="16" />
               <span>{{ m.title }}</span>
-            </div>
-          </div>
+            </li>
+          </ul>
         </div>
       </ui-panel>`,
   };
@@ -1328,13 +1307,13 @@
     name: 'ViewCalendar',
     setup() {
       const wyrm = inject('wyrm');
-      const viewDate = ref(new Date());
+      const viewDate = ref(new Date()); // which month the grid shows
+      const selectedDate = ref(new Date()); // the day the tablet is pointed at
       const selectedKey = ref(wyrm.dateKey());
       const showTravel = ref(false);
 
-      const isTraveled = computed(() => {
-        return selectedKey.value !== wyrm.dateKey(new Date());
-      });
+      const isTraveled = computed(() => selectedKey.value !== wyrm.dateKey(new Date()));
+      const monthLabel = computed(() => viewDate.value.toLocaleDateString('en-US', { month: 'long', year: 'numeric' }));
 
       const metrics = computed(() => {
         const now = new Date();
@@ -1347,44 +1326,51 @@
         };
       });
 
+      function pick(date) {
+        selectedDate.value = new Date(date);
+        selectedKey.value = wyrm.dateKey(date);
+        viewDate.value = new Date(date);
+      }
       function shift(delta) {
         viewDate.value = new Date(viewDate.value.getFullYear(), viewDate.value.getMonth() + delta, 1);
       }
       function today() {
         const now = new Date();
-        viewDate.value = now;
-        selectedKey.value = wyrm.dateKey(now);
+        pick(now);
         wyrm.travelToDate(now);
       }
       function select(date) {
-        selectedKey.value = wyrm.dateKey(date);
-        viewDate.value = new Date(date);
+        pick(date);
         wyrm.travelToDate(date);
       }
       function travel(date) {
+        pick(date);
         wyrm.travelToDate(date);
-        viewDate.value = new Date(date);
-        selectedKey.value = wyrm.dateKey(date);
         showTravel.value = false;
       }
-      return { viewDate, selectedKey, isTraveled, metrics, shift, today, select, showTravel, travel };
+      return { viewDate, selectedDate, selectedKey, isTraveled, monthLabel, metrics, shift, today, select, showTravel, travel };
     },
     template: `
       <div class="view view--cal">
         <ui-panel class="cal-main">
           <panel-head title="Calendar" icon="calendar">
-            <ui-button size="icon" icon="chevron-left" aria-label="Previous month" @click="shift(-1)" />
-            <ui-button size="sm" @click="today">Today</ui-button>
-            <ui-button size="sm" class="btn--gold" icon="compass" @click="showTravel = true">Travel</ui-button>
-            <ui-button size="icon" icon="chevron-right" aria-label="Next month" @click="shift(1)" />
+            <ui-button class="travel-btn" size="sm" icon="compass" :active="isTraveled" aria-label="Time travel" @click="showTravel = true">Travel</ui-button>
           </panel-head>
+          <div class="cal-toolbar">
+            <h3 class="cal-toolbar__month">{{ monthLabel }}</h3>
+            <div class="cal-nav">
+              <ui-button size="icon" variant="ghost" icon="chevron-left" aria-label="Previous month" @click="shift(-1)" />
+              <ui-button size="sm" @click="today">Today</ui-button>
+              <ui-button size="icon" variant="ghost" icon="chevron-right" aria-label="Next month" @click="shift(1)" />
+            </div>
+          </div>
           <month-grid :view-date="viewDate" :selected="selectedKey" @select="select" />
         </ui-panel>
-        <travel-modal v-if="showTravel" :initial-date="viewDate" @close="showTravel = false" @travel="travel" />
+        <travel-modal v-if="showTravel" :initial-date="selectedDate" @close="showTravel = false" @travel="travel" />
         <div class="cal-side">
-          <cal-date-card :date="viewDate" />
-          <travel-insight-card v-if="isTraveled" :date="viewDate" @reset="today" />
-          <ui-panel>
+          <cal-date-card :date="selectedDate" />
+          <travel-insight-card v-if="isTraveled" :date="selectedDate" @reset="today" />
+          <ui-panel class="cal-progress">
             <panel-head title="Progress" icon="pulse" />
             <div class="meters">
               <progress-meter label="This year" :percent="metrics.year" />
