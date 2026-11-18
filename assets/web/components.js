@@ -1,5 +1,5 @@
 /**
- * WYRM DESK REMOTE — components
+ * WYRM DESK REMOTE - components
  *
  * Every piece of UI is a small component with a string template, so the whole
  * app runs from vue.global.prod.js with no build step. Load order:
@@ -368,7 +368,7 @@
               qrSvg.value = text;
             }
           }
-        } catch (_) {}
+        } catch (_) { }
       }
 
       async function copyUrl() {
@@ -381,7 +381,7 @@
               copied.value = false;
             }, 2000);
           }
-        } catch (_) {}
+        } catch (_) { }
       }
 
       function onKeydown(e) {
@@ -474,7 +474,7 @@
         if (p.startsWith('h')) return 'high';
         if (p.startsWith('m')) return 'medium';
         if (p.startsWith('l')) return 'low';
-        return null; // normal/unknown — the tablet hides the pill too
+        return null; // normal/unknown - the tablet hides the pill too
       });
       const label = computed(() => ({ high: 'High', medium: 'Medium', low: 'Low' }[tone.value]));
       return { wyrm, tone, label };

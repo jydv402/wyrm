@@ -31,7 +31,7 @@ same Wi-Fi can control the tablet dashboard.
 |---|---|
 | Ambient dashboard with resizable cards | `lib/features/home/homepage.dart` |
 | Card size tiers: Small → Medium → Fullscreen → Nightstand (clock only) | `lib/config/card_layout_state.dart` |
-| Nightstand mode (pitch-black + amber OLED clock) | `lib/features/clock/clock_card.dart`, `lib/features/clock/analog_clock.dart` |
+| Nightstand mode (pitch-black + amber OLED clock) | `lib/features/clock/clock_card.dart`, `lib/features/clock/clock_face_analog.dart` |
 | On-device text entry without the OS keyboard | `lib/features/keyboard/` |
 | Remote control over LAN | `lib/server/` + per-feature `*_server_section.dart` + `assets/web/` |
 | Local persistence (offline-first) | `lib/data/app_database.dart` |
@@ -46,7 +46,7 @@ same Wi-Fi can control the tablet dashboard.
 - **HTTP/WebSocket host:** `shelf`, `shelf_router`, `shelf_web_socket`, `web_socket_channel`.
 - **Persistence:** hand-rolled JSON file store in the app documents directory
   (`lib/data/app_database.dart`) with a whole-document backup engine.
-- **Assets:** `flutter_svg` (logo), `google_fonts` (Oswald digits on the clock),
+- **Assets:** `flutter_svg` (logo), `google_fonts` (Barlow Condensed digits on the clock),
   `qr_flutter` (web-remote QR code in the network modal), `intl` (date formatting in the
   calendar card and milestone form).
 - **Platform:** actively targets Android tablets; the standard Flutter
@@ -64,7 +64,7 @@ same Wi-Fi can control the tablet dashboard.
 | `shelf`, `shelf_router`, `shelf_web_socket`, `web_socket_channel` | Used (server + tests) |
 | `path_provider` | Used (documents dir for JSON DB + Downloads backup) |
 | `flutter_svg` | Used (`header_text.svg` in `TopPillBar`) |
-| `google_fonts` | Used (Oswald in the digital clocks) |
+| `google_fonts` | Used (Barlow Condensed in the digital clocks) |
 | `qr_flutter` | Used (`QrImageView` in the network connection modal) |
 | `intl` | Used (`DateFormat` in the calendar card and milestone form) |
 | `http` | Used only in `test/server/server_test.dart` |
@@ -160,12 +160,17 @@ wyrm_desk/
 │   │   │   ├── calendar_card.dart             CalendarCard (Small + dual-pane Medium/Full)
 │   │   │   ├── calendar_server_section.dart   /api/calendar + WS commands + snapshot slice
 │   │   │   └── milestone_form_content.dart    MilestoneFormContent + MilestonePreviewCard
-│   │   ├── clock/
-│   │   │   ├── clock_card.dart      ClockContainer (sizes incl. nightstand)
-│   │   │   ├── clock_provider.dart  granular time/digit/angle providers
-│   │   │   ├── analog_clock.dart    CustomPainter squircle analogue clock
-│   │   │   ├── digital_clock_small.dart
-│   │   │   └── digital_clock_medium.dart
+│   │   ├── clock/                   the drifting day-photograph card
+│   │   │   ├── clock_card.dart               ClockContainer: tiers + frame
+│   │   │   ├── clock_fullscreen_view.dart    analogue + digital companion
+│   │   │   ├── clock_face_analog.dart        squircle dial CustomPainter
+│   │   │   ├── clock_face_digital_small.dart
+│   │   │   ├── clock_face_digital_medium.dart
+│   │   │   ├── clock_numeral.dart            the one display-type spec
+│   │   │   ├── clock_palette.dart            ClockTone: slate / nightstand
+│   │   │   ├── clock_backdrop.dart           drifting photo backdrop
+│   │   │   ├── clock_backdrop_motion.dart    drift step + interval (the tune point)
+│   │   │   └── clock_provider.dart           time, digits, angles, day photo
 │   │   ├── display/
 │   │   │   ├── display_state.dart            DisplayState + Notifier (brightness)
 │   │   │   ├── display_service.dart          system brightness bridge
@@ -322,8 +327,9 @@ All providers are global top-level `final`s. There is no `codegen`.
 
 **Clock provider granularity** (`lib/features/clock/clock_provider.dart`): `clockTimeProvider` is a
 1-second `StreamProvider`; `clockHoursProvider`, `clockMinutesProvider`,
-`clockSecondsProvider`, `clockPeriodProvider`, `timeLeftTodayProvider`, and
-`analogueAnglesProvider` derive from it so only the parts that changed rebuild.
+`clockSecondsProvider`, `clockPeriodProvider`, `clockDateProvider`,
+`timeLeftTodayPartsProvider`, `clockHandAnglesProvider`, and `clockBackgroundAssetProvider`
+derive from it so only the parts that changed rebuild.
 
 ---
 
@@ -692,10 +698,25 @@ Built around Vue 3 `createApp` (components live in `components.js`, the reactive
 ## 13. Features (deep dive)
 
 ### Clock (`lib/features/clock`)
-- `ClockContainer` renders per size: `DigitalClockSmall` (vertical), `DigitalClockMedium`
-  (horizontal, Oswald font), `_ClockFullscreenView` (squircle analogue + horizontal digital),
-  and nightstand (same fullscreen view, black + amber). Header is hidden in nightstand.
-- Analogue face is a `CustomPainter` (`analog_clock.dart`) with discrete stepping hands.
+- `ClockContainer` renders per size: `DigitalClockSmall` (vertical: date, stacked time,
+  countdown), `DigitalClockMedium` (horizontal), `ClockFullscreenView` (squircle analogue +
+  horizontal digital), and nightstand (same fullscreen view, black + amber). Header is hidden
+  in nightstand.
+- `ClockBackdrop` scales each time-of-day photograph to the card height and steps it across
+  the spare width and back, so the whole panorama is seen over one cycle. The motion is a
+  fixed **2 px jump every 50 ms** (40 px/s, no easing, no pause at the edges) set in
+  `clock_backdrop_motion.dart` (`clockBackdropMotion`); the 1 s cross-fade there is used when
+  the time-of-day photo changes. Deliberately stepped rather than tweened: the photograph is
+  only resampled when it moves a whole pixel, and a frame lost to the 1 s clock tick delays one
+  step instead of jumping the image. It is one `Transform` on a `RepaintBoundary` layer, driven
+  by a `Timer` (not a ticker), so it stops when the card is scrolled out of the deck, when the
+  app is backgrounded, or when `TickerMode` is off; `MediaQuery.disableAnimations` swaps it for
+  a held centre crop.
+- Each face sits in its own `RepaintBoundary` (`clock_card.dart`), so the per-second second-hand
+  and seconds-digit repaint never re-rasterises the photograph and its scrim behind it.
+- The analogue face is a `CustomPainter` (`clock_face_analog.dart`) with discrete stepping
+  hands; `clock_palette.dart` (`ClockTone`) holds every colour, `clock_numeral.dart` every
+  numeral style.
 
 ### Habits (`lib/features/habits`)
 - **Small:** one-habit carousel (`cycleCarousel`), numeric stepper or binary
@@ -787,7 +808,7 @@ The web palette and Flutter palette are intentionally *different* systems — do
 unify them blindly.
 
 ### Typography
-- Flutter UI: default Material text; clock digits use **Oswald** (google_fonts).
+- Flutter UI: default Material text; clock digits use **Barlow Condensed** (google_fonts).
 - Web: `--font-sans` (SF Pro/Inter stack) and `--font-mono` for diagnostics.
 
 ---
@@ -884,7 +905,7 @@ you rename ids/classes.
 - **WebSocket path:** `/ws` (snapshot → state_update; `ping` → `pong`).
 - **Persisted file:** `<appDocuments>/wyrm_database.json`; backup file `wyrm_backup.json`.
 - **Disk section keys:** `layout`, `settings`, `tasks`, `habits`, `calendar`, `display`.
-- **Asset roots:** `assets/icons/`, `assets/web/`.
+- **Asset roots:** `assets/icons/`, `assets/web/`, `assets/card_bg/clock/`, `assets/card_bg/task/`.
 - **Remote URL format:** `http://<lan-ip>:<port>`.
 - **Card sizes:** `small`, `medium`, `fullscreen`, `nightstand` (clock only).
 - **Card ids / `data-card`:** `clock`, `habits`, `calendar`, `tasks` (+ `all` pseudo-card).

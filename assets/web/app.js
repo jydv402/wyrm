@@ -1,5 +1,5 @@
 /**
- * WYRM DESK REMOTE — core
+ * WYRM DESK REMOTE - core
  * State store, WebSocket/REST transport, user actions and app bootstrap.
  * All UI lives in components.js, which must load before this file.
  */
@@ -41,7 +41,7 @@ class WyrmStateStore {
 
   /**
    * Records a section as optimistically changed, unless one is already
-   * pending — the first captured value must stay the pre-change snapshot so
+   * pending - the first captured value must stay the pre-change snapshot so
    * repeated actions on the same section keep detecting stale echoes.
    */
   markPendingOnce(key, oldValue) {
@@ -55,7 +55,7 @@ class WyrmStateStore {
     this.pending = this.pending.filter((p) => now - p.sentAt < WyrmStateStore.PENDING_TTL_MS);
 
     // Reconcile: a broadcast matching the pre-optimistic value is a stale
-    // echo of our own pending change — keep the optimistic value. Any other
+    // echo of our own pending change - keep the optimistic value. Any other
     // broadcast (ack echo or a tablet-side change) wins and clears pending.
     const apply = (key, incoming, merge) => {
       if (incoming === undefined) return;
@@ -136,7 +136,7 @@ class WyrmWebSocketManager {
       };
 
       this.socket.onerror = () => {
-        try { this.socket.close(); } catch (_) {}
+        try { this.socket.close(); } catch (_) { }
       };
     } catch (_) {
       this._scheduleReconnect();

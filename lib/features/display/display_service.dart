@@ -27,7 +27,7 @@ class DisplayService {
     } on MissingPluginException {
       if (kDebugMode) {
         debugPrint(
-          '[DisplayService] no native handler for "$channel" — '
+          '[DisplayService] no native handler for "$channel" - '
           'panel control needs an Android build (rebuild/reinstall the app).',
         );
       }

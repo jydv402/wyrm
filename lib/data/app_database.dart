@@ -12,7 +12,7 @@ import 'package:path_provider/path_provider.dart';
 /// The database is feature-agnostic: it stores named JSON sections
 /// ([readSection]/[writeSection]) and owns only the transport (disk IO,
 /// cache, write queue) and the whole-document backup engine. Every feature
-/// owns its section key and the codec between its models and JSON — see the
+/// owns its section key and the codec between its models and JSON - see the
 /// `*_state.dart` files under `lib/features/` and `lib/config/`.
 class AppDatabase {
   static const String databaseFileName = 'wyrm_database.json';
@@ -95,7 +95,7 @@ class AppDatabase {
   }
 
   // ===========================================================================
-  // GENERIC SECTION ACCESS — features read and write their own JSON here
+  // GENERIC SECTION ACCESS - features read and write their own JSON here
   // ===========================================================================
 
   /// Reads the raw JSON value stored under [key], or null when the section
