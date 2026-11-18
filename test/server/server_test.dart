@@ -33,8 +33,10 @@ void main() {
     late DisplayState activeDisplay;
     late bool activeNetworkModal;
     DashboardCardType? lastScrolledCard;
+    DateTime? activeTravelDate;
 
     setUp(() async {
+      activeTravelDate = null;
       activeLayout = const CardLayoutConfig();
       activeSettings = const AppSettingsConfig();
       activeDisplay = const DisplayState();
@@ -174,6 +176,7 @@ void main() {
                 return m;
               }).toList();
             },
+            onTravelToDate: (date) => activeTravelDate = date,
           ),
           LayoutServerSection(
             getLayout: () => activeLayout,
@@ -579,6 +582,22 @@ void main() {
       },
     );
 
+    test('POST /api/calendar/travel sets active travel date', () async {
+      final response = await http.post(
+        Uri.parse('http://127.0.0.1:${server.port}/api/calendar/travel'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'date': '2026-11-25'}),
+      );
+
+      expect(response.statusCode, 200);
+      final data = jsonDecode(response.body) as Map<String, dynamic>;
+      expect(data['success'], true);
+      expect(activeTravelDate, isNotNull);
+      expect(activeTravelDate!.year, 2026);
+      expect(activeTravelDate!.month, 11);
+      expect(activeTravelDate!.day, 25);
+    });
+
     test(
       'WebSocket connection receives initial snapshot and accepts commands',
       () async {
@@ -661,6 +680,17 @@ void main() {
 
         await Future<void>.delayed(const Duration(milliseconds: 50));
         expect(lastScrolledCard, DashboardCardType.habits);
+
+        // Send travel_to_date message over WebSocket.
+        channel.sink.add(
+          jsonEncode({'type': 'travel_to_date', 'date': '2027-01-15'}),
+        );
+
+        await Future<void>.delayed(const Duration(milliseconds: 50));
+        expect(activeTravelDate, isNotNull);
+        expect(activeTravelDate!.year, 2027);
+        expect(activeTravelDate!.month, 1);
+        expect(activeTravelDate!.day, 15);
 
         await channel.sink.close();
       },
@@ -836,6 +866,7 @@ void main() {
         expect(components, contains('MonthGrid'));
         expect(components, contains('NetworkModalButton'));
         expect(components, contains('NetworkModal'));
+        expect(components, contains('TravelModal'));
         expect(components, contains('qr:'));
 
         final css = await cssFile.readAsString();
@@ -844,12 +875,15 @@ void main() {
         expect(css, contains('.nav-rail'));
         expect(css, contains('.modal-backdrop'));
         expect(css, contains('.modal-card'));
+        expect(css, contains('.modal-card--travel'));
+        expect(css, contains('.btn--gold'));
 
         final js = await jsFile.readAsString();
         expect(js, contains('WyrmStateStore'));
         expect(js, contains('WyrmWebSocketManager'));
         expect(js, contains('createWyrmActions'));
         expect(js, contains('window.wyrmRemote'));
+        expect(js, contains('travelToDate'));
         expect(js, contains('setAllCardsSize'));
         expect(js, contains('createMilestone'));
         expect(js, contains('deleteMilestone'));

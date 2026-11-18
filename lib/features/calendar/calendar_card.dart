@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:wyrm_desk/features/calendar/calendar_model.dart';
 import 'package:wyrm_desk/features/calendar/calendar_state.dart';
+import 'package:wyrm_desk/features/calendar/dusk_date_picker_dialog.dart';
 import 'package:wyrm_desk/features/calendar/milestone_form_content.dart';
 import 'package:wyrm_desk/core/date_names.dart';
 import 'package:wyrm_desk/theme/theme.dart';
@@ -190,6 +191,7 @@ class _CalendarDateBanner extends ConsumerWidget {
               SizedBox(width: isCompact ? 4 : 6),
               // Today button
               DuskGlassButton(
+                key: const ValueKey('calendar_today_btn'),
                 onPressed: () =>
                     ref.read(calendarProvider.notifier).resetToToday(),
                 height: btnHeight,
@@ -209,6 +211,7 @@ class _CalendarDateBanner extends ConsumerWidget {
 
             // Travel button
             DuskGlassButton(
+              key: const ValueKey('calendar_travel_btn'),
               onPressed: () =>
                   _openTravelDatePicker(context, ref, state.selectedDate),
               height: btnHeight,
@@ -227,6 +230,7 @@ class _CalendarDateBanner extends ConsumerWidget {
 
             // Chevron previous month
             DuskGlassButton.icon(
+              key: const ValueKey('calendar_prev_month_btn'),
               onPressed: () => ref.read(calendarProvider.notifier).prevMonth(),
               size: chevronSize,
               icon: Icon(
@@ -240,6 +244,7 @@ class _CalendarDateBanner extends ConsumerWidget {
 
             // Chevron next month
             DuskGlassButton.icon(
+              key: const ValueKey('calendar_next_month_btn'),
               onPressed: () => ref.read(calendarProvider.notifier).nextMonth(),
               size: chevronSize,
               icon: Icon(
@@ -627,32 +632,21 @@ class _MilestoneTile extends ConsumerWidget {
   }
 }
 
-/// Opens Flutter built-in date picker configured with TRAVEL confirm text.
+/// Opens Dusk Glass date picker configured with TRAVEL confirm text and month/year selectors.
 Future<void> _openTravelDatePicker(
   BuildContext context,
   WidgetRef ref,
   DateTime initialDate,
 ) async {
-  final picked = await showDatePicker(
+  final picked = await showDialog<DateTime>(
     context: context,
-    initialDate: initialDate,
-    firstDate: DateTime(1970),
-    lastDate: DateTime(2100),
-    confirmText: 'TRAVEL',
-    cancelText: 'CANCEL',
-    builder: (context, child) {
-      return Theme(
-        data: ThemeData.dark().copyWith(
-          colorScheme: const ColorScheme.dark(
-            primary: AppColors.goldAccent,
-            onPrimary: Colors.black,
-            surface: AppColors.surface,
-            onSurface: AppColors.textPrimary,
-          ),
-        ),
-        child: child!,
-      );
-    },
+    builder: (context) => DuskDatePickerDialog(
+      initialDate: initialDate,
+      firstDate: DateTime(1970),
+      lastDate: DateTime(2100),
+      confirmText: 'TRAVEL',
+      cancelText: 'CANCEL',
+    ),
   );
   if (picked != null) {
     ref.read(calendarProvider.notifier).selectDate(picked);

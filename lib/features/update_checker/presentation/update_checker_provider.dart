@@ -12,9 +12,10 @@ final updateCheckerServiceProvider = Provider<UpdateCheckerService>((ref) {
 });
 
 /// Tracks whether a manual or automated update check is currently executing.
-final isCheckingUpdatesProvider = NotifierProvider<IsCheckingUpdatesNotifier, bool>(
-  IsCheckingUpdatesNotifier.new,
-);
+final isCheckingUpdatesProvider =
+    NotifierProvider<IsCheckingUpdatesNotifier, bool>(
+      IsCheckingUpdatesNotifier.new,
+    );
 
 class IsCheckingUpdatesNotifier extends Notifier<bool> {
   @override
@@ -124,5 +125,5 @@ class UpdateCheckerNotifier extends Notifier<AsyncValue<UpdateInfo?>> {
 /// Provider managing the update check state.
 final updateCheckerProvider =
     NotifierProvider<UpdateCheckerNotifier, AsyncValue<UpdateInfo?>>(
-  UpdateCheckerNotifier.new,
-);
+      UpdateCheckerNotifier.new,
+    );

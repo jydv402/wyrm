@@ -150,21 +150,20 @@ class _HomePageState extends ConsumerState<HomePage>
     });
 
     // Re-use live clockTimeProvider to trigger automated hourly update checks.
-    ref.listen<int?>(
-      clockTimeProvider.select((time) => time.value?.hour),
-      (previous, next) {
-        if (next != null && (previous == null || previous != next)) {
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            if (mounted) {
-              ref.read(updateCheckerProvider.notifier).checkHourly(
-                    context: context,
-                    isNightstand: isNightstand,
-                  );
-            }
-          });
-        }
-      },
-    );
+    ref.listen<int?>(clockTimeProvider.select((time) => time.value?.hour), (
+      previous,
+      next,
+    ) {
+      if (next != null && (previous == null || previous != next)) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) {
+            ref
+                .read(updateCheckerProvider.notifier)
+                .checkHourly(context: context, isNightstand: isNightstand);
+          }
+        });
+      }
+    });
 
     return Scaffold(
       backgroundColor: AppColors.background,

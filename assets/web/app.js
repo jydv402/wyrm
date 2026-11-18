@@ -341,6 +341,16 @@ function createWyrmActions(store, ws) {
       state.calendar.milestones = state.calendar.milestones.filter((m) => m.id !== id);
       post('/api/calendar/milestones/delete', { id }, 'delete_milestone');
     },
+    travelToDate(date) {
+      const d = date instanceof Date ? date : new Date(date);
+      if (isNaN(d.getTime())) return false;
+      const key = dateKey(d);
+      store.markPendingOnce('calendar', state.calendar);
+      state.calendar.selectedDate = d.toISOString();
+      state.calendar.viewMonth = new Date(d.getFullYear(), d.getMonth(), 1).toISOString();
+      post('/api/calendar/travel', { date: key }, 'travel_to_date');
+      return true;
+    },
     formatMilestoneDate(dateStr) {
       if (!dateStr) return '';
       const d = new Date(dateStr);
@@ -449,6 +459,7 @@ window.wyrmRemote = {
   createMilestone: (title, date, pinned) => wyrm.createMilestone({ title, date, pinned: !!pinned }),
   deleteMilestone: (id) => wyrm.deleteMilestone(id),
   togglePinMilestone: (id) => wyrm.togglePinMilestone(id),
+  travelToDate: (date) => wyrm.travelToDate(date),
   createHabit: (title, type, target, glyph) =>
     wyrm.createHabit({ title, type: type || 'binary', target: target || 1, glyph: glyph || '💧' }),
   selectHabitGlyph: (glyph) => { wyrm.draft.glyph = glyph; },

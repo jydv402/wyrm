@@ -82,6 +82,9 @@ final webServerProvider = Provider<ShelfWebServer>((ref) {
         onTogglePinMilestone: (id) {
           ref.read(calendarProvider.notifier).togglePinMilestone(id);
         },
+        onTravelToDate: (date) {
+          ref.read(calendarProvider.notifier).selectDate(date);
+        },
       ),
       LayoutServerSection(
         getLayout: () => ref.read(cardLayoutProvider),

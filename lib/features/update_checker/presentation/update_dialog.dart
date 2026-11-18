@@ -10,10 +10,7 @@ import 'package:wyrm_desk/widgets/dusk_glass_pill.dart';
 class UpdateDialog extends StatelessWidget {
   final UpdateInfo updateInfo;
 
-  const UpdateDialog({
-    super.key,
-    required this.updateInfo,
-  });
+  const UpdateDialog({super.key, required this.updateInfo});
 
   /// Displays the UpdateDialog as a modal route.
   static Future<void> show(BuildContext context, UpdateInfo updateInfo) {
@@ -69,18 +66,28 @@ class UpdateDialog extends StatelessWidget {
                     width: 40,
                     height: 40,
                     decoration: BoxDecoration(
-                      color: (isNew ? AppColors.glacierAccent : AppColors.tealAccent)
-                          .withValues(alpha: 0.16),
+                      color:
+                          (isNew
+                                  ? AppColors.glacierAccent
+                                  : AppColors.tealAccent)
+                              .withValues(alpha: 0.16),
                       shape: BoxShape.circle,
                       border: Border.all(
-                        color: (isNew ? AppColors.glacierAccent : AppColors.tealAccent)
-                            .withValues(alpha: 0.35),
+                        color:
+                            (isNew
+                                    ? AppColors.glacierAccent
+                                    : AppColors.tealAccent)
+                                .withValues(alpha: 0.35),
                         width: 1.0,
                       ),
                     ),
                     child: Icon(
-                      isNew ? Icons.system_update_rounded : Icons.check_circle_rounded,
-                      color: isNew ? AppColors.glacierAccent : AppColors.tealAccent,
+                      isNew
+                          ? Icons.system_update_rounded
+                          : Icons.check_circle_rounded,
+                      color: isNew
+                          ? AppColors.glacierAccent
+                          : AppColors.tealAccent,
                       size: 22,
                     ),
                   ),
@@ -90,7 +97,9 @@ class UpdateDialog extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          isNew ? 'New Update Available' : 'Wyrm Desk is Up to Date',
+                          isNew
+                              ? 'New Update Available'
+                              : 'Wyrm Desk is Up to Date',
                           style: const TextStyle(
                             color: AppColors.textPrimary,
                             fontSize: 18,
@@ -128,7 +137,10 @@ class UpdateDialog extends StatelessWidget {
               // Version Diff Tag (when update available)
               if (isNew) ...[
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 10,
+                  ),
                   decoration: BoxDecoration(
                     color: AppColors.well,
                     borderRadius: BorderRadius.circular(14),
@@ -248,7 +260,10 @@ class UpdateDialog extends StatelessWidget {
                         ),
                         blockquoteDecoration: const BoxDecoration(
                           border: Border(
-                            left: BorderSide(color: AppColors.glacierAccent, width: 3),
+                            left: BorderSide(
+                              color: AppColors.glacierAccent,
+                              width: 3,
+                            ),
                           ),
                         ),
                         a: const TextStyle(

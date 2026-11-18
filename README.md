@@ -49,10 +49,10 @@ Best of all, **your tablet is also a local server**. Without installing any apps
 ## ✦ Features
 
 ### ⏱️ Dynamic Clock & Bedtime Nightstand
-- **Multiple Clock Faces:** Clean digital clock with Barlow Condensed typography, discrete analogue instrument dial, or dynamic photographic backdrops.
+- **Multiple Clock Faces:** Clean digital clock with condensed typography, discrete analogue instrument dial, and dynamic photographic backdrops.
 - **Daylight Photography Drift:** The clock backdrop subtly shifts throughout the day (morning fog, daytime warmth, golden hour, and midnight calm).
 - **Nightstand Mode:** Switch to an ultra-low glare, pitch-black amber display with a single tap for bedside nightstand duty.
-- **Civil Day Countdown:** A live countdown pill tracks the hours and minutes remaining today.
+- **Day Countdown:** A live countdown pill tracks the hours and minutes remaining today.
 
 ### 🌿 Daily Habits with Heatmap Matrix
 - **GitHub-Style Heatmap:** Visualize consistency across the entire month with a 7-row weekday contribution matrix.
@@ -60,7 +60,7 @@ Best of all, **your tablet is also a local server**. Without installing any apps
 - **One-Tap Stepping:** Check off habits or step multi-count goals directly from the tablet or remotely.
 
 ### 📅 Calendar & Countdown Milestones
-- **Interactive Month View:** Fluid month browsing with configurable week start (Monday vs. Sunday).
+- **Interactive Month View:** Fluid month browsing with configurable week start.
 - **Countdown Milestones:** Pin high-priority deadlines, trips, and milestones with live days-remaining badges.
 - **Year & Quarter Progress:** Glanceable fraction indicators show current progress through the quarter and year.
 
@@ -69,18 +69,13 @@ Best of all, **your tablet is also a local server**. Without installing any apps
 - **Tactile Checkbox Animations:** Satisfying tactile completion with instant visual feedback.
 
 ### 📡 Zero-Install Web Remote Companion
-- **Control from Any Browser:** The tablet hosts an embedded HTTP + WebSocket server (`shelf`) on your local Wi-Fi.
-- **Instant QR Pairing:** Tap the Wi-Fi pill on your tablet, scan the QR code with your phone or laptop camera, and start adding tasks or marking habits instantly.
-- **Live Bidirectional Sync:** Mutations from your phone reflect on the tablet in real time with sub-millisecond local latency.
+- **Control from Any Browser:** The tablet hosts an embedded HTTP + WebSocket server on your local Wi-Fi.
+- **Instant QR Pairing:** Tap the Wi-Fi pill on your tablet, scan the QR code with your phone or access the port address on desktop browser, and start adding tasks or marking habits instantly.
+- **Live Bidirectional Sync:** Mutations from the web remote reflect on the tablet in real time with sub-millisecond local latency.
 
 ### 🔒 100% Offline-First & Private
 - **Zero Cloud, Zero Accounts:** All data remains strictly on your device inside an offline JSON document store.
 - **Easy Backups:** One-tap export and import directly to your tablet's `Downloads` folder, or backup wirelessly from your computer via the Web Remote.
-
-### 🔄 In-App Update Engine
-- **Effortless Upgrades:** Built-in update checker queries GitHub Releases with architecture-specific APK downloads.
-- **Automated Hourly Checks:** Reuses the live clock stream to check for new versions quietly once an hour (with automatic suppression during Nightstand Mode to prevent nighttime glare).
-- **Update Dialog:** View full Markdown release notes and jump directly to download with one tap.
 
 ---
 
@@ -89,7 +84,7 @@ Best of all, **your tablet is also a local server**. Without installing any apps
 Get your tablet running in two simple steps:
 
 1. **Install Wyrm Desk on your tablet:**
-   - Grab the appropriate APK from the [**Releases Page**](https://github.com/jydv402/wyrm_app/releases/latest):
+   - Grab the appropriate APK from the [**Releases Page**](https://github.com/jydv402/wyrm/releases/latest):
      - `arm64-v8a`: Most modern tablets (64-bit ARM). Recommended for almost all devices from 2016 onward.
      - `armeabi-v7a`: Older budget or legacy tablets (32-bit ARM, including older Amazon Fire tablets).
      - `x86_64`: Intel or AMD-based devices, ChromeOS, and desktop Android emulators.
@@ -99,7 +94,7 @@ Get your tablet running in two simple steps:
 2. **Connect your phone or laptop:**
    - Make sure your phone/laptop is on the same Wi-Fi network as the tablet.
    - Tap the **Wi-Fi status pill** on the top navigation bar of the tablet to open the Web Remote modal.
-   - Scan the QR code with your phone camera or visit `http://<tablet-ip>:8081` in your browser.
+   - Scan the QR code with your phone camera or visit `http://<tablet-ip>:8080` in your browser.
    - You can now create tasks, track habits, and control your tablet dashboard remotely.
 
 ---
@@ -110,8 +105,8 @@ Get your tablet running in two simple steps:
 |---|---|
 | **Framework** | [Flutter](https://flutter.dev) (Dart 3.x, Material 3 Dark) |
 | **State Management** | [Flutter Riverpod](https://riverpod.dev) v3 (`Notifier`, `ProviderScope`) |
-| **Local Remote Server** | [Shelf](https://pub.dev/packages/shelf) HTTP + WebSockets on local port 8081 |
-| **Web Remote UI** | Vue 3 (zero build-step, served directly from tablet assets) |
+| **Local Remote Server** | [Shelf](https://pub.dev/packages/shelf) HTTP + WebSockets on local port 8080 |
+| **Web Remote UI** | Vue 3 |
 | **Persistence** | Atomic local JSON store (`lib/data/app_database.dart`) with Downloads backup engine |
 
 ---

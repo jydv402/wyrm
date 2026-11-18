@@ -6,6 +6,7 @@ import 'package:wyrm_desk/features/network/network_info.dart';
 import 'package:wyrm_desk/features/network/network_modal.dart';
 import 'package:wyrm_desk/server/server_provider.dart';
 import 'package:wyrm_desk/server/web_server.dart';
+import 'package:wyrm_desk/features/battery/battery_pill.dart';
 import 'package:wyrm_desk/features/settings/settings_page.dart';
 import 'package:wyrm_desk/widgets/dusk_glass_button.dart';
 
@@ -41,6 +42,7 @@ class TopPillBar extends StatelessWidget {
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
+        spacing: 10,
         children: [
           // WYRM. Brand Logo Mark
           Row(
@@ -67,32 +69,13 @@ class TopPillBar extends StatelessWidget {
             ],
           ),
 
-          const SizedBox(width: 18),
+          const Spacer(),
 
-          // Vertical divider line
-          Container(width: 1.0, height: 18.0, color: AppColors.lineStrong),
-
-          const SizedBox(width: 18),
-
-          // Ambient Tagline
-          const Expanded(
-            child: Text(
-              'A calmer, more focused you',
-              style: TextStyle(
-                color: AppColors.textSecondary,
-                fontSize: 13.0,
-                fontWeight: FontWeight.w400,
-                letterSpacing: 0.2,
-              ),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-          ),
+          // Battery Status Pill
+          const BatteryPill(),
 
           // Center/Right Network Status Pill
           child ?? const _ServerNetworkPill(),
-
-          const SizedBox(width: 10),
 
           // Settings Gear Action Button
           DuskGlassButton.icon(

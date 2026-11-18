@@ -48,6 +48,7 @@
     qr: '<rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><path d="M7 7h.01M18 7h.01M7 18h.01M14 14h3v3h-3zM17 17v4M14 21h7M21 14v3"/>',
     copy: '<rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>',
     database: '<ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/>',
+    compass: '<circle cx="12" cy="12" r="9"/><polygon points="16.2 7.8 14.1 14.1 7.8 16.2 9.9 9.9 16.2 7.8"/>',
   };
 
   components.UiIcon = {
@@ -854,6 +855,128 @@
       </ui-panel>`,
   };
 
+  components.TravelModal = {
+    name: 'TravelModal',
+    props: {
+      initialDate: { type: [Date, String], default: () => new Date() },
+    },
+    emits: ['close', 'travel'],
+    setup(props, { emit }) {
+      const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+      const initial = props.initialDate ? new Date(props.initialDate) : new Date();
+      const selectedYear = ref(initial.getFullYear());
+      const selectedMonth = ref(initial.getMonth());
+      const selectedDay = ref(initial.getDate());
+
+      const daysInMonth = computed(() => {
+        return new Date(selectedYear.value, selectedMonth.value + 1, 0).getDate();
+      });
+
+      function clampDay() {
+        const maxDays = new Date(selectedYear.value, selectedMonth.value + 1, 0).getDate();
+        if (selectedDay.value > maxDays) {
+          selectedDay.value = maxDays;
+        }
+      }
+
+      function changeYear(delta) {
+        selectedYear.value += delta;
+        clampDay();
+      }
+
+      function setMonth(m) {
+        selectedMonth.value = m;
+        clampDay();
+      }
+
+      function setDay(d) {
+        selectedDay.value = d;
+      }
+
+      const selectedDateFormatted = computed(() => {
+        const d = new Date(selectedYear.value, selectedMonth.value, selectedDay.value);
+        return d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
+      });
+
+      function confirm() {
+        const target = new Date(selectedYear.value, selectedMonth.value, selectedDay.value, 12, 0, 0);
+        emit('travel', target);
+      }
+
+      return {
+        months: MONTHS,
+        selectedYear,
+        selectedMonth,
+        selectedDay,
+        daysInMonth,
+        selectedDateFormatted,
+        changeYear,
+        setMonth,
+        setDay,
+        confirm,
+      };
+    },
+    template: `
+      <teleport to="body">
+        <div class="modal-backdrop" @click.self="$emit('close')">
+          <div class="modal-card modal-card--travel" role="dialog" aria-modal="true" aria-labelledby="travel-modal-title">
+            <div class="modal-card__header">
+              <div class="modal-card__icon-box modal-card__icon-box--gold">
+                <ui-icon name="compass" :size="20" />
+              </div>
+              <div class="modal-card__titles">
+                <h2 id="travel-modal-title" class="modal-card__title">Time Travel</h2>
+                <p class="modal-card__subtitle">{{ selectedDateFormatted }}</p>
+              </div>
+              <ui-button size="icon" icon="x" aria-label="Close" @click="$emit('close')" />
+            </div>
+
+            <div class="travel-picker">
+              <div class="travel-year-row">
+                <ui-button size="icon" icon="chevron-left" aria-label="Previous year" @click="changeYear(-1)" />
+                <span class="travel-year-display">{{ selectedYear }}</span>
+                <ui-button size="icon" icon="chevron-right" aria-label="Next year" @click="changeYear(1)" />
+              </div>
+
+              <div class="travel-months-grid">
+                <button
+                  v-for="(mName, idx) in months"
+                  :key="idx"
+                  type="button"
+                  class="travel-month-btn"
+                  :class="{ 'is-selected': selectedMonth === idx }"
+                  @click="setMonth(idx)"
+                >
+                  {{ mName }}
+                </button>
+              </div>
+
+              <div class="travel-days-container">
+                <div class="travel-days-label">Select Day</div>
+                <div class="travel-days-grid">
+                  <button
+                    v-for="d in daysInMonth"
+                    :key="d"
+                    type="button"
+                    class="travel-day-btn"
+                    :class="{ 'is-selected': selectedDay === d }"
+                    @click="setDay(d)"
+                  >
+                    {{ d }}
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div class="travel-actions">
+              <ui-button variant="ghost" @click="$emit('close')">Cancel</ui-button>
+              <ui-button variant="primary" class="btn--gold" icon="compass" @click="confirm">Travel</ui-button>
+            </div>
+          </div>
+        </div>
+      </teleport>`,
+  };
+
   /* ========================================================================
      4. VIEWS
      ======================================================================== */
@@ -985,6 +1108,7 @@
       const wyrm = inject('wyrm');
       const viewDate = ref(new Date());
       const selectedKey = ref(wyrm.dateKey());
+      const showTravel = ref(false);
 
       const title = computed(() => viewDate.value.toLocaleDateString('en-US', { month: 'long', year: 'numeric' }));
 
@@ -1010,7 +1134,13 @@
         selectedKey.value = wyrm.dateKey(date);
         viewDate.value = new Date(date);
       }
-      return { viewDate, selectedKey, title, metrics, shift, today, select };
+      function travel(date) {
+        wyrm.travelToDate(date);
+        viewDate.value = new Date(date);
+        selectedKey.value = wyrm.dateKey(date);
+        showTravel.value = false;
+      }
+      return { viewDate, selectedKey, title, metrics, shift, today, select, showTravel, travel };
     },
     template: `
       <div class="view view--cal">
@@ -1018,10 +1148,12 @@
           <panel-head :title="title" icon="calendar">
             <ui-button size="icon" icon="chevron-left" aria-label="Previous month" @click="shift(-1)" />
             <ui-button size="sm" @click="today">Today</ui-button>
+            <ui-button size="sm" class="btn--gold" icon="compass" @click="showTravel = true">Travel</ui-button>
             <ui-button size="icon" icon="chevron-right" aria-label="Next month" @click="shift(1)" />
           </panel-head>
           <month-grid :view-date="viewDate" :selected="selectedKey" @select="select" />
         </ui-panel>
+        <travel-modal v-if="showTravel" :initial-date="viewDate" @close="showTravel = false" @travel="travel" />
         <div class="cal-side">
           <ui-panel>
             <panel-head title="Progress" icon="pulse" />

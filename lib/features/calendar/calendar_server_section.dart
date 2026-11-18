@@ -13,6 +13,7 @@ class CalendarServerSection implements ServerSection {
   onAddMilestone;
   final void Function(String id) onDeleteMilestone;
   final void Function(String id) onTogglePinMilestone;
+  final void Function(DateTime date)? onTravelToDate;
 
   CalendarServerSection({
     required this.getCalendar,
@@ -20,6 +21,7 @@ class CalendarServerSection implements ServerSection {
     required this.onAddMilestone,
     required this.onDeleteMilestone,
     required this.onTogglePinMilestone,
+    this.onTravelToDate,
   });
 
   @override
@@ -62,6 +64,15 @@ class CalendarServerSection implements ServerSection {
       } catch (_) {}
       return jsonError('Invalid pin milestone payload');
     });
+    router.post('/api/calendar/travel', (Request request) async {
+      try {
+        final data = await readJsonBody(request);
+        if (_executeTravel(data)) {
+          return jsonOk();
+        }
+      } catch (_) {}
+      return jsonError('Invalid travel payload');
+    });
   }
 
   @override
@@ -78,6 +89,8 @@ class CalendarServerSection implements ServerSection {
         return _executeDeleteMilestone(data['id']);
       case 'toggle_pin_milestone':
         return _executeTogglePinMilestone(data['id']);
+      case 'travel_to_date':
+        return _executeTravel(data);
       default:
         return false;
     }
@@ -150,6 +163,21 @@ class CalendarServerSection implements ServerSection {
     final id = idRaw?.toString();
     if (id != null) {
       onTogglePinMilestone(id);
+      return true;
+    }
+    return false;
+  }
+
+  /// Sets the active calendar date (travels to the designated date).
+  bool _executeTravel(Map<String, dynamic> data) {
+    if (onTravelToDate == null) return false;
+    final dateStr =
+        (data['date'] ?? data['target_date'] ?? data['targetDate']) as String?;
+    if (dateStr != null && dateStr.trim().isNotEmpty) {
+      final parsed =
+          DateTime.tryParse(dateStr.trim()) ??
+          parseMilestoneDate(dateStr.trim());
+      onTravelToDate!(parsed);
       return true;
     }
     return false;
