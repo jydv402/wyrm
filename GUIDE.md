@@ -166,6 +166,8 @@ wyrm_desk/
 │   │   │   ├── clock_face_analog.dart        smoked-glass squircle dial (CustomPainter)
 │   │   │   ├── clock_face_digital_small.dart
 │   │   │   ├── clock_face_digital_medium.dart
+│   │   │   ├── clock_date_line.dart           date readout (top of every tier)
+│   │   │   ├── clock_sun_countdown.dart       hours left today (bottom-left of every tier)
 │   │   │   ├── clock_numeral.dart            the one display-type spec
 │   │   │   ├── clock_palette.dart            ClockTone: slate / nightstand
 │   │   │   ├── clock_backdrop.dart           drifting photo backdrop
@@ -698,10 +700,11 @@ Built around Vue 3 `createApp` (components live in `components.js`, the reactive
 ## 13. Features (deep dive)
 
 ### Clock (`lib/features/clock`)
-- `ClockContainer` renders per size: `DigitalClockSmall` (vertical: date, stacked time,
-  countdown), `DigitalClockMedium` (horizontal), `ClockFullscreenView` (squircle analogue +
-  horizontal digital), and nightstand (same fullscreen view, black + amber). Header is hidden
-  in nightstand.
+- `ClockContainer` renders per size: `DigitalClockSmall` (vertical: stacked time),
+  `DigitalClockMedium` (horizontal), `ClockFullscreenView` (digital beside the squircle
+  analogue), and nightstand (same fullscreen view, black + amber). Header is hidden in
+  nightstand. Around whichever face is active the card lays its left rail: `ClockDateLine` on
+  top, `ClockSunCountdown` pinned to the bottom-left.
 - `ClockBackdrop` scales each time-of-day photograph to the card height and steps it across
   the spare width and back, so the whole panorama is seen over one cycle. The motion is a
   fixed **2 px jump every 50 ms** (40 px/s, no easing, no pause at the edges) set in
@@ -714,6 +717,10 @@ Built around Vue 3 `createApp` (components live in `components.js`, the reactive
   a held centre crop.
 - Each face sits in its own `RepaintBoundary` (`clock_card.dart`), so the per-second second-hand
   and seconds-digit repaint never re-rasterises the photograph and its scrim behind it.
+- The date and the daylight countdown belong to the card, not the faces: `ClockContainer` stacks
+  `ClockDateLine` above the face and `ClockSunCountdown` below it, so the left rail (date, time,
+  countdown) lands on the same corner in all four tiers. A face that painted its own countdown
+  would drift with its own `FittedBox`.
 - The analogue face is a `CustomPainter` (`clock_face_analog.dart`) with discrete stepping
   hands; `clock_palette.dart` (`ClockTone`) holds every colour, `clock_numeral.dart` every
   numeral style.

@@ -15,32 +15,35 @@ class ClockSunCountdown extends ConsumerWidget {
     final left = ref.watch(timeLeftTodayPartsProvider);
     final tone = ClockTone.of(isNightstand);
 
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: .start,
-      spacing: 2,
-      children: [
-        Text(
-          '${left.hours}h ${left.minutes}m',
-          style: TextStyle(
-            color: tone.accent,
-            fontSize: 32,
-            fontWeight: FontWeight.w700,
-            letterSpacing: 0.2,
-            fontFeatures: const [FontFeature.tabularFigures()],
+    return Padding(
+      padding: const EdgeInsets.only(left: 6.0, bottom: 6.0),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: .start,
+        spacing: 2,
+        children: [
+          Text(
+            '${left.hours}h ${left.minutes}m',
+            style: TextStyle(
+              color: tone.accent,
+              fontSize: 32,
+              fontWeight: FontWeight.w700,
+              letterSpacing: 0.2,
+              fontFeatures: const [FontFeature.tabularFigures()],
+            ),
           ),
-        ),
 
-        Text(
-          'left today',
-          style: TextStyle(
-            color: tone.inkSecondary,
-            fontSize: 16,
-            fontWeight: FontWeight.w500,
-            letterSpacing: 0.3,
+          Text(
+            'left today',
+            style: TextStyle(
+              color: tone.inkSecondary,
+              fontSize: 16,
+              fontWeight: FontWeight.w500,
+              letterSpacing: 0.3,
+            ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 }

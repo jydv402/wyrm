@@ -35,8 +35,8 @@ class HomePage extends ConsumerStatefulWidget {
     super.key,
     this.topBar,
     this.clockWidget,
-    this.spacing = 14.0,
-    this.padding = const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
+    this.spacing = 6.0,
+    this.padding = const EdgeInsets.all(6.0),
   });
 
   @override

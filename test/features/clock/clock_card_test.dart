@@ -53,8 +53,36 @@ void main() {
     expect(find.byType(ClockDateLine), findsOneWidget);
     expect(find.byType(DigitalClockMedium), findsNothing);
     expect(find.byType(AnalogClock), findsNothing);
+    expect(find.byType(ClockSunCountdown), findsOneWidget);
     expect(find.text('Clock'), findsOneWidget);
     expect(find.byIcon(Icons.schedule_rounded), findsOneWidget);
+  });
+
+  testWidgets('clock countdown is pinned to the bottom-left of the card', (
+    WidgetTester tester,
+  ) async {
+    await tester.pumpWidget(
+      const ProviderScope(
+        child: MaterialApp(
+          home: Scaffold(
+            body: SizedBox(
+              width: 320,
+              height: 640,
+              child: ClockContainer(currentSize: CardSize.small),
+            ),
+          ),
+        ),
+      ),
+    );
+
+    final card = tester.getRect(find.byType(ClockContainer));
+    final countdown = tester.getRect(find.byType(ClockSunCountdown));
+    final dateLine = tester.getRect(find.byType(ClockDateLine));
+
+    // The card's left rail: date up top, countdown on the bottom corner.
+    expect(countdown.left - card.left, lessThan(40));
+    expect(card.bottom - countdown.bottom, lessThan(40));
+    expect(countdown.top, greaterThan(dateLine.bottom));
   });
 
   testWidgets('ClockContainer renders DigitalClockMedium in medium size mode', (
@@ -78,6 +106,7 @@ void main() {
     expect(find.byType(ClockDateLine), findsOneWidget);
     expect(find.byType(DigitalClockSmall), findsNothing);
     expect(find.byType(AnalogClock), findsNothing);
+    expect(find.byType(ClockSunCountdown), findsOneWidget);
   });
 
   testWidgets(
@@ -101,6 +130,7 @@ void main() {
       expect(find.byType(DigitalClockMedium), findsOneWidget);
       expect(find.byType(ClockDateLine), findsOneWidget);
       expect(find.byType(DigitalClockSmall), findsNothing);
+      expect(find.byType(ClockSunCountdown), findsOneWidget);
     },
   );
 
@@ -128,6 +158,7 @@ void main() {
       expect(find.byType(DigitalClockMedium), findsOneWidget);
       expect(find.byType(ClockDateLine), findsOneWidget);
       expect(find.byType(DigitalClockSmall), findsNothing);
+      expect(find.byType(ClockSunCountdown), findsOneWidget);
 
       final bentoFinder = find.byType(BentoBox);
       expect(bentoFinder, findsOneWidget);
@@ -207,8 +238,6 @@ void main() {
       expect(find.text('45'), findsOneWidget);
       expect(find.text(': 30'), findsOneWidget);
       expect(find.text('PM'), findsOneWidget);
-      expect(find.byType(ClockSunCountdown), findsOneWidget);
-      expect(find.text('left today'), findsOneWidget);
 
       // Dynamically toggle to 24-hour format and verify reactivity.
       final container = ProviderScope.containerOf(
@@ -256,8 +285,6 @@ void main() {
       expect(find.text('05'), findsOneWidget);
       expect(find.text(' : 24'), findsOneWidget);
       expect(find.text('AM'), findsOneWidget);
-      expect(find.byType(ClockSunCountdown), findsOneWidget);
-      expect(find.text('left today'), findsOneWidget);
 
       final container = ProviderScope.containerOf(
         tester.element(find.byType(DigitalClockSmall)),
@@ -269,7 +296,6 @@ void main() {
       expect(find.text('05'), findsOneWidget);
       expect(find.text(' : 24'), findsOneWidget);
       expect(find.text('AM'), findsNothing);
-      expect(find.byType(ClockSunCountdown), findsOneWidget);
     },
   );
 
@@ -310,8 +336,8 @@ void main() {
       of: clockFinder,
       matching: find.byType(Container),
     );
-    // 400 * 0.90 = 360
-    expect(tester.getSize(containerFinder), const Size(360, 360));
+    // 400 * 0.75 = 300
+    expect(tester.getSize(containerFinder), const Size(300, 300));
   });
 
   test('clockHoursProvider, clockMinutesProvider, and clockSecondsProvider format accurately', () async {

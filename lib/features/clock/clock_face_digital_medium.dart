@@ -3,11 +3,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:wyrm_desk/features/clock/clock_numeral.dart';
 import 'package:wyrm_desk/features/clock/clock_palette.dart';
 import 'package:wyrm_desk/features/clock/clock_provider.dart';
-import 'package:wyrm_desk/features/clock/clock_sun_countdown.dart';
 
-/// Horizontal face: hours, minutes, seconds, and the countdown beneath them.
+/// Horizontal face: hours, minutes and seconds on one line.
 ///
-/// Used by the medium tier and by the right-hand column of the fullscreen tier.
+/// Used by the medium tier and by one half of the fullscreen tier. The daylight
+/// countdown is the card's, not the face's - see `ClockContainer`.
 class DigitalClockMedium extends StatelessWidget {
   /// Amber-on-black palette for the nightstand tier.
   final bool isNightstand;
@@ -20,29 +20,18 @@ class DigitalClockMedium extends StatelessWidget {
     return Center(
       child: FittedBox(
         fit: BoxFit.scaleDown,
-        child: Column(
-          mainAxisSize: .min,
-          crossAxisAlignment: .start,
-          spacing: 24.0,
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: .end,
           children: [
-            Row(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: .end,
-              children: [
-                _Hours(tone: tone),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 4.0),
-                  child: Text(
-                    ':',
-                    style: ClockNumeral.display(150, tone.inkMuted),
-                  ),
-                ),
-                _Minutes(tone: tone),
-                const SizedBox(width: 16),
-                _SecondsAndPeriod(tone: tone),
-              ],
+            _Hours(tone: tone),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 4.0),
+              child: Text(':', style: ClockNumeral.display(150, tone.inkMuted)),
             ),
-            ClockSunCountdown(isNightstand: isNightstand),
+            _Minutes(tone: tone),
+            const SizedBox(width: 16),
+            _SecondsAndPeriod(tone: tone),
           ],
         ),
       ),

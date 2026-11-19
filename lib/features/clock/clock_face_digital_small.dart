@@ -3,13 +3,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:wyrm_desk/features/clock/clock_numeral.dart';
 import 'package:wyrm_desk/features/clock/clock_palette.dart';
 import 'package:wyrm_desk/features/clock/clock_provider.dart';
-import 'package:wyrm_desk/features/clock/clock_sun_countdown.dart';
 
-/// Compact vertical face: stacked hours and minutes, dedicated seconds and
-/// period telemetry row, and the sunset countdown readout.
+/// Compact vertical face: stacked hours and minutes plus the dedicated seconds
+/// and period telemetry row.
 ///
 /// Designed to occupy the small card tier with bold condensed numerals while
-/// keeping secondary instruments quiet and tabular.
+/// keeping secondary instruments quiet and tabular. The daylight countdown is
+/// the card's, not the face's - see `ClockContainer`.
 class DigitalClockSmall extends ConsumerWidget {
   const DigitalClockSmall({super.key});
 
@@ -64,8 +64,6 @@ class DigitalClockSmall extends ConsumerWidget {
             ),
           ),
         ),
-        const SizedBox(height: 12),
-        const ClockSunCountdown(),
       ],
     );
   }

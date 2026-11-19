@@ -7,6 +7,7 @@ import 'package:wyrm_desk/features/clock/clock_face_digital_medium.dart';
 import 'package:wyrm_desk/features/clock/clock_face_digital_small.dart';
 import 'package:wyrm_desk/features/clock/clock_fullscreen_view.dart';
 import 'package:wyrm_desk/features/clock/clock_provider.dart';
+import 'package:wyrm_desk/features/clock/clock_sun_countdown.dart';
 import 'package:wyrm_desk/theme/theme.dart';
 import 'package:wyrm_desk/widgets/bento_box.dart';
 import 'package:wyrm_desk/widgets/dusk_card_scaffold.dart';
@@ -49,12 +50,17 @@ class ClockContainer extends ConsumerWidget {
     // Every face repaints once a second. On its own layer that repaint stays
     // inside the face instead of re-rastering the photograph and its scrim,
     // which sit behind a clip on the same card.
+    //
+    // The countdown is pinned here rather than inside a face: the card owns
+    // one left rail - date, time, countdown - so the readout lands on the same
+    // corner in all four tiers instead of following each face's composition.
     final content = RepaintBoundary(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           ClockDateLine(isNightstand: isNightstand),
           Expanded(child: face),
+          ClockSunCountdown(isNightstand: isNightstand),
         ],
       ),
     );
