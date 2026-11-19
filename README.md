@@ -36,7 +36,11 @@ Best of all, **your tablet is also a local server**. Without installing any apps
 *A dedicated landscape display featuring a live dynamic clock, habit contribution heatmap, calendar countdown milestones, and priority checklist.*
 
 <img src="public/wyrm_home.png" alt="Tablet Ambient Dashboard" width="100%" />
+<br/>
 
+### Demo video
+*Contains resizable cards and auto-scroll to card. All of which can be controlled from the web remote.*
+<video src="public/wyrm_demo.mp4" autoplay loop muted playsinline width="100%"></video>
 <br/>
 
 ### Browser Web Remote Companion
@@ -113,7 +117,13 @@ Get your tablet running in two simple steps:
 
 ## ✦ Star History
 
-[![Star History Chart](https://api.star-history.com/svg?repos=jydv402/wyrm_app&type=Date)](https://star-history.com/#jydv402/wyrm_app&Date)
+<a href="https://www.star-history.com/?repos=jydv402%2Fwyrm_app&type=date&logscale=&releases=&legend=bottom-right">
+ <picture>
+   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/chart?repos=jydv402/wyrm_app&type=date&theme=dark&legend=bottom-right" />
+   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/chart?repos=jydv402/wyrm_app&type=date&legend=bottom-right" />
+   <img alt="Star History Chart" src="https://api.star-history.com/chart?repos=jydv402/wyrm_app&type=date&legend=bottom-right" />
+ </picture>
+</a>
 
 ---
 
