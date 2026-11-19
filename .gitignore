@@ -50,3 +50,8 @@ app.*.map.json
 # Docs
 REFERENCE_STATE.md
 docs/
+
+# Keystore and signing credentials
+**/key.properties
+**/*.jks
+**/*.keystore
