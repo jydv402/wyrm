@@ -1,5 +1,4 @@
 import 'package:material_ui/material_ui.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 /// Dusk Glass destination tone.
 class DuskTone {
@@ -50,7 +49,6 @@ class AppColors {
   static const Color textOnLight = Color(0xFF111111);
 
   // Brand Accents
-  static const Color brandDot = Color(0xFFEE7A45);
   static const Color accentOrange = Color(0xFFF2A768);
   static const Color accentRed = Color(0xFFFF6B55);
 
@@ -186,7 +184,7 @@ class AppTheme {
       brightness: Brightness.dark,
       scaffoldBackgroundColor: AppColors.background,
       colorScheme: colorScheme,
-      fontFamily: GoogleFonts.inter().fontFamily,
+      fontFamily: 'GoogleSans',
       dialogTheme: DialogThemeData(
         backgroundColor: AppColors.surface,
         elevation: 0,

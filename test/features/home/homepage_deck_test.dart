@@ -4,7 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:wyrm_desk/config/card_layout_state.dart';
 import 'package:wyrm_desk/features/calendar/calendar_card.dart';
 import 'package:wyrm_desk/features/clock/clock_card.dart';
-import 'package:wyrm_desk/features/home/top_pill_bar.dart';
+import 'package:wyrm_desk/widgets/top_pill_bar.dart';
 import 'package:wyrm_desk/widgets/card_edit_button.dart';
 import 'package:wyrm_desk/features/habits/habits_card.dart';
 import 'package:wyrm_desk/features/home/homepage.dart';

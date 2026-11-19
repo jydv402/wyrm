@@ -9,7 +9,7 @@ import 'package:wyrm_desk/theme/theme.dart';
 import 'package:wyrm_desk/features/habits/habits_card.dart';
 import 'package:wyrm_desk/features/network/network_modal.dart';
 import 'package:wyrm_desk/features/tasks/tasks_card.dart';
-import 'package:wyrm_desk/features/home/top_pill_bar.dart';
+import 'package:wyrm_desk/widgets/top_pill_bar.dart';
 import 'package:wyrm_desk/config/card_layout_state.dart';
 import 'package:wyrm_desk/features/clock/clock_provider.dart';
 import 'package:wyrm_desk/features/update_checker/presentation/update_checker_provider.dart';

@@ -27,7 +27,7 @@ class TopPillBar extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       height: height,
-      padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 6.0),
+      padding: const EdgeInsets.only(left: 18.0, right: 8.0),
       decoration: BoxDecoration(
         color: AppColors.surface,
         borderRadius: BorderRadius.circular(height / 2),
@@ -42,35 +42,22 @@ class TopPillBar extends StatelessWidget {
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
-        spacing: 10,
+        spacing: 6,
         children: [
           // WYRM. Brand Logo Mark
-          Row(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              SvgPicture.asset(
-                'assets/icons/header_text.svg',
-                height: 14.0,
-                colorFilter: const ColorFilter.mode(
-                  AppColors.textPrimary,
-                  BlendMode.srcIn,
-                ),
-              ),
-              Container(
-                width: 4,
-                height: 4,
-                margin: const EdgeInsets.only(left: 3, top: 4),
-                decoration: const BoxDecoration(
-                  color: AppColors.brandDot,
-                  shape: BoxShape.circle,
-                ),
-              ),
-            ],
-          ),
+          SvgPicture.asset('assets/icons/header_text.svg', height: 24.0),
 
           const Spacer(),
 
+          // Torch-light Button
+          DuskGlassButton.icon(
+            onPressed: () {},
+            icon: const Icon(
+              Icons.flashlight_on_rounded,
+              size: 19,
+              color: AppColors.textPrimary,
+            ),
+          ),
           // Battery Status Pill
           const BatteryPill(),
 

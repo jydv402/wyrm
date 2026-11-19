@@ -17,7 +17,7 @@ class WyrmDeskApp extends ConsumerWidget {
     ref.watch(webServerProvider);
 
     return MaterialApp(
-      title: 'Wyrm Desk',
+      title: 'Wyrm',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.darkTheme,
       home: const HomePage(),

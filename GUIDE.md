@@ -804,7 +804,7 @@ Opened from the top bar gear. Exposes: Display & Brightness slider, Nightstand m
 ```
 background #020305   canvasAlt #0A0E11   surface #0E1418   surfaceElevated #141B20
 well 30% black       line 10% white      lineStrong 16% white   glass 6% white
-accentOrange #F2A768   accentRed #FF6B55   brandDot #EE7A45
+accentOrange #F2A768   accentRed #FF6B55
 priorityHigh #FF8F70   priorityMedium #F3C45E   priorityLow #8ED5B7
 textPrimary #EEF2F1   textSecondary 68% white   textMuted 46% white   textOnLight #111111
 ```

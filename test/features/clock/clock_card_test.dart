@@ -11,7 +11,7 @@ import 'package:wyrm_desk/features/clock/clock_sun_countdown.dart';
 import 'package:wyrm_desk/features/clock/clock_face_analog.dart';
 import 'package:wyrm_desk/features/clock/clock_face_digital_medium.dart';
 import 'package:wyrm_desk/features/clock/clock_face_digital_small.dart';
-import 'package:wyrm_desk/features/home/top_pill_bar.dart';
+import 'package:wyrm_desk/widgets/top_pill_bar.dart';
 import 'package:wyrm_desk/config/card_layout_state.dart';
 import 'package:wyrm_desk/config/app_settings_state.dart';
 import 'package:wyrm_desk/widgets/bento_box.dart';
