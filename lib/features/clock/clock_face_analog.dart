@@ -10,7 +10,8 @@ import 'package:wyrm_desk/features/clock/clock_provider.dart';
 /// The dial answers one question - what time is it - with dots rather than
 /// numerals, so it stays legible across the room.
 class AnalogClock extends ConsumerWidget {
-  /// Outer dimension of the squircle carriage.
+  /// Outer dimension of the squircle carriage. If null, dynamically sizes to
+  /// occupy available layout constraints.
   final double? size;
 
   /// Amber-on-black palette for the nightstand tier.
@@ -18,16 +19,18 @@ class AnalogClock extends ConsumerWidget {
 
   const AnalogClock({super.key, this.size, this.isNightstand = false});
 
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget _buildDial(BuildContext context, WidgetRef ref, double dimension) {
     final tone = ClockTone.of(isNightstand);
+    final borderRadius = math.max(16.0, dimension * 0.1);
+    final padding = math.max(12.0, dimension * 0.05);
+
     return Container(
-      width: size,
-      height: size,
-      padding: const EdgeInsets.all(16),
+      width: dimension,
+      height: dimension,
+      padding: EdgeInsets.all(padding),
       decoration: BoxDecoration(
         color: tone.dial,
-        borderRadius: BorderRadius.circular(32),
+        borderRadius: BorderRadius.circular(borderRadius),
         border: Border.all(color: tone.rim, width: 1.5),
       ),
       child: CustomPaint(
@@ -36,6 +39,25 @@ class AnalogClock extends ConsumerWidget {
           isNightstand: isNightstand,
         ),
       ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    if (size != null) {
+      return _buildDial(context, ref, size!);
+    }
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final maxDimension = math.min(constraints.maxWidth, constraints.maxHeight);
+        final effectiveDimension = maxDimension.isFinite && maxDimension > 0
+            ? maxDimension * 0.90
+            : 320.0;
+        return Center(
+          child: _buildDial(context, ref, effectiveDimension),
+        );
+      },
     );
   }
 }
@@ -79,14 +101,20 @@ class _DialPainter extends CustomPainter {
     final radius = math.min(size.width, size.height) / 2;
 
     // Twelve markers around the perimeter, largest at the quarters.
+    final markerInset = math.max(12.0, radius * 0.08);
     for (var i = 0; i < 12; i++) {
       final isMajor = i % 3 == 0;
       canvas.drawCircle(
-        _polar(center, radius - 12, i / 12),
-        isMajor ? 3 : 1.8,
+        _polar(center, radius - markerInset, i / 12),
+        isMajor ? 3.0 : 1.8,
         isMajor ? _majorMarker : _marker,
       );
     }
+
+    // Dynamic hand stroke scale
+    _hourHand.strokeWidth = math.max(3.5, radius * 0.032);
+    _minuteHand.strokeWidth = math.max(2.5, radius * 0.022);
+    _secondHand.strokeWidth = math.max(1.5, radius * 0.012);
 
     canvas.drawLine(
       center,
@@ -98,14 +126,18 @@ class _DialPainter extends CustomPainter {
       _polar(center, radius * 0.72, _turns(angles.minute)),
       _minuteHand,
     );
+
+    // Second hand: reaches closer to the perimeter, has a tail extending
+    // past the centre cap, and carries the clock's one moving accent.
     canvas.drawLine(
       _polar(center, -radius * 0.18, _turns(angles.second)),
       _polar(center, radius * 0.82, _turns(angles.second)),
       _secondHand,
     );
 
-    canvas.drawCircle(center, 4, _cap);
-    canvas.drawCircle(center, 1.8, _innerCap);
+    // Centre cap: small disc concealing the hand pivot.
+    canvas.drawCircle(center, math.max(3.5, radius * 0.028), _cap);
+    canvas.drawCircle(center, math.max(1.8, radius * 0.014), _innerCap);
   }
 
   /// A point [distance] from [center] at [turns] around the dial, 12 o'clock up.

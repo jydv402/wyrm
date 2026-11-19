@@ -19,11 +19,8 @@ class ClockFullscreenView extends StatelessWidget {
           flex: 5,
           child: Center(
             child: Padding(
-              padding: const EdgeInsets.all(24),
-              child: FittedBox(
-                fit: BoxFit.scaleDown,
-                child: AnalogClock(size: 320, isNightstand: isNightstand),
-              ),
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+              child: AnalogClock(isNightstand: isNightstand),
             ),
           ),
         ),
@@ -31,13 +28,18 @@ class ClockFullscreenView extends StatelessWidget {
         // Hardware seam: one hairline separating the two instruments.
         SizedBox(
           width: 1,
-          height: 220,
+          height: 280,
           child: ColoredBox(color: tone.hairline),
         ),
 
         Expanded(
           flex: 6,
-          child: Center(child: DigitalClockMedium(isNightstand: isNightstand)),
+          child: Center(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: DigitalClockMedium(isNightstand: isNightstand),
+            ),
+          ),
         ),
       ],
     );

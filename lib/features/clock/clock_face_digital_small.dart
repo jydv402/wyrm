@@ -3,36 +3,27 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:wyrm_desk/features/clock/clock_numeral.dart';
 import 'package:wyrm_desk/features/clock/clock_palette.dart';
 import 'package:wyrm_desk/features/clock/clock_provider.dart';
-import 'package:wyrm_desk/widgets/dusk_glass_pill.dart';
+import 'package:wyrm_desk/features/clock/clock_sun_countdown.dart';
 
-/// Compact vertical face: the date, the stacked time, the countdown.
+/// Compact vertical face: stacked hours and minutes, dedicated seconds and
+/// period telemetry row, and the sunset countdown readout.
 ///
-/// The digits are the one bright element; the date and the countdown sit quiet
-/// above and below them.
+/// Designed to occupy the small card tier with bold condensed numerals while
+/// keeping secondary instruments quiet and tabular.
 class DigitalClockSmall extends ConsumerWidget {
   const DigitalClockSmall({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     const tone = ClockTone.standard;
-    final date = ref.watch(clockDateProvider);
     final hours = ref.watch(clockHoursProvider);
     final minutes = ref.watch(clockMinutesProvider);
-    final left = ref.watch(timeLeftTodayPartsProvider);
+    final seconds = ref.watch(clockSecondsProvider);
+    final period = ref.watch(clockPeriodProvider);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const SizedBox(height: 8),
-        Text(
-          date,
-          style: TextStyle(
-            color: tone.inkSecondary,
-            fontSize: 15,
-            fontWeight: FontWeight.w500,
-          ),
-        ),
-        const SizedBox(height: 12),
         Expanded(
           child: FittedBox(
             alignment: Alignment.centerLeft,
@@ -41,23 +32,40 @@ class DigitalClockSmall extends ConsumerWidget {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(hours, style: ClockNumeral.display(126, tone.ink)),
-                Text(minutes, style: ClockNumeral.display(126, tone.ink)),
-                const SizedBox(height: 16),
-                SizedBox(
-                  width: 44,
-                  height: 2,
-                  child: ColoredBox(color: tone.hairline),
+                Text(hours, style: ClockNumeral.display(150, tone.ink)),
+                Text(minutes, style: ClockNumeral.display(150, tone.ink)),
+                // Dedicated telemetry row: period badge and live ticking seconds
+                const SizedBox(height: 8.0),
+
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  spacing: 8.0,
+                  children: [
+                    Text(
+                      ' : $seconds',
+                      style: ClockNumeral.display(50, tone.inkSecondary),
+                    ),
+                    if (period != null) ...[
+                      Text(
+                        period,
+                        style: TextStyle(
+                          color: tone.accent,
+                          fontSize: 18,
+                          fontWeight: FontWeight.w600,
+                          letterSpacing: 0.5,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                    ],
+                  ],
                 ),
               ],
             ),
           ),
         ),
         const SizedBox(height: 12),
-        DuskGlassPill.sunCountdown(
-          timeLeft: '${left.hours}h ${left.minutes}m',
-          suffix: 'left today',
-        ),
+        const ClockSunCountdown(),
       ],
     );
   }

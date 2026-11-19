@@ -2,6 +2,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:wyrm_desk/config/card_layout_state.dart';
 import 'package:wyrm_desk/features/clock/clock_backdrop.dart';
+import 'package:wyrm_desk/features/clock/clock_date_line.dart';
 import 'package:wyrm_desk/features/clock/clock_face_digital_medium.dart';
 import 'package:wyrm_desk/features/clock/clock_face_digital_small.dart';
 import 'package:wyrm_desk/features/clock/clock_fullscreen_view.dart';
@@ -43,10 +44,20 @@ class ClockContainer extends ConsumerWidget {
           CardSize.nightstand => const ClockFullscreenView(isNightstand: true),
         };
 
+    final isNightstand = currentSize == CardSize.nightstand;
+
     // Every face repaints once a second. On its own layer that repaint stays
     // inside the face instead of re-rastering the photograph and its scrim,
     // which sit behind a clip on the same card.
-    final content = RepaintBoundary(child: face);
+    final content = RepaintBoundary(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          ClockDateLine(isNightstand: isNightstand),
+          Expanded(child: face),
+        ],
+      ),
+    );
 
     final menu = cardSizeMenuButton(
       currentSize: currentSize,

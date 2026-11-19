@@ -5,7 +5,9 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:wyrm_desk/features/clock/clock_backdrop.dart';
 import 'package:wyrm_desk/features/clock/clock_backdrop_motion.dart';
 import 'package:wyrm_desk/features/clock/clock_card.dart';
+import 'package:wyrm_desk/features/clock/clock_date_line.dart';
 import 'package:wyrm_desk/features/clock/clock_provider.dart';
+import 'package:wyrm_desk/features/clock/clock_sun_countdown.dart';
 import 'package:wyrm_desk/features/clock/clock_face_analog.dart';
 import 'package:wyrm_desk/features/clock/clock_face_digital_medium.dart';
 import 'package:wyrm_desk/features/clock/clock_face_digital_small.dart';
@@ -48,6 +50,7 @@ void main() {
     );
 
     expect(find.byType(DigitalClockSmall), findsOneWidget);
+    expect(find.byType(ClockDateLine), findsOneWidget);
     expect(find.byType(DigitalClockMedium), findsNothing);
     expect(find.byType(AnalogClock), findsNothing);
     expect(find.text('Clock'), findsOneWidget);
@@ -72,6 +75,7 @@ void main() {
     );
 
     expect(find.byType(DigitalClockMedium), findsOneWidget);
+    expect(find.byType(ClockDateLine), findsOneWidget);
     expect(find.byType(DigitalClockSmall), findsNothing);
     expect(find.byType(AnalogClock), findsNothing);
   });
@@ -95,6 +99,7 @@ void main() {
 
       expect(find.byType(AnalogClock), findsOneWidget);
       expect(find.byType(DigitalClockMedium), findsOneWidget);
+      expect(find.byType(ClockDateLine), findsOneWidget);
       expect(find.byType(DigitalClockSmall), findsNothing);
     },
   );
@@ -121,6 +126,7 @@ void main() {
 
       expect(find.byType(AnalogClock), findsOneWidget);
       expect(find.byType(DigitalClockMedium), findsOneWidget);
+      expect(find.byType(ClockDateLine), findsOneWidget);
       expect(find.byType(DigitalClockSmall), findsNothing);
 
       final bentoFinder = find.byType(BentoBox);
@@ -201,6 +207,8 @@ void main() {
       expect(find.text('45'), findsOneWidget);
       expect(find.text(':30'), findsOneWidget);
       expect(find.text('PM'), findsOneWidget);
+      expect(find.byType(ClockSunCountdown), findsOneWidget);
+      expect(find.text('left today'), findsOneWidget);
 
       // Dynamically toggle to 24-hour format and verify reactivity.
       final container = ProviderScope.containerOf(
@@ -213,6 +221,55 @@ void main() {
       expect(find.text('45'), findsOneWidget);
       expect(find.text(':30'), findsOneWidget);
       expect(find.text('PM'), findsNothing);
+    },
+  );
+
+  testWidgets(
+    'DigitalClockSmall displays stacked time, seconds, AM/PM tag and adapts to 24-hour setting',
+    (WidgetTester tester) async {
+      final fixedDateTime = DateTime(2026, 9, 17, 9, 5, 24);
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            clockTimeProvider.overrideWith(
+              (ref) => Stream.value(fixedDateTime),
+            ),
+            appSettingsProvider.overrideWith(
+              () => _TestAppSettingsNotifier(is24Hour: false),
+            ),
+          ],
+          child: const MaterialApp(
+            home: Scaffold(
+              body: SizedBox(
+                width: 300,
+                height: 500,
+                child: DigitalClockSmall(),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
+
+      expect(find.text('09'), findsOneWidget);
+      expect(find.text('05'), findsOneWidget);
+      expect(find.text(' : 24'), findsOneWidget);
+      expect(find.text('AM'), findsOneWidget);
+      expect(find.byType(ClockSunCountdown), findsOneWidget);
+      expect(find.text('left today'), findsOneWidget);
+
+      final container = ProviderScope.containerOf(
+        tester.element(find.byType(DigitalClockSmall)),
+      );
+      container.read(appSettingsProvider.notifier).set24HourFormat(true);
+      await tester.pump();
+
+      expect(find.text('09'), findsOneWidget);
+      expect(find.text('05'), findsOneWidget);
+      expect(find.text(' : 24'), findsOneWidget);
+      expect(find.text('AM'), findsNothing);
+      expect(find.byType(ClockSunCountdown), findsOneWidget);
     },
   );
 
@@ -230,6 +287,35 @@ void main() {
     final clockFinder = find.byType(AnalogClock);
     expect(clockFinder, findsOneWidget);
     expect(tester.getSize(clockFinder), const Size(250, 250));
+  });
+
+  testWidgets('AnalogClock sizes dynamically when size is null', (
+    WidgetTester tester,
+  ) async {
+    await tester.pumpWidget(
+      const ProviderScope(
+        child: MaterialApp(
+          home: Scaffold(
+            body: Center(
+              child: SizedBox(
+                width: 400,
+                height: 400,
+                child: AnalogClock(),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+
+    final clockFinder = find.byType(AnalogClock);
+    expect(clockFinder, findsOneWidget);
+    final containerFinder = find.descendant(
+      of: clockFinder,
+      matching: find.byType(Container),
+    );
+    // 400 * 0.90 = 360
+    expect(tester.getSize(containerFinder), const Size(360, 360));
   });
 
   test('clockHoursProvider, clockMinutesProvider, and clockSecondsProvider format accurately', () async {
@@ -389,9 +475,9 @@ void main() {
 
   test('clockBackdropMotion paces the drift in pixels per second', () {
     const motion = ClockBackdropMotion();
-    expect(motion.step, 2);
-    expect(motion.interval, const Duration(milliseconds: 50));
-    expect(motion.speed, 40);
+    expect(motion.step, 0.5);
+    expect(motion.interval, const Duration(seconds: 1));
+    expect(motion.speed, 0.5);
     // The pace is the step over the interval, so either can be retuned alone.
     expect(
       const ClockBackdropMotion(
@@ -423,9 +509,9 @@ void main() {
       final start = tester.getTopLeft(find.byType(Image)).dx;
       expect(start, 0, reason: 'the panorama starts at its left edge');
 
-      // One second of 2 px steps at 50 ms is 20 steps, 40 px.
+      // One second of 0.5 px step at 1s interval is 1 step, 0.5 px.
       await tester.pump(const Duration(seconds: 1));
-      expect(tester.getTopLeft(find.byType(Image)).dx, closeTo(-40, 0.01));
+      expect(tester.getTopLeft(find.byType(Image)).dx, closeTo(-0.5, 0.01));
     },
   );
 
