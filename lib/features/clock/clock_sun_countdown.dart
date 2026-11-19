@@ -8,14 +8,7 @@ class ClockSunCountdown extends ConsumerWidget {
   /// Whether to render in amber nightstand mode.
   final bool isNightstand;
 
-  /// Horizontal alignment of the column items.
-  final CrossAxisAlignment crossAxisAlignment;
-
-  const ClockSunCountdown({
-    super.key,
-    this.isNightstand = false,
-    this.crossAxisAlignment = CrossAxisAlignment.start,
-  });
+  const ClockSunCountdown({super.key, this.isNightstand = false});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -24,7 +17,7 @@ class ClockSunCountdown extends ConsumerWidget {
 
     return Column(
       mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: crossAxisAlignment,
+      crossAxisAlignment: .start,
       spacing: 2,
       children: [
         Text(

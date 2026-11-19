@@ -205,7 +205,7 @@ void main() {
 
       expect(find.text('02'), findsOneWidget);
       expect(find.text('45'), findsOneWidget);
-      expect(find.text(':30'), findsOneWidget);
+      expect(find.text(': 30'), findsOneWidget);
       expect(find.text('PM'), findsOneWidget);
       expect(find.byType(ClockSunCountdown), findsOneWidget);
       expect(find.text('left today'), findsOneWidget);
@@ -219,7 +219,7 @@ void main() {
 
       expect(find.text('14'), findsOneWidget);
       expect(find.text('45'), findsOneWidget);
-      expect(find.text(':30'), findsOneWidget);
+      expect(find.text(': 30'), findsOneWidget);
       expect(find.text('PM'), findsNothing);
     },
   );
@@ -297,11 +297,7 @@ void main() {
         child: MaterialApp(
           home: Scaffold(
             body: Center(
-              child: SizedBox(
-                width: 400,
-                height: 400,
-                child: AnalogClock(),
-              ),
+              child: SizedBox(width: 400, height: 400, child: AnalogClock()),
             ),
           ),
         ),

@@ -11,6 +11,15 @@ const List<Color> clockBackdropScrim = [
   Color(0xB3000000), // black 70%
 ];
 
+/// Specular light falling across the top of the standard tier's glass pane.
+///
+/// A glass edge is only visible where it reflects; without this the dial reads
+/// as a flat dark panel over the photograph.
+const Color clockGlassSheen = Color(0x1FFFFFFF); // white 12%
+
+/// The shadow the glass pane casts onto the photograph behind it.
+const Color clockGlassShadow = Color(0x59000000); // black 35%
+
 /// The clock's colours, for the two tiers it renders in.
 ///
 /// The standard tier sits on slate glass and takes its ink from [AppColors];
@@ -31,7 +40,19 @@ class ClockTone {
   /// Dial and carriage surface behind the hands.
   final Color dial;
 
-  /// Dial rim, one step brighter than [hairline].
+  /// Wash inside the standard tier's glass carriage: the photograph shows
+  /// through, frosted, instead of being cut away by an opaque panel.
+  ///
+  /// Unused when [glassBlur] is 0.
+  final Color glass;
+
+  /// Backdrop blur behind the glass, in logical sigma.
+  ///
+  /// `0` makes the carriage a sealed instrument - the nightstand tier, where
+  /// any light behind the dial would defeat the point of a dark room.
+  final double glassBlur;
+
+  /// Dial rim: a bright hairline on glass, an amber one on the nightstand.
   final Color rim;
 
   /// 1 px rules: the face divider and the fullscreen seam.
@@ -51,6 +72,8 @@ class ClockTone {
     required this.inkSecondary,
     required this.inkMuted,
     required this.dial,
+    required this.glass,
+    required this.glassBlur,
     required this.rim,
     required this.hairline,
     required this.dialTick,
@@ -64,7 +87,9 @@ class ClockTone {
     inkSecondary: AppColors.textSecondary,
     inkMuted: Color(0x45E8EEEE), // text secondary at 40%
     dial: AppColors.surface,
-    rim: AppColors.borderDark,
+    glass: AppColors.well, // black 30%: smoked, still see-through
+    glassBlur: 4,
+    rim: Color(0x33FFFFFF), // white 20%: the light catching the edge
     hairline: AppColors.lineStrong,
     dialTick: Color(0x80E8EEEE), // text secondary at 50%
     secondHand: AppColors.accentOrange,
@@ -77,6 +102,8 @@ class ClockTone {
     inkSecondary: Color(0xB3FF9500), // amber 70%
     inkMuted: Color(0x66FF9500), // amber 40%
     dial: Colors.black,
+    glass: Colors.black,
+    glassBlur: 0, // sealed: nothing behind the dial
     rim: Color(0x40FF9500), // amber 25%
     hairline: Color(0x2EFF9500), // amber 18%
     dialTick: Color(0x66FF9500), // amber 40%

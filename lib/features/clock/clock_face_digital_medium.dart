@@ -21,8 +21,9 @@ class DigitalClockMedium extends StatelessWidget {
       child: FittedBox(
         fit: BoxFit.scaleDown,
         child: Column(
-          mainAxisSize: MainAxisSize.min,
-          spacing: 36.0,
+          mainAxisSize: .min,
+          crossAxisAlignment: .start,
+          spacing: 24.0,
           children: [
             Row(
               mainAxisSize: MainAxisSize.min,
@@ -37,15 +38,11 @@ class DigitalClockMedium extends StatelessWidget {
                   ),
                 ),
                 _Minutes(tone: tone),
-                const SizedBox(width: 20),
+                const SizedBox(width: 16),
                 _SecondsAndPeriod(tone: tone),
               ],
             ),
-
-            ClockSunCountdown(
-              isNightstand: isNightstand,
-              crossAxisAlignment: CrossAxisAlignment.center,
-            ),
+            ClockSunCountdown(isNightstand: isNightstand),
           ],
         ),
       ),
@@ -103,7 +100,7 @@ class _SecondsAndPeriod extends ConsumerWidget {
             ),
           ),
         Text(': $seconds', style: ClockNumeral.display(81, tone.inkSecondary)),
-        const SizedBox(height: 4),
+        const SizedBox(height: 2),
       ],
     );
   }

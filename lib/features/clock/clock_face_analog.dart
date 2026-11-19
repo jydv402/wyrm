@@ -1,4 +1,5 @@
 import 'dart:math' as math;
+import 'dart:ui' show ImageFilter;
 
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -9,6 +10,11 @@ import 'package:wyrm_desk/features/clock/clock_provider.dart';
 ///
 /// The dial answers one question - what time is it - with dots rather than
 /// numerals, so it stays legible across the room.
+///
+/// In the standard tier the carriage is smoked glass: the photograph drifts
+/// behind it, frosted by a backdrop blur, so the dial sits in the scene instead
+/// of punching a hole in it. The nightstand tier is the opposite instrument -
+/// sealed black on a dark room, no backdrop to show.
 class AnalogClock extends ConsumerWidget {
   /// Outer dimension of the squircle carriage. If null, dynamically sizes to
   /// occupy available layout constraints.
@@ -21,22 +27,83 @@ class AnalogClock extends ConsumerWidget {
 
   Widget _buildDial(BuildContext context, WidgetRef ref, double dimension) {
     final tone = ClockTone.of(isNightstand);
-    final borderRadius = math.max(16.0, dimension * 0.1);
-    final padding = math.max(12.0, dimension * 0.05);
+    final borderRadius = BorderRadius.circular(math.max(16.0, dimension * 0.1));
+    final padding = EdgeInsets.all(math.max(12.0, dimension * 0.05));
+    final dial = CustomPaint(
+      painter: _DialPainter(
+        angles: ref.watch(clockHandAnglesProvider),
+        isNightstand: isNightstand,
+      ),
+    );
 
-    return Container(
+    // Nightstand: a sealed black instrument. No wash, no blur - in a dark room
+    // the only light is the amber itself.
+    if (tone.glassBlur <= 0) {
+      return Container(
+        width: dimension,
+        height: dimension,
+        padding: padding,
+        decoration: BoxDecoration(
+          color: tone.dial,
+          borderRadius: borderRadius,
+          border: Border.all(color: tone.rim, width: 1.5),
+        ),
+        child: dial,
+      );
+    }
+
+    return SizedBox(
       width: dimension,
       height: dimension,
-      padding: EdgeInsets.all(padding),
-      decoration: BoxDecoration(
-        color: tone.dial,
-        borderRadius: BorderRadius.circular(borderRadius),
-        border: Border.all(color: tone.rim, width: 1.5),
-      ),
-      child: CustomPaint(
-        painter: _DialPainter(
-          angles: ref.watch(clockHandAnglesProvider),
-          isNightstand: isNightstand,
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          borderRadius: borderRadius,
+          boxShadow: [
+            BoxShadow(
+              color: clockGlassShadow,
+              blurRadius: dimension * 0.06,
+              spreadRadius: -dimension * 0.03,
+              offset: Offset(0, dimension * 0.02),
+            ),
+          ],
+        ),
+        child: ClipRRect(
+          borderRadius: borderRadius,
+          child: BackdropFilter(
+            filter: ImageFilter.blur(
+              sigmaX: tone.glassBlur,
+              sigmaY: tone.glassBlur,
+            ),
+            child: Container(
+              decoration: BoxDecoration(
+                color: tone.glass,
+                borderRadius: borderRadius,
+                border: Border.all(color: tone.rim),
+              ),
+              child: Stack(
+                fit: StackFit.expand,
+                children: [
+                  IgnorePointer(
+                    child: DecoratedBox(
+                      decoration: BoxDecoration(
+                        borderRadius: borderRadius,
+                        gradient: LinearGradient(
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
+                          stops: const [0, 0.55],
+                          colors: [
+                            clockGlassSheen,
+                            clockGlassSheen.withValues(alpha: 0),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                  Padding(padding: padding, child: dial),
+                ],
+              ),
+            ),
+          ),
         ),
       ),
     );
@@ -50,13 +117,14 @@ class AnalogClock extends ConsumerWidget {
 
     return LayoutBuilder(
       builder: (context, constraints) {
-        final maxDimension = math.min(constraints.maxWidth, constraints.maxHeight);
-        final effectiveDimension = maxDimension.isFinite && maxDimension > 0
-            ? maxDimension * 0.90
-            : 320.0;
-        return Center(
-          child: _buildDial(context, ref, effectiveDimension),
+        final maxDimension = math.min(
+          constraints.maxWidth,
+          constraints.maxHeight,
         );
+        final effectiveDimension = maxDimension.isFinite && maxDimension > 0
+            ? maxDimension * 0.75
+            : 320.0;
+        return Center(child: _buildDial(context, ref, effectiveDimension));
       },
     );
   }

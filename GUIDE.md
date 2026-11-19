@@ -163,7 +163,7 @@ wyrm_desk/
 │   │   ├── clock/                   the drifting day-photograph card
 │   │   │   ├── clock_card.dart               ClockContainer: tiers + frame
 │   │   │   ├── clock_fullscreen_view.dart    analogue + digital companion
-│   │   │   ├── clock_face_analog.dart        squircle dial CustomPainter
+│   │   │   ├── clock_face_analog.dart        smoked-glass squircle dial (CustomPainter)
 │   │   │   ├── clock_face_digital_small.dart
 │   │   │   ├── clock_face_digital_medium.dart
 │   │   │   ├── clock_numeral.dart            the one display-type spec
@@ -717,6 +717,12 @@ Built around Vue 3 `createApp` (components live in `components.js`, the reactive
 - The analogue face is a `CustomPainter` (`clock_face_analog.dart`) with discrete stepping
   hands; `clock_palette.dart` (`ClockTone`) holds every colour, `clock_numeral.dart` every
   numeral style.
+- The dial is a **glass pane** in the standard tiers: `ClipRRect` + `BackdropFilter`
+  (`ImageFilter.blur`, sigma in `ClockTone.glassBlur`) over the drifting photograph, a smoked
+  wash (`ClockTone.glass`), a top sheen (`clockGlassSheen`), a hairline rim and a cast shadow
+  (`clockGlassShadow`). Hands paint above the blur. `ClockTone.glassBlur == 0` selects the
+  sealed branch instead — the nightstand tier, which stays an opaque black dial with an amber
+  rim and no blur, because in a dark room the only light should be the amber.
 
 ### Habits (`lib/features/habits`)
 - **Small:** one-habit carousel (`cycleCarousel`), numeric stepper or binary
@@ -799,7 +805,7 @@ textPrimary #EEF2F1   textSecondary 68% white   textMuted 46% white   textOnLigh
 `DuskTone` is a value type with static presets — `slate`, `teal`, `gold`, `rust`, `glacier` —
 each carrying `top`/`bottom` gradient stops, `accent`, `fill`, `ink`, and `glow`. Card tone
 mapping: Clock = slate, Habits = teal, Calendar = gold, Tasks = rust, Settings = glacier.
-Nightstand accent = `#FF9500` amber (defined inline in clock widgets).
+Nightstand accent = `#FF9500` amber (`_amber` in `clock_palette.dart`, the only place it exists).
 
 ### Web palette (`assets/web/style.css`)
 
