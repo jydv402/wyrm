@@ -62,7 +62,7 @@ same Wi-Fi can control the tablet dashboard.
 | `material_ui` | Used (base UI import across all of `lib/`) |
 | `flutter_riverpod` | Used (all state) |
 | `shelf`, `shelf_router`, `shelf_web_socket`, `web_socket_channel` | Used (server + tests) |
-| `path_provider` | Used (documents dir for JSON DB + Downloads backup) |
+| `path_provider` | Used (documents dir for the JSON database; the Downloads dir for desktop backups) |
 | `flutter_svg` | Used (`header_text.svg` in `TopPillBar`) |
 | `google_fonts` | Used (Barlow Condensed in the digital clocks) |
 | `qr_flutter` | Used (`QrImageView` in the network connection modal) |
@@ -152,6 +152,7 @@ wyrm_desk/
 │   │   └── date_names.dart      month-name lookup (pure Dart, no Flutter)
 │   ├── data/
 │   │   ├── app_database.dart    feature-agnostic keyed-section JSON store + backup engine
+│   │   ├── backup_file_service.dart  Android SAF document picker channel
 │   │   └── database_service.dart  DatabaseService: reload-on-import orchestration
 │   ├── features/                ★ feature-first; each folder reads end-to-end
 │   │   ├── calendar/
@@ -292,9 +293,19 @@ feature owns its section key and the codec between its models and JSON — see t
 | `readSection(key)` | Raw JSON value under a feature's key, or null when absent. |
 | `writeSection(key, value)` | Replaces one section and persists the document. |
 | `exportDatabaseJson()` | Whole document as a formatted JSON string. |
-| `importDatabaseJson(raw)` | Validates (≥1 `knownSectionKeys` key required) and replaces the DB. |
-| `exportToDownloads()` / `importFromDownloads()` | Device Downloads-folder backup round-trip (`wyrm_backup.json`). |
-| `getDownloadsBackupModified()` | Last-modified timestamp of the Downloads backup, if present. |
+| `isBackupJson(raw)` | Pure check: a JSON object with ≥1 `knownSectionKeys` key. |
+| `importDatabaseJson(raw)` | Validates with `isBackupJson` and replaces the DB; false otherwise. |
+| `saveBackup({customPath})` | `BackupFileResult`; Android → SAF picker, elsewhere → Downloads file. |
+| `openBackup({customPath})` | `BackupFileResult`; Android → SAF picker, elsewhere → Downloads file. |
+
+**Backup transfer & Android storage:** public directories (`/storage/emulated/0/Download`)
+are **not** app-writable on Android 10+ without `MANAGE_EXTERNAL_STORAGE`, which is neither
+grantable at runtime nor allowed by Play policy for this use. So `saveBackup`/`openBackup`
+use the **Storage Access Framework** on Android (`MainActivity.kt` +
+`lib/data/backup_file_service.dart`, channel `wyrm_desk/backup`): the person picks the
+document, no permission is required, and the app can only touch that one grant. Desktop
+builds keep plain file IO into Downloads. Failures come back as
+`BackupFileResult.failed(reason)` instead of a silent `null`.
 
 **Legacy migration** (`_initializeAndMigrateDatabase`): if the unified file is absent, it
 looks for older `card_layout.json` and `app_settings.json` files in the documents 
@@ -767,7 +778,8 @@ Non-OS on-screen keyboard for a device that shouldn't summon the system IME.
 Opened from the top bar gear. Exposes: Display & Brightness slider, Nightstand mode toggle,
 24-hour time, week start, card text size slider (11–22 pt) with live preview, a
 **Web Remote Companion** card (status + `Show QR` → `NetworkConnectionModal`), and a
-**Data & Backups** card (export/import `wyrm_backup.json` via Downloads).
+**Data & Backups** card (save/restore a backup file; Android uses the system document
+picker, so no storage permission is needed).
 
 ---
 
@@ -780,7 +792,7 @@ Opened from the top bar gear. Exposes: Display & Brightness slider, Nightstand m
 |---|---|
 | `test/server/server_test.dart` | Starts a real `ShelfWebServer` on an ephemeral port with asset overrides; covers every static route, REST endpoint, the WS snapshot + command protocol, `NetworkInfo`, and asserts the `assets/web/*` files contain required tokens. **Update this when you change routes/messages or DOM ids/classes.** |
 | `test/config/card_layout_state_test.dart` | `CardLayoutConfig` (de)serialization incl. nightstand. |
-| `test/data/database_backup_test.dart` | `AppDatabase` backup/restore round-trips. |
+| `test/data/database_backup_test.dart` | `AppDatabase` backup/restore round-trips, validation, and the Android SAF branch. |
 | `test/features/home/home_page_test.dart` | Dashboard deck layout / sizing. |
 | `test/features/home/homepage_deck_test.dart` | Deck shell: card rendering, in-place size popup menus, scroll/stack behaviour. |
 | `test/features/clock/clock_card_test.dart` | Clock sizes + nightstand + providers/angles. |
@@ -916,7 +928,8 @@ you rename ids/classes.
 
 - **Default port:** `8080` release / `8081` debug (`ShelfWebServer.defaultPort`), bound to `anyIPv4`.
 - **WebSocket path:** `/ws` (snapshot → state_update; `ping` → `pong`).
-- **Persisted file:** `<appDocuments>/wyrm_database.json`; backup file `wyrm_backup.json`.
+- **Persisted file:** `<appDocuments>/wyrm_database.json`; backups are `wyrm_backup.json`
+  (Downloads on desktop, a document the person picks on Android).
 - **Disk section keys:** `layout`, `settings`, `tasks`, `habits`, `calendar`, `display`.
 - **Asset roots:** `assets/icons/`, `assets/web/`, `assets/card_bg/clock/`, `assets/card_bg/task/`.
 - **Remote URL format:** `http://<lan-ip>:<port>`.

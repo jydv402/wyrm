@@ -61,8 +61,8 @@ void main() {
         expect(find.text('Server Running'), findsOneWidget);
         expect(find.text('http://192.168.1.50:8081'), findsOneWidget);
         expect(find.text('Show QR'), findsOneWidget);
-        expect(find.text('Export to Downloads'), findsOneWidget);
-        expect(find.text('Import from Downloads'), findsOneWidget);
+        expect(find.text('Export backup'), findsOneWidget);
+        expect(find.text('Import backup'), findsOneWidget);
         expect(find.text('Hourly Auto-Check'), findsOneWidget);
         expect(find.text('Check for Updates'), findsOneWidget);
       },

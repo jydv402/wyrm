@@ -49,15 +49,6 @@ class TopPillBar extends StatelessWidget {
 
           const Spacer(),
 
-          // Torch-light Button
-          DuskGlassButton.icon(
-            onPressed: () {},
-            icon: const Icon(
-              Icons.flashlight_on_rounded,
-              size: 19,
-              color: AppColors.textPrimary,
-            ),
-          ),
           // Battery Status Pill
           const BatteryPill(),
 

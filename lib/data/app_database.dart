@@ -1,7 +1,9 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:flutter/foundation.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:wyrm_desk/data/backup_file_service.dart';
 
 /// Centralized persistence engine managing the single unified JSON database.
 ///
@@ -125,14 +127,19 @@ class AppDatabase {
     return const JsonEncoder.withIndent('  ').convert(db);
   }
 
-  /// Validates and imports a JSON database string, replacing the active database file.
-  static Future<bool> importDatabaseJson(String rawJson) async {
-    try {
-      final decoded = jsonDecode(rawJson);
-      if (decoded is! Map<String, dynamic>) return false;
-      final hasKnownKeys = decoded.keys.any(knownSectionKeys.contains);
-      if (!hasKnownKeys) return false;
+  /// Whether [rawJson] looks like a WYRM database backup.
+  ///
+  /// A valid backup is a JSON object carrying at least one feature-owned
+  /// section key, so an unrelated JSON file is rejected before it can replace
+  /// the database.
+  static bool isBackupJson(String rawJson) => _decodeBackup(rawJson) != null;
 
+  /// Validates and imports a JSON database string, replacing the active database
+  /// file. Returns false for anything that is not a WYRM backup.
+  static Future<bool> importDatabaseJson(String rawJson) async {
+    final decoded = _decodeBackup(rawJson);
+    if (decoded == null) return false;
+    try {
       await writeDatabase(decoded);
       return true;
     } catch (_) {
@@ -140,68 +147,113 @@ class AppDatabase {
     }
   }
 
-  /// Resolves the file location for backups in the device's public Download directory.
-  static Future<File> resolveDownloadsBackupFile({String? customPath}) async {
-    if (customPath != null && customPath.isNotEmpty) {
-      return File(customPath);
-    }
-
-    if (Platform.isAndroid) {
-      final publicDownload = Directory('/storage/emulated/0/Download');
-      if (await publicDownload.exists()) {
-        return File('${publicDownload.path}/$backupFileName');
-      }
-    }
-
+  static Map<String, dynamic>? _decodeBackup(String rawJson) {
     try {
-      final downloadsDir = await getDownloadsDirectory();
-      if (downloadsDir != null && await downloadsDir.exists()) {
-        return File('${downloadsDir.path}/$backupFileName');
-      }
-    } catch (_) {}
-
-    final docsDir = await getApplicationDocumentsDirectory();
-    return File('${docsDir.path}/$backupFileName');
-  }
-
-  /// Exports database backup to the public Download directory.
-  static Future<String?> exportToDownloads({String? customPath}) async {
-    try {
-      final jsonString = await exportDatabaseJson();
-      final file = await resolveDownloadsBackupFile(customPath: customPath);
-      if (!await file.parent.exists()) {
-        await file.parent.create(recursive: true);
-      }
-      await file.writeAsString(jsonString, flush: true);
-      return file.path;
+      final decoded = jsonDecode(rawJson);
+      if (decoded is! Map<String, dynamic>) return null;
+      if (!decoded.keys.any(knownSectionKeys.contains)) return null;
+      return decoded;
     } catch (_) {
       return null;
     }
   }
 
-  /// Imports database backup from the public Download directory.
-  static Future<bool> importFromDownloads({String? customPath}) async {
+  // ===========================================================================
+  // BACKUP FILE TRANSFER - save/open through the platform's own picker
+  // ===========================================================================
+
+  /// Forces the document-picker branch on or off; null uses the real platform.
+  ///
+  /// Exists so the Android path is testable from a desktop test host, where
+  /// [Platform.isAndroid] is always false.
+  @visibleForTesting
+  static bool? debugUseDocumentPicker;
+
+  static bool get _useDocumentPicker =>
+      debugUseDocumentPicker ?? Platform.isAndroid;
+
+  /// Saves the whole database as a JSON backup.
+  ///
+  /// On Android this asks the person where to save it through the system
+  /// document picker, so it needs no storage permission. Everywhere else it
+  /// writes [backupFileName] into Downloads (falling back to the app documents
+  /// directory). [customPath] forces a plain filesystem path.
+  ///
+  /// Never throws: a failure comes back as [BackupFileResult.failed] with the
+  /// platform's reason, because silently returning null is what made the old
+  /// Downloads-only implementation impossible to diagnose.
+  static Future<BackupFileResult> saveBackup({String? customPath}) async {
     try {
-      final file = await resolveDownloadsBackupFile(customPath: customPath);
-      if (!await file.exists()) return false;
-      final rawJson = await file.readAsString();
-      return await importDatabaseJson(rawJson);
-    } catch (_) {
-      return false;
+      final json = await exportDatabaseJson();
+      if (customPath == null && _useDocumentPicker) {
+        final name = await BackupFileService.save(
+          fileName: backupFileName,
+          contents: json,
+        );
+        return name == null
+            ? const BackupFileResult.cancelled()
+            : BackupFileResult.saved(name);
+      }
+      final file = await _defaultBackupFile(customPath: customPath);
+      await file.parent.create(recursive: true);
+      await file.writeAsString(json, flush: true);
+      return BackupFileResult.saved(file.path);
+    } catch (error) {
+      return BackupFileResult.failed(_describeError(error));
     }
   }
 
-  /// Returns the last modified timestamp of the backup file in Downloads, if present.
-  static Future<DateTime?> getDownloadsBackupModified({
-    String? customPath,
-  }) async {
+  /// Picks and reads a backup file without touching the database.
+  ///
+  /// The caller validates it with [isBackupJson] and imports it with
+  /// [importDatabaseJson], so a restore can be confirmed before anything is
+  /// replaced. On Android this uses the system document picker (no storage
+  /// permission); elsewhere it reads [backupFileName] from Downloads or
+  /// [customPath].
+  static Future<BackupFileResult> openBackup({String? customPath}) async {
     try {
-      final file = await resolveDownloadsBackupFile(customPath: customPath);
-      if (await file.exists()) {
-        return await file.lastModified();
+      if (customPath == null && _useDocumentPicker) {
+        final picked = await BackupFileService.open();
+        if (picked == null) return const BackupFileResult.cancelled();
+        return BackupFileResult.selected(
+          name: picked.name,
+          contents: picked.contents,
+        );
       }
-    } catch (_) {}
-    return null;
+      final file = await _defaultBackupFile(customPath: customPath);
+      if (!await file.exists()) {
+        return BackupFileResult.failed('No backup file found at ${file.path}');
+      }
+      return BackupFileResult.selected(
+        name: file.uri.pathSegments.last,
+        contents: await file.readAsString(),
+      );
+    } catch (error) {
+      return BackupFileResult.failed(_describeError(error));
+    }
+  }
+
+  /// Resolves a desktop backup location: Downloads when the platform has one,
+  /// otherwise the app documents directory.
+  static Future<File> _defaultBackupFile({String? customPath}) async {
+    if (customPath != null && customPath.isNotEmpty) return File(customPath);
+    try {
+      final downloads = await getDownloadsDirectory();
+      if (downloads != null) return File('${downloads.path}/$backupFileName');
+    } catch (_) {
+      // Platform has no Downloads concept; fall through to documents.
+    }
+    final docs = await getApplicationDocumentsDirectory();
+    return File('${docs.path}/$backupFileName');
+  }
+
+  static String _describeError(Object error) {
+    if (error is BackupFileException) return error.message;
+    if (error is FileSystemException) {
+      final reason = error.osError?.message;
+      return reason == null ? error.message : '${error.message} ($reason)';
+    }
+    return error.toString();
   }
 
   /// Seeds default structure and imports existing settings/layout files if present.
@@ -240,4 +292,57 @@ class AppDatabase {
     await writeDatabase(initialDocument);
     return initialDocument;
   }
+}
+
+/// How a backup file transfer ended.
+enum BackupFileStatus {
+  /// The file was written, or read successfully.
+  success,
+
+  /// The person dismissed the system file picker; nothing changed.
+  cancelled,
+
+  /// The transfer failed; [BackupFileResult.error] explains why.
+  failed,
+}
+
+/// Outcome of [AppDatabase.saveBackup] or [AppDatabase.openBackup].
+@immutable
+class BackupFileResult {
+  /// What happened.
+  final BackupFileStatus status;
+
+  /// Absolute path on desktop, or the picked document's display name on
+  /// Android (a document URI is not a filesystem path).
+  final String? location;
+
+  /// Raw JSON for a successful open; null when nothing was read.
+  final String? contents;
+
+  /// Human-readable reason when [status] is [BackupFileStatus.failed].
+  final String? error;
+
+  const BackupFileResult._(
+    this.status, {
+    this.location,
+    this.contents,
+    this.error,
+  });
+
+  /// A file was written to [location].
+  const BackupFileResult.saved(String location)
+    : this._(BackupFileStatus.success, location: location);
+
+  /// A file named [name] was read; [contents] is its text.
+  const BackupFileResult.selected({
+    required String name,
+    required String contents,
+  }) : this._(BackupFileStatus.success, location: name, contents: contents);
+
+  /// The person dismissed the picker.
+  const BackupFileResult.cancelled() : this._(BackupFileStatus.cancelled);
+
+  /// The transfer failed for [error].
+  const BackupFileResult.failed(String error)
+    : this._(BackupFileStatus.failed, error: error);
 }

@@ -713,25 +713,26 @@ class _DataBackupSection extends ConsumerWidget {
           // Export Backup Row
           _SettingRow(
             icon: Icons.upload_file_rounded,
-            title: 'Export to Downloads',
-            subtitle:
-                'Saves ${AppDatabase.backupFileName} to device Downloads folder',
+            title: 'Export backup',
+            subtitle: 'Save every card, task, habit and setting to a JSON file',
             trailing: DuskGlassButton(
               onPressed: () async {
-                final path = await AppDatabase.exportToDownloads();
-                if (context.mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text(
-                        path != null
-                            ? 'Database exported to $path'
-                            : 'Failed to export backup.',
-                      ),
-                      backgroundColor: path != null
-                          ? AppColors.surfaceElevated
-                          : AppColors.accentRed,
-                    ),
-                  );
+                final result = await AppDatabase.saveBackup();
+                if (!context.mounted) return;
+                switch (result.status) {
+                  case BackupFileStatus.cancelled:
+                    return;
+                  case BackupFileStatus.failed:
+                    _showBackupMessage(
+                      context,
+                      result.error ?? 'The backup could not be saved.',
+                      isError: true,
+                    );
+                  case BackupFileStatus.success:
+                    _showBackupMessage(
+                      context,
+                      'Backup saved as ${result.location}.',
+                    );
                 }
               },
               height: 38,
@@ -752,22 +753,34 @@ class _DataBackupSection extends ConsumerWidget {
           // Import Backup Row
           _SettingRow(
             icon: Icons.download_rounded,
-            title: 'Import from Downloads',
-            subtitle:
-                'Restores ${AppDatabase.backupFileName} and updates all cards',
+            title: 'Import backup',
+            subtitle: 'Restore from a WYRM backup file',
             trailing: DuskGlassButton(
               onPressed: () async {
-                final modified = await AppDatabase.getDownloadsBackupModified();
+                final picked = await AppDatabase.openBackup();
                 if (!context.mounted) return;
 
-                if (modified == null) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text(
-                        'No ${AppDatabase.backupFileName} found in Downloads.',
-                      ),
-                      backgroundColor: AppColors.accentRed,
-                    ),
+                switch (picked.status) {
+                  case BackupFileStatus.cancelled:
+                    return;
+                  case BackupFileStatus.failed:
+                    _showBackupMessage(
+                      context,
+                      picked.error ?? 'Could not open that backup.',
+                      isError: true,
+                    );
+                    return;
+                  case BackupFileStatus.success:
+                    break;
+                }
+
+                final contents = picked.contents;
+                final name = picked.location ?? AppDatabase.backupFileName;
+                if (contents == null || !AppDatabase.isBackupJson(contents)) {
+                  _showBackupMessage(
+                    context,
+                    '$name is not a WYRM backup file.',
+                    isError: true,
                   );
                   return;
                 }
@@ -781,7 +794,7 @@ class _DataBackupSection extends ConsumerWidget {
                       style: TextStyle(color: AppColors.textPrimary),
                     ),
                     content: Text(
-                      'This will replace your current tasks, habits, calendar, and settings with the backup from Downloads (${modified.toLocal().toString().split('.').first}). Continue?',
+                      'This will replace your current tasks, habits, calendar, and settings with $name. Continue?',
                       style: const TextStyle(color: AppColors.textSecondary),
                     ),
                     actions: [
@@ -800,25 +813,19 @@ class _DataBackupSection extends ConsumerWidget {
                   ),
                 );
 
-                if (confirmed == true && context.mounted) {
-                  final success = await ref
-                      .read(databaseServiceProvider)
-                      .importFromDownloadsAndReload();
-                  if (context.mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text(
-                          success
-                              ? 'Database successfully restored from Downloads!'
-                              : 'Failed to restore database.',
-                        ),
-                        backgroundColor: success
-                            ? AppColors.surfaceElevated
-                            : AppColors.accentRed,
-                      ),
-                    );
-                  }
-                }
+                if (confirmed != true || !context.mounted) return;
+
+                final success = await ref
+                    .read(databaseServiceProvider)
+                    .importAndReloadJson(contents);
+                if (!context.mounted) return;
+                _showBackupMessage(
+                  context,
+                  success
+                      ? 'Restored $name.'
+                      : 'That backup could not be written.',
+                  isError: !success,
+                );
               },
               height: 38,
               padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -868,6 +875,22 @@ class _DataBackupSection extends ConsumerWidget {
       ),
     );
   }
+}
+
+/// Reports the outcome of a backup save/open without losing the reason.
+void _showBackupMessage(
+  BuildContext context,
+  String message, {
+  bool isError = false,
+}) {
+  ScaffoldMessenger.of(context).showSnackBar(
+    SnackBar(
+      content: Text(message),
+      backgroundColor: isError
+          ? AppColors.accentRed
+          : AppColors.surfaceElevated,
+    ),
+  );
 }
 
 /// Section 6: App Updates panel
