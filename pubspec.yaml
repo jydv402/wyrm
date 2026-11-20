@@ -85,7 +85,7 @@ flutter:
         - asset: assets/fonts/google_sans/GoogleSans-VariableFont_GRAD,opsz,wght.ttf
         - asset: assets/fonts/google_sans/GoogleSans-Italic-VariableFont_GRAD,opsz,wght.ttf
           style: italic
-    - family: SairaCondensed
+    - family: BarlowCondensed
       fonts:
-        - asset: assets/fonts/saira_condensed/SairaCondensed-SemiBold.ttf
+        - asset: assets/fonts/barlow_condensed/BarlowCondensed-SemiBold.ttf
           weight: 600

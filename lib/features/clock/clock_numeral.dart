@@ -8,7 +8,7 @@ import 'package:material_ui/material_ui.dart';
 abstract final class ClockNumeral {
   /// Condensed instrument numeral at [size], for the time itself.
   static TextStyle display(double size, Color color) => TextStyle(
-    fontFamily: 'SairaCondensed',
+    fontFamily: 'BarlowCondensed',
     fontSize: size,
     color: color,
     fontWeight: FontWeight.w600,
