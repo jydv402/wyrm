@@ -333,7 +333,7 @@ class _CalendarGrid extends ConsumerWidget {
             children: List.generate(numWeeks, (weekIndex) {
               return Expanded(
                 child: Padding(
-                  padding: const EdgeInsets.only(bottom: 6.0),
+                  padding: const EdgeInsets.only(bottom: 3.0),
                   child: Row(
                     children: List.generate(7, (colIndex) {
                       final cellIndex = weekIndex * 7 + colIndex;
@@ -361,13 +361,9 @@ class _CalendarGrid extends ConsumerWidget {
                           cellDate.month == state.selectedDate.month &&
                           cellDate.day == state.selectedDate.day;
 
-                      final hasMilestone = state
-                          .milestonesForDate(cellDate)
-                          .isNotEmpty;
-
                       return Expanded(
                         child: Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 3.0),
+                          padding: const EdgeInsets.symmetric(horizontal: 1.5),
                           child: InkWell(
                             onTap: () {
                               ref
@@ -424,18 +420,6 @@ class _CalendarGrid extends ConsumerWidget {
                                               : FontWeight.w600,
                                         ),
                                       ),
-                                      if (isSelected || hasMilestone)
-                                        Container(
-                                          width: 4,
-                                          height: 4,
-                                          margin: const EdgeInsets.only(top: 2),
-                                          decoration: BoxDecoration(
-                                            color: isSelected
-                                                ? AppColors.goldInk
-                                                : AppColors.goldAccent,
-                                            shape: BoxShape.circle,
-                                          ),
-                                        ),
                                     ],
                                   ),
                                 ),
@@ -644,8 +628,8 @@ Future<void> _openTravelDatePicker(
       initialDate: initialDate,
       firstDate: DateTime(1),
       lastDate: DateTime(9999, 12, 31),
-      confirmText: 'TRAVEL',
-      cancelText: 'CANCEL',
+      confirmText: 'Travel',
+      cancelText: 'Cancel',
     ),
   );
   if (picked != null) {

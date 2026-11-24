@@ -25,8 +25,8 @@ class DuskDatePickerDialog extends StatefulWidget {
     required this.initialDate,
     required this.firstDate,
     required this.lastDate,
-    this.confirmText = 'TRAVEL',
-    this.cancelText = 'CANCEL',
+    required this.confirmText,
+    required this.cancelText,
   });
 
   @override
@@ -305,58 +305,44 @@ class _DuskDatePickerDialogState extends State<DuskDatePickerDialog> {
     final dateStr = DateFormat('EEEE, MMM d, yyyy').format(_selectedDate);
 
     return Row(
+      spacing: 16,
       children: [
-        Container(
-          width: 38,
-          height: 38,
-          decoration: BoxDecoration(
-            color: AppColors.goldAccent.withValues(alpha: 0.15),
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(
-              color: AppColors.goldAccent.withValues(alpha: 0.3),
-              width: 1.0,
+        const Icon(
+          Icons.explore_rounded,
+          size: 20,
+          color: AppColors.goldAccent,
+        ),
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text(
+              'Time Travel',
+              style: TextStyle(
+                color: AppColors.textPrimary,
+                fontSize: 16.5,
+                fontWeight: FontWeight.w700,
+                letterSpacing: -0.2,
+              ),
             ),
-          ),
-          child: const Icon(
-            Icons.explore_rounded,
-            size: 20,
-            color: AppColors.goldAccent,
-          ),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Text(
-                'Time Travel',
-                style: TextStyle(
-                  color: AppColors.textPrimary,
-                  fontSize: 16.5,
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: -0.2,
-                ),
+            const SizedBox(height: 2),
+            Text(
+              dateStr,
+              style: const TextStyle(
+                color: AppColors.goldAccent,
+                fontSize: 12.5,
+                fontWeight: FontWeight.w500,
               ),
-              const SizedBox(height: 2),
-              Text(
-                dateStr,
-                style: const TextStyle(
-                  color: AppColors.goldAccent,
-                  fontSize: 12.5,
-                  fontWeight: FontWeight.w500,
-                ),
-                overflow: TextOverflow.ellipsis,
-              ),
-            ],
-          ),
+              overflow: TextOverflow.ellipsis,
+            ),
+          ],
         ),
-        IconButton(
+        const Spacer(),
+
+        DuskGlassButton.icon(
           onPressed: () => Navigator.of(context).pop(null),
           icon: const Icon(Icons.close_rounded, size: 20),
-          color: AppColors.textSecondary,
-          tooltip: 'Close',
-          splashRadius: 20,
+          size: 38,
         ),
       ],
     );
@@ -535,7 +521,7 @@ class _DuskDatePickerDialogState extends State<DuskDatePickerDialog> {
             children: List.generate(numWeeks, (weekIndex) {
               return Expanded(
                 child: Padding(
-                  padding: const EdgeInsets.only(bottom: 4.0),
+                  padding: const EdgeInsets.only(bottom: 3.0),
                   child: Row(
                     children: List.generate(7, (colIndex) {
                       final cellIndex = weekIndex * 7 + colIndex;
@@ -565,7 +551,7 @@ class _DuskDatePickerDialogState extends State<DuskDatePickerDialog> {
 
                       return Expanded(
                         child: Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 2.0),
+                          padding: const EdgeInsets.symmetric(horizontal: 1.5),
                           child: InkWell(
                             onTap: () => _selectDay(cellDate),
                             borderRadius: BorderRadius.circular(10),
@@ -627,11 +613,11 @@ class _DuskDatePickerDialogState extends State<DuskDatePickerDialog> {
 
         return GridView.builder(
           key: const ValueKey('month_picker'),
-          physics: const NeverScrollableScrollPhysics(),
+          physics: const BouncingScrollPhysics(),
           gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: 3,
-            crossAxisSpacing: 12,
-            mainAxisSpacing: 12,
+            crossAxisCount: itemWidth > 180 ? 4 : 3,
+            crossAxisSpacing: 3,
+            mainAxisSpacing: 3,
             childAspectRatio: ratio,
           ),
           itemCount: 12,
@@ -690,10 +676,10 @@ class _DuskDatePickerDialogState extends State<DuskDatePickerDialog> {
           key: const ValueKey('year_picker'),
           controller: _yearScrollController,
           physics: const BouncingScrollPhysics(),
-          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
             crossAxisCount: 3,
-            crossAxisSpacing: 10,
-            mainAxisSpacing: 10,
+            crossAxisSpacing: 3,
+            mainAxisSpacing: 3,
             childAspectRatio: 2.2,
           ),
           itemCount: totalYears,
