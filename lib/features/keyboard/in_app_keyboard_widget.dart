@@ -1,5 +1,6 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:wyrm_desk/theme/theme.dart';
+import 'package:wyrm_desk/widgets/dusk_glass_panel.dart';
 
 import 'in_app_keyboard_controller.dart';
 import 'in_app_keyboard_scope.dart';
@@ -21,12 +22,14 @@ class InAppKeyboardWidget extends StatelessWidget {
   final InAppKeyboardController? controller;
   final double height;
   final VoidCallback? onDonePressed;
+  final DuskTone? tone;
 
   const InAppKeyboardWidget({
     super.key,
     this.controller,
     this.height = 236.0,
     this.onDonePressed,
+    this.tone,
   });
 
   @override
@@ -38,9 +41,55 @@ class InAppKeyboardWidget extends StatelessWidget {
       return const SizedBox.shrink();
     }
 
+    final disableAnimations = MediaQuery.disableAnimationsOf(context);
+
     return ListenableBuilder(
       listenable: effectiveController,
       builder: (context, _) {
+        final currentLayout = switch (effectiveController.mode) {
+          VirtualKeyboardMode.letters => LettersKeyboardLayout(
+            key: const ValueKey(VirtualKeyboardMode.letters),
+            kb: effectiveController,
+            onDonePressed: onDonePressed,
+            tone: tone,
+          ),
+          VirtualKeyboardMode.symbols => SymbolsKeyboardLayout(
+            key: const ValueKey(VirtualKeyboardMode.symbols),
+            kb: effectiveController,
+            onDonePressed: onDonePressed,
+            tone: tone,
+          ),
+          VirtualKeyboardMode.numpad => NumpadKeyboardLayout(
+            key: const ValueKey(VirtualKeyboardMode.numpad),
+            kb: effectiveController,
+            onDonePressed: onDonePressed,
+            tone: tone,
+          ),
+        };
+
+        final animatedContent = AnimatedSwitcher(
+          duration: disableAnimations
+              ? Duration.zero
+              : const Duration(milliseconds: 180),
+          switchInCurve: Curves.easeOutCubic,
+          switchOutCurve: Curves.easeOutCubic,
+          transitionBuilder: (child, animation) {
+            if (disableAnimations) return child;
+            return FadeTransition(opacity: animation, child: child);
+          },
+          child: currentLayout,
+        );
+
+        if (tone != null) {
+          return DuskGlassPanel(
+            tone: tone!,
+            borderRadius: 18.0,
+            height: height,
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+            child: animatedContent,
+          );
+        }
+
         return Container(
           height: height,
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
@@ -56,20 +105,7 @@ class InAppKeyboardWidget extends StatelessWidget {
               ),
             ],
           ),
-          child: switch (effectiveController.mode) {
-            VirtualKeyboardMode.letters => LettersKeyboardLayout(
-              kb: effectiveController,
-              onDonePressed: onDonePressed,
-            ),
-            VirtualKeyboardMode.symbols => SymbolsKeyboardLayout(
-              kb: effectiveController,
-              onDonePressed: onDonePressed,
-            ),
-            VirtualKeyboardMode.numpad => NumpadKeyboardLayout(
-              kb: effectiveController,
-              onDonePressed: onDonePressed,
-            ),
-          },
+          child: animatedContent,
         );
       },
     );

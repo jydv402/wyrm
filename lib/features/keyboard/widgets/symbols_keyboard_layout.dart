@@ -1,4 +1,5 @@
 import 'package:material_ui/material_ui.dart';
+import 'package:wyrm_desk/theme/theme.dart';
 
 import '../in_app_keyboard_controller.dart';
 import 'keyboard_bottom_bar.dart';
@@ -12,11 +13,13 @@ class SymbolsKeyboardLayout extends StatelessWidget {
 
   final InAppKeyboardController kb;
   final VoidCallback? onDonePressed;
+  final DuskTone? tone;
 
   const SymbolsKeyboardLayout({
     super.key,
     required this.kb,
     this.onDonePressed,
+    this.tone,
   });
 
   @override
@@ -34,6 +37,7 @@ class SymbolsKeyboardLayout extends StatelessWidget {
           modeSwitchLabel: 'ABC',
           modeSwitchTarget: VirtualKeyboardMode.letters,
           onDonePressed: onDonePressed,
+          tone: tone,
         ),
       ],
     );
@@ -45,7 +49,11 @@ class SymbolsKeyboardLayout extends StatelessWidget {
         children: chars
             .map(
               (char) => Expanded(
-                child: KeyButton(label: char, onTap: () => kb.insertText(char)),
+                child: KeyButton(
+                  label: char,
+                  tone: tone,
+                  onTap: () => kb.insertText(char),
+                ),
               ),
             )
             .toList(),
@@ -60,13 +68,18 @@ class SymbolsKeyboardLayout extends StatelessWidget {
           ..._row3.map(
             (char) => Expanded(
               flex: 2,
-              child: KeyButton(label: char, onTap: () => kb.insertText(char)),
+              child: KeyButton(
+                label: char,
+                tone: tone,
+                onTap: () => kb.insertText(char),
+              ),
             ),
           ),
           Expanded(
             flex: 3,
             child: ActionKeyButton(
               icon: Icons.backspace_outlined,
+              tone: tone,
               onTap: kb.backspace,
               onLongPress: kb.clear,
             ),

@@ -13,11 +13,13 @@ class LettersKeyboardLayout extends StatelessWidget {
 
   final InAppKeyboardController kb;
   final VoidCallback? onDonePressed;
+  final DuskTone? tone;
 
   const LettersKeyboardLayout({
     super.key,
     required this.kb,
     this.onDonePressed,
+    this.tone,
   });
 
   @override
@@ -35,6 +37,7 @@ class LettersKeyboardLayout extends StatelessWidget {
           modeSwitchLabel: '?123',
           modeSwitchTarget: VirtualKeyboardMode.symbols,
           onDonePressed: onDonePressed,
+          tone: tone,
         ),
       ],
     );
@@ -46,7 +49,11 @@ class LettersKeyboardLayout extends StatelessWidget {
         children: _row1.map((char) {
           final label = kb.isShifted ? char.toUpperCase() : char;
           return Expanded(
-            child: KeyButton(label: label, onTap: () => kb.insertText(char)),
+            child: KeyButton(
+              label: label,
+              tone: tone,
+              onTap: () => kb.insertText(char),
+            ),
           );
         }).toList(),
       ),
@@ -62,7 +69,11 @@ class LettersKeyboardLayout extends StatelessWidget {
             final label = kb.isShifted ? char.toUpperCase() : char;
             return Expanded(
               flex: 2,
-              child: KeyButton(label: label, onTap: () => kb.insertText(char)),
+              child: KeyButton(
+                label: label,
+                tone: tone,
+                onTap: () => kb.insertText(char),
+              ),
             );
           }),
           const Spacer(flex: 1),
@@ -82,7 +93,8 @@ class LettersKeyboardLayout extends StatelessWidget {
                   ? Icons.keyboard_capslock_rounded
                   : Icons.arrow_upward_rounded,
               isActive: kb.isShifted,
-              activeColor: AppColors.accentOrange,
+              activeColor: tone?.accent ?? AppColors.accentOrange,
+              tone: tone,
               onTap: kb.toggleShift,
               onLongPress: kb.toggleCapsLock,
             ),
@@ -91,13 +103,18 @@ class LettersKeyboardLayout extends StatelessWidget {
             final label = kb.isShifted ? char.toUpperCase() : char;
             return Expanded(
               flex: 2,
-              child: KeyButton(label: label, onTap: () => kb.insertText(char)),
+              child: KeyButton(
+                label: label,
+                tone: tone,
+                onTap: () => kb.insertText(char),
+              ),
             );
           }),
           Expanded(
             flex: 3,
             child: ActionKeyButton(
               icon: Icons.backspace_outlined,
+              tone: tone,
               onTap: kb.backspace,
               onLongPress: kb.clear,
             ),

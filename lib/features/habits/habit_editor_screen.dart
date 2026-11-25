@@ -88,10 +88,11 @@ class _HabitEditorScreenState extends ConsumerState<HabitEditorScreen> {
     final isEditing = widget.habitToEdit != null;
 
     return TwoPaneKeyboardScaffold(
+      tone: AppColors.teal,
       title: isEditing ? 'Edit Habit' : 'New Habit',
       saveLabel: isEditing ? 'Save Changes' : 'Save Habit',
       saveButtonColor: AppColors.tealFill,
-      saveTextColor: Colors.white,
+      saveTextColor: Colors.black,
       onSave: _saveHabit,
       formBuilder: (context, keyboard) {
         return HabitFormContent(

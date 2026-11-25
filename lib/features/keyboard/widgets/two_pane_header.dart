@@ -1,6 +1,7 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:go_router/go_router.dart';
 import 'package:wyrm_desk/theme/theme.dart';
+import 'package:wyrm_desk/widgets/dusk_glass_button.dart';
 
 /// Top bar with back button, editor title, Cancel, and Save actions.
 class TwoPaneHeader extends StatelessWidget {
@@ -10,6 +11,7 @@ class TwoPaneHeader extends StatelessWidget {
   final Color saveButtonColor;
   final Color saveTextColor;
   final IconData saveIcon;
+  final DuskTone? tone;
 
   const TwoPaneHeader({
     super.key,
@@ -19,19 +21,19 @@ class TwoPaneHeader extends StatelessWidget {
     required this.saveButtonColor,
     required this.saveTextColor,
     required this.saveIcon,
+    this.tone,
   });
 
   @override
   Widget build(BuildContext context) {
     return Row(
       children: [
-        IconButton(
+        DuskGlassButton.icon(
+          icon: const Icon(Icons.arrow_back_rounded, size: 20),
           onPressed: () => context.pop(),
-          icon: const Icon(Icons.arrow_back_rounded),
-          color: AppColors.textPrimary,
-          splashRadius: 20,
+          size: 40.0,
         ),
-        const SizedBox(width: 8),
+        const SizedBox(width: 12),
         Text(
           title,
           style: const TextStyle(
@@ -42,33 +44,23 @@ class TwoPaneHeader extends StatelessWidget {
           ),
         ),
         const Spacer(),
-        TextButton(
+        DuskGlassButton(
           onPressed: () => context.pop(),
-          child: const Text(
-            'Cancel',
-            style: TextStyle(
-              color: AppColors.textSecondary,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
+          label: const Text('Cancel'),
+          height: 40.0,
         ),
         const SizedBox(width: 10),
-        ElevatedButton.icon(
+        DuskGlassButton(
           onPressed: onSave,
-          icon: Icon(saveIcon, size: 18),
+          isPrimary: true,
+          primaryColor: tone?.fill ?? saveButtonColor,
+          primaryForegroundColor: saveTextColor,
+          icon: Icon(saveIcon, size: 18, color: saveTextColor),
           label: Text(
             saveLabel,
-            style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 14),
+            style: TextStyle(fontWeight: FontWeight.w700, color: saveTextColor),
           ),
-          style: ElevatedButton.styleFrom(
-            backgroundColor: saveButtonColor,
-            foregroundColor: saveTextColor,
-            elevation: 0,
-            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(14),
-            ),
-          ),
+          height: 40.0,
         ),
       ],
     );

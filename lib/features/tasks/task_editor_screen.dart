@@ -43,6 +43,7 @@ class _TaskEditorScreenState extends ConsumerState<TaskEditorScreen> {
   @override
   Widget build(BuildContext context) {
     return TwoPaneKeyboardScaffold(
+      tone: AppColors.rust,
       title: 'New Task',
       saveLabel: 'Save Task',
       saveButtonColor: AppColors.rustFill,

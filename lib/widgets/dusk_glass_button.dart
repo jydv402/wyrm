@@ -111,9 +111,11 @@ class _DuskGlassButtonState extends State<DuskGlassButton> {
         ? widget.height / 2
         : widget.borderRadius;
 
-    final Widget content;
+    final fgColor = widget.isPrimary ? widget.primaryForegroundColor : null;
+
+    final Widget rawContent;
     if (widget.icon != null && widget.label != null) {
-      content = Row(
+      rawContent = Row(
         mainAxisSize: MainAxisSize.min,
         mainAxisAlignment: MainAxisAlignment.center,
         crossAxisAlignment: CrossAxisAlignment.center,
@@ -124,12 +126,22 @@ class _DuskGlassButtonState extends State<DuskGlassButton> {
         ],
       );
     } else if (widget.icon != null) {
-      content = Center(child: widget.icon!);
+      rawContent = Center(child: widget.icon!);
     } else if (widget.label != null) {
-      content = Center(child: widget.label!);
+      rawContent = Center(child: widget.label!);
     } else {
-      content = const SizedBox.shrink();
+      rawContent = const SizedBox.shrink();
     }
+
+    final Widget content = fgColor != null
+        ? IconTheme.merge(
+            data: IconThemeData(color: fgColor),
+            child: DefaultTextStyle.merge(
+              style: TextStyle(color: fgColor),
+              child: rawContent,
+            ),
+          )
+        : rawContent;
 
     final disableMotion = MediaQuery.disableAnimationsOf(context);
     final targetScale = (isEnabled && _isPressed && !disableMotion)

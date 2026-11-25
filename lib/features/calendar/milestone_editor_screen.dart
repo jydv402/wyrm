@@ -49,6 +49,7 @@ class _MilestoneEditorScreenState extends ConsumerState<MilestoneEditorScreen> {
   @override
   Widget build(BuildContext context) {
     return TwoPaneKeyboardScaffold(
+      tone: AppColors.gold,
       title: 'New Milestone',
       saveLabel: 'Save Milestone',
       saveButtonColor: AppColors.goldAccent,

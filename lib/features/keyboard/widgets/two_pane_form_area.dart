@@ -1,5 +1,6 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:wyrm_desk/theme/theme.dart';
+import 'package:wyrm_desk/widgets/dusk_glass_panel.dart';
 
 import '../in_app_keyboard_controller.dart';
 import '../in_app_keyboard_widget.dart';
@@ -12,6 +13,7 @@ class TwoPaneFormArea extends StatelessWidget {
   final Widget Function(BuildContext context) previewBuilder;
   final InAppKeyboardController keyboardController;
   final VoidCallback onSave;
+  final DuskTone tone;
 
   const TwoPaneFormArea({
     super.key,
@@ -19,6 +21,7 @@ class TwoPaneFormArea extends StatelessWidget {
     required this.previewBuilder,
     required this.keyboardController,
     required this.onSave,
+    this.tone = AppColors.teal,
   });
 
   @override
@@ -35,6 +38,7 @@ class TwoPaneFormArea extends StatelessWidget {
                 child: TwoPaneFormCard(
                   formBuilder: formBuilder,
                   keyboardController: keyboardController,
+                  tone: tone,
                 ),
               ),
               const SizedBox(width: 14),
@@ -44,6 +48,7 @@ class TwoPaneFormArea extends StatelessWidget {
                   previewBuilder: previewBuilder,
                   keyboardController: keyboardController,
                   onSave: onSave,
+                  tone: tone,
                 ),
               ),
             ],
@@ -54,6 +59,7 @@ class TwoPaneFormArea extends StatelessWidget {
             previewBuilder: previewBuilder,
             keyboardController: keyboardController,
             onSave: onSave,
+            tone: tone,
           );
         }
       },
@@ -61,26 +67,25 @@ class TwoPaneFormArea extends StatelessWidget {
   }
 }
 
-/// Left pane card hosting the scrollable form fields.
+/// Left pane card hosting the scrollable form fields in a Dusk Glass panel.
 class TwoPaneFormCard extends StatelessWidget {
   final Widget Function(BuildContext context, InAppKeyboardController keyboard)
   formBuilder;
   final InAppKeyboardController keyboardController;
+  final DuskTone tone;
 
   const TwoPaneFormCard({
     super.key,
     required this.formBuilder,
     required this.keyboardController,
+    this.tone = AppColors.teal,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(22),
-        border: Border.all(color: AppColors.borderDark, width: 1.5),
-      ),
+    return DuskGlassPanel(
+      tone: tone,
+      borderRadius: 26.0,
       padding: const EdgeInsets.all(20),
       child: SingleChildScrollView(
         child: formBuilder(context, keyboardController),
@@ -89,27 +94,26 @@ class TwoPaneFormCard extends StatelessWidget {
   }
 }
 
-/// Right pane card hosting the WYSIWYG preview and the in-app keyboard.
+/// Right pane card hosting the WYSIWYG preview and in-app keyboard in a Dusk Glass panel.
 class TwoPanePreviewCard extends StatelessWidget {
   final Widget Function(BuildContext context) previewBuilder;
   final InAppKeyboardController keyboardController;
   final VoidCallback onSave;
+  final DuskTone tone;
 
   const TwoPanePreviewCard({
     super.key,
     required this.previewBuilder,
     required this.keyboardController,
     required this.onSave,
+    this.tone = AppColors.teal,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(22),
-        border: Border.all(color: AppColors.borderDark, width: 1.5),
-      ),
+    return DuskGlassPanel(
+      tone: tone,
+      borderRadius: 26.0,
       padding: const EdgeInsets.all(18),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -119,6 +123,7 @@ class TwoPanePreviewCard extends StatelessWidget {
           InAppKeyboardWidget(
             controller: keyboardController,
             onDonePressed: onSave,
+            tone: tone,
           ),
         ],
       ),
@@ -166,6 +171,7 @@ class TwoPaneNarrowLayout extends StatelessWidget {
   final Widget Function(BuildContext context) previewBuilder;
   final InAppKeyboardController keyboardController;
   final VoidCallback onSave;
+  final DuskTone tone;
 
   const TwoPaneNarrowLayout({
     super.key,
@@ -173,6 +179,7 @@ class TwoPaneNarrowLayout extends StatelessWidget {
     required this.previewBuilder,
     required this.keyboardController,
     required this.onSave,
+    this.tone = AppColors.teal,
   });
 
   @override
@@ -185,23 +192,17 @@ class TwoPaneNarrowLayout extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Container(
+                DuskGlassPanel(
+                  tone: tone,
+                  borderRadius: 20.0,
                   padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: AppColors.surface,
-                    borderRadius: BorderRadius.circular(18),
-                    border: Border.all(color: AppColors.borderDark),
-                  ),
                   child: formBuilder(context, keyboardController),
                 ),
                 const SizedBox(height: 12),
-                Container(
+                DuskGlassPanel(
+                  tone: tone,
+                  borderRadius: 20.0,
                   padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: AppColors.surface,
-                    borderRadius: BorderRadius.circular(18),
-                    border: Border.all(color: AppColors.borderDark),
-                  ),
                   child: previewBuilder(context),
                 ),
               ],
@@ -212,6 +213,7 @@ class TwoPaneNarrowLayout extends StatelessWidget {
         InAppKeyboardWidget(
           controller: keyboardController,
           onDonePressed: onSave,
+          tone: tone,
         ),
       ],
     );

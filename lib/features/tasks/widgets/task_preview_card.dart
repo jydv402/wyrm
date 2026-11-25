@@ -28,14 +28,26 @@ class TaskPreviewCard extends StatelessWidget {
       width: 290,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        gradient: const LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [Color(0xFF452618), Color(0xFF22130C)],
+        ),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: AppColors.lineStrong, width: 1.0),
+        border: Border.all(
+          color: AppColors.rustAccent.withValues(alpha: 0.35),
+          width: 1.2,
+        ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.4),
-            blurRadius: 16,
-            offset: const Offset(0, 4),
+            color: Colors.black.withValues(alpha: 0.5),
+            blurRadius: 20,
+            offset: const Offset(0, 6),
+          ),
+          BoxShadow(
+            color: AppColors.rustAccent.withValues(alpha: 0.15),
+            blurRadius: 24,
+            spreadRadius: -4,
           ),
         ],
       ),
@@ -95,9 +107,12 @@ class TaskPreviewCard extends StatelessWidget {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
             decoration: BoxDecoration(
-              color: AppColors.well,
+              color: Colors.black.withValues(alpha: 0.25),
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: AppColors.line, width: 1.0),
+              border: Border.all(
+                color: AppColors.rustAccent.withValues(alpha: 0.22),
+                width: 1.0,
+              ),
             ),
             child: Row(
               children: [
