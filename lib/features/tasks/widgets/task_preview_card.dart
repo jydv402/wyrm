@@ -1,0 +1,136 @@
+import 'package:material_ui/material_ui.dart';
+import 'package:wyrm_desk/theme/theme.dart';
+
+/// Live preview card for tasks.
+class TaskPreviewCard extends StatelessWidget {
+  final String title;
+  final String priority;
+
+  const TaskPreviewCard({
+    super.key,
+    required this.title,
+    required this.priority,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final displayTitle = title.trim().isEmpty
+        ? 'Write your task description...'
+        : title.trim();
+    final (String, Color)? badge = switch (priority.toLowerCase()) {
+      'high' => ('HIGH', AppColors.priorityHigh),
+      'medium' => ('MEDIUM', AppColors.priorityMedium),
+      'low' => ('LOW', AppColors.priorityLow),
+      _ => null,
+    };
+
+    return Container(
+      width: 290,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: AppColors.lineStrong, width: 1.0),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.4),
+            blurRadius: 16,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Row(
+            children: [
+              const Icon(
+                Icons.check_box_outlined,
+                size: 18,
+                color: AppColors.rustAccent,
+              ),
+              const SizedBox(width: 8),
+              const Expanded(
+                child: Text(
+                  'PRIORITY PREVIEW',
+                  style: TextStyle(
+                    color: AppColors.textPrimary,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 0.8,
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              if (badge != null) ...[
+                const SizedBox(width: 6),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 6,
+                    vertical: 3,
+                  ),
+                  decoration: BoxDecoration(
+                    color: badge.$2.withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(6),
+                    border: Border.all(
+                      color: badge.$2.withValues(alpha: 0.4),
+                      width: 1.0,
+                    ),
+                  ),
+                  child: Text(
+                    badge.$1,
+                    style: TextStyle(
+                      color: badge.$2,
+                      fontSize: 10,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: 0.5,
+                    ),
+                  ),
+                ),
+              ],
+            ],
+          ),
+          const SizedBox(height: 14),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+            decoration: BoxDecoration(
+              color: AppColors.well,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: AppColors.line, width: 1.0),
+            ),
+            child: Row(
+              children: [
+                Container(
+                  width: 20,
+                  height: 20,
+                  decoration: BoxDecoration(
+                    color: Colors.transparent,
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: Colors.white.withValues(alpha: 0.35),
+                      width: 1.2,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    displayTitle,
+                    style: const TextStyle(
+                      color: AppColors.textPrimary,
+                      fontWeight: FontWeight.w600,
+                      fontSize: 13,
+                    ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
