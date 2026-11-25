@@ -1,10 +1,12 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:material_ui/material_ui.dart';
+import 'package:wyrm_desk/core/notifications/reminder_model.dart';
 import 'package:wyrm_desk/features/calendar/milestone_editor_screen.dart';
 import 'package:wyrm_desk/features/habits/habit_editor_screen.dart';
 import 'package:wyrm_desk/features/habits/habit_model.dart';
 import 'package:wyrm_desk/features/home/homepage.dart';
+import 'package:wyrm_desk/features/reminder/reminder_editor_screen.dart';
 import 'package:wyrm_desk/features/settings/settings_page.dart';
 import 'package:wyrm_desk/features/tasks/task_editor_screen.dart';
 import 'package:wyrm_desk/theme/theme.dart';
@@ -16,6 +18,7 @@ abstract final class AppRoutes {
   static const taskEditor = '/tasks/editor';
   static const habitEditor = '/habits/editor';
   static const milestoneEditor = '/calendar/milestones/editor';
+  static const reminderEditor = '/reminder/editor';
 }
 
 Widget _fadeTransition(
@@ -84,6 +87,18 @@ final routerProvider = Provider<GoRouter>((ref) {
         pageBuilder: (context, state) => CustomTransitionPage<void>(
           key: state.pageKey,
           child: MilestoneEditorScreen(initialDate: state.extra as DateTime?),
+          transitionsBuilder: _fadeTransition,
+        ),
+      ),
+      GoRoute(
+        path: AppRoutes.reminderEditor,
+        name: 'reminderEditor',
+        pageBuilder: (context, state) => CustomTransitionPage<void>(
+          key: state.pageKey,
+          child: ReminderEditorScreen(
+            reminderToEdit: state.extra as ReminderItem?,
+            reminderId: state.uri.queryParameters['id'],
+          ),
           transitionsBuilder: _fadeTransition,
         ),
       ),

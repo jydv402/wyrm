@@ -1,6 +1,8 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:wyrm_desk/config/app_settings_state.dart';
+import 'package:wyrm_desk/features/reminder/reminder_coordinator.dart';
+import 'package:wyrm_desk/features/reminder/widgets/alarm_ring_overlay.dart';
 import 'package:wyrm_desk/routing/app_router.dart';
 import 'package:wyrm_desk/server/server_provider.dart';
 import 'package:wyrm_desk/theme/theme.dart';
@@ -16,6 +18,8 @@ class WyrmDeskApp extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     // Eagerly boot the embedded background web remote server.
     ref.watch(webServerProvider);
+    // Eagerly boot the reminder notification and alarm trigger coordinator.
+    ref.watch(reminderCoordinatorProvider);
 
     final router = ref.watch(routerProvider);
     final settings = ref.watch(appSettingsProvider);
@@ -35,7 +39,7 @@ class WyrmDeskApp extends ConsumerWidget {
               maxScaleFactor: settings.maxTextScaleFactor,
             ),
           ),
-          child: child,
+          child: AlarmRingOverlayHost(child: child),
         );
       },
     );

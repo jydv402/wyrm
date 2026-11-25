@@ -14,6 +14,7 @@ export 'widgets/clock_calendar_section.dart';
 export 'widgets/data_backup_section.dart';
 export 'widgets/display_section.dart';
 export 'widgets/network_section.dart';
+export 'widgets/reminders_section.dart';
 export 'widgets/setting_row.dart';
 export 'widgets/settings_ambient_backdrop.dart';
 export 'widgets/settings_content_pane.dart';

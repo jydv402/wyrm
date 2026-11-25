@@ -41,6 +41,7 @@ void main() {
         // Section Headers
         expect(find.text('Display & Brightness'), findsOneWidget);
         expect(find.text('Clock & Calendar'), findsOneWidget);
+        expect(find.text('Reminders & Alarms'), findsOneWidget);
         expect(find.text('Card Appearance'), findsOneWidget);
         expect(find.text('Web Remote Companion'), findsOneWidget);
         expect(find.text('Data & Backups'), findsOneWidget);
@@ -57,6 +58,9 @@ void main() {
         );
         expect(find.text('Time Format'), findsOneWidget);
         expect(find.text('Week Starts On'), findsOneWidget);
+        expect(find.text('Allow Notifications'), findsOneWidget);
+        expect(find.text('Precise Background Timing'), findsOneWidget);
+        expect(find.text('Preview Alarm Screen'), findsOneWidget);
         expect(find.text('Card Font Size'), findsOneWidget);
         expect(find.text('Server Running'), findsOneWidget);
         expect(find.text('http://192.168.1.50:8081'), findsOneWidget);
@@ -274,6 +278,7 @@ void main() {
 
       expect(find.text('Display & Brightness'), findsOneWidget);
       expect(find.text('Clock & Calendar'), findsOneWidget);
+      expect(find.text('Reminders & Alarms'), findsOneWidget);
       expect(find.text('Card Appearance'), findsOneWidget);
       expect(find.text('Web Remote Companion'), findsOneWidget);
       expect(find.text('Data & Backups'), findsOneWidget);
@@ -301,7 +306,7 @@ void main() {
           find.byType(DuskGlassPanel),
         );
         expect(panels, isNotEmpty);
-        expect(panels.length, 6);
+        expect(panels.length, 7);
 
         for (final panel in panels) {
           expect(panel.tone, AppColors.glacier);

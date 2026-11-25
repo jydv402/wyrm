@@ -38,7 +38,9 @@ void main() {
       expect(find.byType(TasksCard), findsOneWidget);
       expect(find.byType(ReminderCard), findsOneWidget);
       expect(find.byType(SharingCard), findsOneWidget);
-      expect(find.text('Coming soon'), findsNWidgets(2));
+      expect(find.text('Coming soon'), findsOneWidget);
+      expect(find.text('Reminders'), findsOneWidget);
+      expect(find.text('Add reminder'), findsOneWidget);
 
       // Verify presence of corner cycle buttons on all six cards.
       expect(find.byType(CardEditButton<CardSize>), findsNWidgets(6));
