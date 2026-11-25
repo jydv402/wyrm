@@ -37,6 +37,15 @@ class AppDatabase {
   /// Serializes writes; each one starts after the previous completes.
   static Future<void> _writeChain = Future<void>.value();
 
+  /// Clears the in-memory document cache so the next read re-loads from disk.
+  ///
+  /// Call this before reading sections that may have been updated on disk by
+  /// another isolate (such as background notification shade actions).
+  static void invalidateCache() {
+    _cache = null;
+    _cachePath = null;
+  }
+
   static Future<File> _databaseFile() async {
     final directory = await getApplicationDocumentsDirectory();
     return File('${directory.path}/$databaseFileName');
@@ -44,10 +53,15 @@ class AppDatabase {
 
   /// Reads the whole document, migrating legacy files or seeding defaults when
   /// no readable store exists.
-  static Future<Map<String, dynamic>> readDatabase() async {
+  static Future<Map<String, dynamic>> readDatabase({
+    bool forceRefresh = false,
+  }) async {
     try {
+      await _writeChain;
       final file = await _databaseFile();
-      if (_cache != null && _cachePath == file.path) return _cache!;
+      if (!forceRefresh && _cache != null && _cachePath == file.path) {
+        return _cache!;
+      }
       if (await file.exists()) {
         final decoded = jsonDecode(await file.readAsString());
         if (decoded is Map<String, dynamic>) {
@@ -89,8 +103,10 @@ class AppDatabase {
   // ===========================================================================
 
   /// The raw JSON value stored under [key], or null when absent.
-  static Future<dynamic> readSection(String key) async =>
-      (await readDatabase())[key];
+  static Future<dynamic> readSection(
+    String key, {
+    bool forceRefresh = false,
+  }) async => (await readDatabase(forceRefresh: forceRefresh))[key];
 
   /// Replaces the JSON value stored under [key] and persists the document.
   static Future<void> writeSection(String key, dynamic value) async {

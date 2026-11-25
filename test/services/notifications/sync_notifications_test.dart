@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:clock/clock.dart';
@@ -292,6 +293,67 @@ void main() {
       final dbMap = await AppDatabase.readDatabase();
       expect(dbMap.containsKey('reminders'), isTrue);
       expect(AppDatabase.isBackupJson('{"reminders": []}'), isTrue);
+    });
+
+    test('AppDatabase.invalidateCache and ReminderRepository.loadReminders observe external disk writes', () async {
+      final now = DateTime(2026, 6, 15, 8, 0);
+      const repo = ReminderRepository();
+
+      final initial = ReminderItem(
+        id: 'cross-iso-1',
+        title: 'Take morning walk',
+        scheduledAt: DateTime(2026, 6, 15, 8, 30),
+        recurrence: ReminderRecurrence.daily,
+        createdAt: now,
+      );
+      await repo.saveReminders([initial]);
+
+      // Confirm main-isolate cache is currently populated with initial state.
+      final cachedBefore = await AppDatabase.readSection('reminders') as List;
+      expect(
+        ReminderItem.fromJson(
+          Map<String, dynamic>.from(cachedBefore.single as Map),
+        ).lastTriggeredAt,
+        isNull,
+      );
+
+      // Simulate a background isolate updating wyrm_database.json directly on disk.
+      final dbFile = File('${tempDir.path}/${AppDatabase.databaseFileName}');
+      final diskDoc =
+          jsonDecode(await dbFile.readAsString()) as Map<String, dynamic>;
+      final dismissedOnDisk = initial.copyWith(
+        lastTriggeredAt: DateTime(2026, 6, 15, 8, 30),
+      );
+      diskDoc['reminders'] = [dismissedOnDisk.toJson()];
+      await dbFile.writeAsString(jsonEncode(diskDoc), flush: true);
+
+      // Without invalidateCache, cached readDatabase still sees stale state;
+      // ReminderRepository.loadReminders() invalidates cache and reads disk.
+      final staleCached = await AppDatabase.readSection('reminders') as List;
+      expect(
+        ReminderItem.fromJson(
+          Map<String, dynamic>.from(staleCached.single as Map),
+        ).lastTriggeredAt,
+        isNull,
+      );
+
+      final reloaded = await repo.loadReminders();
+      expect(reloaded, [dismissedOnDisk]);
+
+      // Subsequent explicit invalidateCache also refreshes direct readSection.
+      final snoozedOnDisk = dismissedOnDisk.copyWith(
+        snoozedUntil: DateTime(2026, 6, 15, 8, 40),
+      );
+      diskDoc['reminders'] = [snoozedOnDisk.toJson()];
+      await dbFile.writeAsString(jsonEncode(diskDoc), flush: true);
+      AppDatabase.invalidateCache();
+      final refreshed = await AppDatabase.readSection('reminders') as List;
+      expect(
+        ReminderItem.fromJson(
+          Map<String, dynamic>.from(refreshed.single as Map),
+        ),
+        snoozedOnDisk,
+      );
     });
   });
 }

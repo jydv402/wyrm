@@ -7,9 +7,11 @@ class ReminderRepository {
   /// Creates a [ReminderRepository].
   const ReminderRepository();
 
-  /// Loads all stored reminder items from the database.
+  /// Loads all stored reminder items fresh from disk (bypassing stale
+  /// in-memory cache in case a background isolate updated `'reminders'`).
   Future<List<ReminderItem>> loadReminders() async {
-    final raw = await AppDatabase.readSection('reminders');
+    AppDatabase.invalidateCache();
+    final raw = await AppDatabase.readSection('reminders', forceRefresh: true);
     return raw is List
         ? raw
               .whereType<Map<dynamic, dynamic>>()

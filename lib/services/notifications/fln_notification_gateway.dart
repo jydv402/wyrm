@@ -69,7 +69,8 @@ Future<void> handleNotificationShadeAction({
   if (reminderId != null &&
       (actionId == FlnNotificationGateway.actionDismissId ||
           actionId == FlnNotificationGateway.actionSnoozeId)) {
-    final raw = await AppDatabase.readSection('reminders');
+    AppDatabase.invalidateCache();
+    final raw = await AppDatabase.readSection('reminders', forceRefresh: true);
     final reminders = raw is List
         ? raw
               .whereType<Map<dynamic, dynamic>>()
