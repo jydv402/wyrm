@@ -1,5 +1,6 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
+import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:wyrm_desk/features/update_checker/models/update_info.dart';
 import 'package:wyrm_desk/theme/theme.dart';
@@ -121,7 +122,7 @@ class UpdateDialog extends StatelessWidget {
                     ),
                   ),
                   DuskGlassButton.icon(
-                    onPressed: () => Navigator.of(context).pop(),
+                    onPressed: () => context.pop(),
                     size: 32.0,
                     icon: const Icon(
                       Icons.close_rounded,
@@ -281,7 +282,7 @@ class UpdateDialog extends StatelessWidget {
                   children: [
                     Expanded(
                       child: DuskGlassButton(
-                        onPressed: () => Navigator.of(context).pop(),
+                        onPressed: () => context.pop(),
                         height: 42,
                         label: const Text(
                           'Later',
@@ -298,7 +299,7 @@ class UpdateDialog extends StatelessWidget {
                       flex: 2,
                       child: DuskGlassButton(
                         onPressed: () async {
-                          Navigator.of(context).pop();
+                          context.pop();
                           await _launchDownloadUrl(context);
                         },
                         height: 42,
@@ -328,7 +329,7 @@ class UpdateDialog extends StatelessWidget {
                 Align(
                   alignment: Alignment.centerRight,
                   child: DuskGlassButton(
-                    onPressed: () => Navigator.of(context).pop(),
+                    onPressed: () => context.pop(),
                     height: 40,
                     padding: const EdgeInsets.symmetric(horizontal: 24),
                     label: const Text(

@@ -1,6 +1,7 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:wyrm_desk/theme/theme.dart';
 import 'package:wyrm_desk/features/network/network_info.dart';
@@ -61,7 +62,7 @@ class NetworkConnectionModal extends ConsumerWidget {
   static void hide([WidgetRef? ref]) {
     if (!_isOpen) return;
     if (_dialogContext != null && _dialogContext!.mounted) {
-      Navigator.of(_dialogContext!).pop();
+      _dialogContext!.pop();
     }
     _isOpen = false;
     _dialogContext = null;
@@ -135,7 +136,7 @@ class NetworkConnectionModal extends ConsumerWidget {
                     ),
                   ),
                   DuskGlassButton.icon(
-                    onPressed: () => Navigator.of(context).pop(),
+                    onPressed: () => context.pop(),
                     size: 32.0,
                     icon: const Icon(
                       Icons.close_rounded,

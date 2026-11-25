@@ -1,22 +1,21 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:wyrm_desk/data/app_database.dart';
+import 'package:wyrm_desk/data/repositories/task_repository.dart';
 
 import 'task_model.dart';
 
-/// Manages reactive task checklist items and persists updates to AppDatabase.
+/// ViewModel managing reactive task checklist items and routing writes through [TaskRepository].
 class TasksNotifier extends Notifier<List<TaskItem>> {
+  TaskRepository get _repository => ref.read(taskRepositoryProvider);
+
   @override
   List<TaskItem> build() {
     _initializeFromDisk();
     return const [];
   }
 
-  /// Hydrates tasks from the `tasks` database section.
+  /// Hydrates tasks from the repository.
   Future<void> _initializeFromDisk() async {
-    final raw = await AppDatabase.readSection('tasks');
-    state = raw is List
-        ? raw.whereType<Map<String, dynamic>>().map(TaskItem.fromJson).toList()
-        : [];
+    state = await _repository.loadTasks();
   }
 
   /// Appends a new task item to the checklist.
@@ -33,7 +32,7 @@ class TasksNotifier extends Notifier<List<TaskItem>> {
 
     final updated = [...state, newTask];
     state = updated;
-    AppDatabase.writeSection('tasks', updated.map((t) => t.toJson()).toList());
+    _repository.saveTasks(updated);
   }
 
   /// Toggles the completion status of a specific task.
@@ -46,17 +45,17 @@ class TasksNotifier extends Notifier<List<TaskItem>> {
     }).toList();
 
     state = updated;
-    AppDatabase.writeSection('tasks', updated.map((t) => t.toJson()).toList());
+    _repository.saveTasks(updated);
   }
 
   /// Removes a task permanently from the checklist.
   void deleteTask(String id) {
     final updated = state.where((task) => task.id != id).toList();
     state = updated;
-    AppDatabase.writeSection('tasks', updated.map((t) => t.toJson()).toList());
+    _repository.saveTasks(updated);
   }
 
-  /// Reloads tasks from disk.
+  /// Reloads tasks from disk repository.
   Future<void> reloadFromDisk() async {
     await _initializeFromDisk();
   }

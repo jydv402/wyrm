@@ -1,11 +1,13 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:wyrm_desk/config/app_settings_state.dart';
 import 'package:wyrm_desk/config/card_layout_state.dart';
 import 'package:wyrm_desk/features/display/display_state.dart';
 import 'package:wyrm_desk/features/settings/widgets/setting_row.dart';
 import 'package:wyrm_desk/features/settings/widgets/settings_section_header.dart';
 import 'package:wyrm_desk/theme/theme.dart';
 import 'package:wyrm_desk/widgets/dusk_glass_panel.dart';
+import 'package:wyrm_desk/widgets/dusk_glass_pill.dart';
 
 /// Section 1: Display & Brightness panel.
 class DisplaySection extends ConsumerWidget {
@@ -16,6 +18,7 @@ class DisplaySection extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final displayState = ref.watch(displayProvider);
+    final settings = ref.watch(appSettingsProvider);
     final pct = (displayState.brightness * 100).round();
 
     return DuskGlassPanel(
@@ -43,6 +46,14 @@ class DisplaySection extends ConsumerWidget {
           ),
           const SizedBox(height: 12),
           SettingRow(
+            icon: Icons.format_size_rounded,
+            title: 'Text Scale Clamp',
+            subtitle:
+                'Restricts max scale to ${(settings.maxTextScaleFactor * 100).round()}% to prevent layout overflow',
+            trailing: _buildTextScaleControl(ref, settings),
+          ),
+          const SizedBox(height: 12),
+          SettingRow(
             icon: Icons.bedtime_rounded,
             title: 'Nightstand Mode',
             subtitle: 'Pitch-black ultra-low glare glowing clock for bedtime',
@@ -50,6 +61,42 @@ class DisplaySection extends ConsumerWidget {
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildTextScaleControl(WidgetRef ref, AppSettingsConfig settings) {
+    const options = [1.15, 1.25, 1.40];
+    final currentMax = settings.maxTextScaleFactor;
+
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        for (final opt in options) ...[
+          DuskGlassPill(
+            onTap: () {
+              ref
+                  .read(appSettingsProvider.notifier)
+                  .setTextScaleRange(max: opt);
+            },
+            tintColor: ((currentMax - opt).abs() < 0.01)
+                ? AppColors.glacierAccent
+                : null,
+            child: Text(
+              '${(opt * 100).round()}%',
+              style: TextStyle(
+                color: ((currentMax - opt).abs() < 0.01)
+                    ? AppColors.textPrimary
+                    : AppColors.textSecondary,
+                fontSize: 12,
+                fontWeight: ((currentMax - opt).abs() < 0.01)
+                    ? FontWeight.w700
+                    : FontWeight.w500,
+              ),
+            ),
+          ),
+          const SizedBox(width: 6),
+        ],
+      ],
     );
   }
 

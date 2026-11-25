@@ -1,13 +1,11 @@
 import 'package:material_ui/material_ui.dart';
-import 'package:wyrm_desk/theme/theme.dart';
 import 'package:wyrm_desk/features/habits/habit_model.dart';
-import 'package:wyrm_desk/features/habits/widgets/form/habit_color_picker.dart';
 import 'package:wyrm_desk/features/habits/widgets/form/habit_frequency_selector.dart';
 import 'package:wyrm_desk/features/habits/widgets/form/habit_icon_picker.dart';
 import 'package:wyrm_desk/features/habits/widgets/form/habit_target_stepper.dart';
 import 'package:wyrm_desk/features/keyboard/in_app_keyboard_text_field.dart';
+import 'package:wyrm_desk/theme/theme.dart';
 
-export 'package:wyrm_desk/features/habits/widgets/form/habit_color_picker.dart';
 export 'package:wyrm_desk/features/habits/widgets/form/habit_frequency_selector.dart';
 export 'package:wyrm_desk/features/habits/widgets/form/habit_icon_picker.dart';
 export 'package:wyrm_desk/features/habits/widgets/form/habit_target_stepper.dart';
@@ -111,14 +109,6 @@ class HabitFormContent extends StatelessWidget {
           onIconChanged: onIconChanged,
           onChanged: onChanged,
         ),
-        if (selectedColorHex != null && onColorChanged != null) ...[
-          const SizedBox(height: 18),
-          HabitColorPicker(
-            selectedColorHex: selectedColorHex!,
-            onColorChanged: onColorChanged!,
-            onChanged: onChanged,
-          ),
-        ],
       ],
     );
   }

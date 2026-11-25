@@ -1,4 +1,5 @@
 import 'package:material_ui/material_ui.dart';
+import 'package:go_router/go_router.dart';
 import 'package:wyrm_desk/theme/theme.dart';
 
 /// Top bar with back button, editor title, Cancel, and Save actions.
@@ -25,7 +26,7 @@ class TwoPaneHeader extends StatelessWidget {
     return Row(
       children: [
         IconButton(
-          onPressed: () => Navigator.of(context).pop(),
+          onPressed: () => context.pop(),
           icon: const Icon(Icons.arrow_back_rounded),
           color: AppColors.textPrimary,
           splashRadius: 20,
@@ -42,7 +43,7 @@ class TwoPaneHeader extends StatelessWidget {
         ),
         const Spacer(),
         TextButton(
-          onPressed: () => Navigator.of(context).pop(),
+          onPressed: () => context.pop(),
           child: const Text(
             'Cancel',
             style: TextStyle(

@@ -1,5 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:wyrm_desk/data/app_database.dart';
+import 'package:wyrm_desk/data/repositories/settings_repository.dart';
 
 /// Immutable configuration model storing user preferences.
 class AppSettingsConfig {
@@ -18,12 +18,20 @@ class AppSettingsConfig {
   /// GitHub repository slug queried for updates (format: 'owner/repo').
   final String githubRepo;
 
+  /// Minimum clamped text scale factor on tablet displays (default: 0.85).
+  final double minTextScaleFactor;
+
+  /// Maximum clamped text scale factor on tablet displays (default: 1.15).
+  final double maxTextScaleFactor;
+
   const AppSettingsConfig({
     this.is24HourFormat = false,
     this.cardFontSize = 14.0,
     this.startWeekOnMonday = false,
     this.enableAutoUpdateChecks = true,
     this.githubRepo = 'jydv402/wyrm',
+    this.minTextScaleFactor = 0.85,
+    this.maxTextScaleFactor = 1.15,
   });
 
   /// Returns a copy of the configuration with specified overrides.
@@ -33,6 +41,8 @@ class AppSettingsConfig {
     bool? startWeekOnMonday,
     bool? enableAutoUpdateChecks,
     String? githubRepo,
+    double? minTextScaleFactor,
+    double? maxTextScaleFactor,
   }) {
     return AppSettingsConfig(
       is24HourFormat: is24HourFormat ?? this.is24HourFormat,
@@ -41,6 +51,8 @@ class AppSettingsConfig {
       enableAutoUpdateChecks:
           enableAutoUpdateChecks ?? this.enableAutoUpdateChecks,
       githubRepo: githubRepo ?? this.githubRepo,
+      minTextScaleFactor: minTextScaleFactor ?? this.minTextScaleFactor,
+      maxTextScaleFactor: maxTextScaleFactor ?? this.maxTextScaleFactor,
     );
   }
 
@@ -52,6 +64,8 @@ class AppSettingsConfig {
       'start_week_on_monday': startWeekOnMonday,
       'enable_auto_update_checks': enableAutoUpdateChecks,
       'github_repo': githubRepo,
+      'min_text_scale_factor': minTextScaleFactor,
+      'max_text_scale_factor': maxTextScaleFactor,
     };
   }
 
@@ -64,24 +78,27 @@ class AppSettingsConfig {
       enableAutoUpdateChecks:
           json['enable_auto_update_checks'] as bool? ?? true,
       githubRepo: json['github_repo'] as String? ?? 'jydv402/wyrm',
+      minTextScaleFactor:
+          (json['min_text_scale_factor'] as num?)?.toDouble() ?? 0.85,
+      maxTextScaleFactor:
+          (json['max_text_scale_factor'] as num?)?.toDouble() ?? 1.15,
     );
   }
 }
 
-/// Manages reactive application settings state and auto-persists updates.
+/// Manages reactive application settings state and auto-persists updates via [SettingsRepository].
 class AppSettingsNotifier extends Notifier<AppSettingsConfig> {
+  SettingsRepository get _repository => ref.read(settingsRepositoryProvider);
+
   @override
   AppSettingsConfig build() {
     _initializeFromDisk();
     return const AppSettingsConfig();
   }
 
-  /// Hydrates settings state from the `settings` database section.
+  /// Hydrates settings state from repository.
   Future<void> _initializeFromDisk() async {
-    final raw = await AppDatabase.readSection('settings');
-    state = raw is Map<String, dynamic>
-        ? AppSettingsConfig.fromJson(raw)
-        : const AppSettingsConfig();
+    state = await _repository.loadSettings();
   }
 
   /// Toggles between 12-hour and 24-hour clock formats.
@@ -93,7 +110,7 @@ class AppSettingsNotifier extends Notifier<AppSettingsConfig> {
   void set24HourFormat(bool value) {
     final updated = state.copyWith(is24HourFormat: value);
     state = updated;
-    AppDatabase.writeSection('settings', updated.toJson());
+    _repository.saveSettings(updated);
   }
 
   /// Sets an explicit font size for card text, clamped between 11.0 and 22.0 pt.
@@ -101,7 +118,17 @@ class AppSettingsNotifier extends Notifier<AppSettingsConfig> {
     final clamped = size.clamp(11.0, 22.0);
     final updated = state.copyWith(cardFontSize: clamped);
     state = updated;
-    AppDatabase.writeSection('settings', updated.toJson());
+    _repository.saveSettings(updated);
+  }
+
+  /// Sets the min and max text scale factor boundaries.
+  void setTextScaleRange({double? min, double? max}) {
+    final updated = state.copyWith(
+      minTextScaleFactor: min?.clamp(0.5, 1.0),
+      maxTextScaleFactor: max?.clamp(1.0, 2.0),
+    );
+    state = updated;
+    _repository.saveSettings(updated);
   }
 
   /// Toggles whether calendar weeks start on Monday vs. Sunday.
@@ -113,7 +140,7 @@ class AppSettingsNotifier extends Notifier<AppSettingsConfig> {
   void setStartWeekOnMonday(bool value) {
     final updated = state.copyWith(startWeekOnMonday: value);
     state = updated;
-    AppDatabase.writeSection('settings', updated.toJson());
+    _repository.saveSettings(updated);
   }
 
   /// Toggles automatic hourly update checks.
@@ -125,17 +152,17 @@ class AppSettingsNotifier extends Notifier<AppSettingsConfig> {
   void setAutoUpdateChecks(bool value) {
     final updated = state.copyWith(enableAutoUpdateChecks: value);
     state = updated;
-    AppDatabase.writeSection('settings', updated.toJson());
+    _repository.saveSettings(updated);
   }
 
   /// Sets the GitHub repository slug for update checks.
   void setGithubRepo(String repo) {
     final updated = state.copyWith(githubRepo: repo.trim());
     state = updated;
-    AppDatabase.writeSection('settings', updated.toJson());
+    _repository.saveSettings(updated);
   }
 
-  /// Reloads application settings from disk.
+  /// Reloads application settings from disk repository.
   Future<void> reloadFromDisk() async {
     await _initializeFromDisk();
   }

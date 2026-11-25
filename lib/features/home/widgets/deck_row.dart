@@ -101,16 +101,18 @@ class DeckRow extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             // Column 1: Clock Container
-            AnimatedContainer(
-              key: clockKey,
-              duration: const Duration(milliseconds: 380),
-              curve: Curves.easeInOutCubic,
-              width: clockWidth,
-              child: ClockContainer(
-                currentSize: config.clock,
-                onSelectSize: (size) =>
-                    onSelectSize(DashboardCardType.clock, size),
-                child: clockWidget,
+            RepaintBoundary(
+              child: AnimatedContainer(
+                key: clockKey,
+                duration: const Duration(milliseconds: 380),
+                curve: Curves.easeInOutCubic,
+                width: clockWidth,
+                child: ClockContainer(
+                  currentSize: config.clock,
+                  onSelectSize: (size) =>
+                      onSelectSize(DashboardCardType.clock, size),
+                  child: clockWidget,
+                ),
               ),
             ),
 
@@ -118,56 +120,62 @@ class DeckRow extends StatelessWidget {
 
             // Column 2: Center Section (Stacked Habits & Calendar)
             if (centerStacked)
-              AnimatedContainer(
-                duration: const Duration(milliseconds: 380),
-                curve: Curves.easeInOutCubic,
-                width: centerStackedWidth,
-                child: Column(
-                  children: [
-                    Expanded(
-                      flex: 4,
-                      child: HabitsCard(
-                        key: habitsKey,
-                        currentSize: config.habits,
-                        onSelectSize: (size) =>
-                            onSelectSize(DashboardCardType.habits, size),
+              RepaintBoundary(
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 380),
+                  curve: Curves.easeInOutCubic,
+                  width: centerStackedWidth,
+                  child: Column(
+                    children: [
+                      Expanded(
+                        flex: 4,
+                        child: HabitsCard(
+                          key: habitsKey,
+                          currentSize: config.habits,
+                          onSelectSize: (size) =>
+                              onSelectSize(DashboardCardType.habits, size),
+                        ),
                       ),
-                    ),
-                    SizedBox(height: spacing),
-                    Expanded(
-                      flex: 6,
-                      child: CalendarCard(
-                        key: calendarKey,
-                        currentSize: config.calendar,
-                        onSelectSize: (size) =>
-                            onSelectSize(DashboardCardType.calendar, size),
+                      SizedBox(height: spacing),
+                      Expanded(
+                        flex: 6,
+                        child: CalendarCard(
+                          key: calendarKey,
+                          currentSize: config.calendar,
+                          onSelectSize: (size) =>
+                              onSelectSize(DashboardCardType.calendar, size),
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               )
             else ...[
-              AnimatedContainer(
-                key: habitsKey,
-                duration: const Duration(milliseconds: 380),
-                curve: Curves.easeInOutCubic,
-                width: habitsWidth,
-                child: HabitsCard(
-                  currentSize: config.habits,
-                  onSelectSize: (size) =>
-                      onSelectSize(DashboardCardType.habits, size),
+              RepaintBoundary(
+                child: AnimatedContainer(
+                  key: habitsKey,
+                  duration: const Duration(milliseconds: 380),
+                  curve: Curves.easeInOutCubic,
+                  width: habitsWidth,
+                  child: HabitsCard(
+                    currentSize: config.habits,
+                    onSelectSize: (size) =>
+                        onSelectSize(DashboardCardType.habits, size),
+                  ),
                 ),
               ),
               SizedBox(width: spacing),
-              AnimatedContainer(
-                key: calendarKey,
-                duration: const Duration(milliseconds: 380),
-                curve: Curves.easeInOutCubic,
-                width: calendarWidth,
-                child: CalendarCard(
-                  currentSize: config.calendar,
-                  onSelectSize: (size) =>
-                      onSelectSize(DashboardCardType.calendar, size),
+              RepaintBoundary(
+                child: AnimatedContainer(
+                  key: calendarKey,
+                  duration: const Duration(milliseconds: 380),
+                  curve: Curves.easeInOutCubic,
+                  width: calendarWidth,
+                  child: CalendarCard(
+                    currentSize: config.calendar,
+                    onSelectSize: (size) =>
+                        onSelectSize(DashboardCardType.calendar, size),
+                  ),
                 ),
               ),
             ],
@@ -175,15 +183,17 @@ class DeckRow extends StatelessWidget {
             SizedBox(width: spacing),
 
             // Column 3: Tasks Container
-            AnimatedContainer(
-              key: tasksKey,
-              duration: const Duration(milliseconds: 380),
-              curve: Curves.easeInOutCubic,
-              width: tasksWidth,
-              child: TasksCard(
-                currentSize: config.tasks,
-                onSelectSize: (size) =>
-                    onSelectSize(DashboardCardType.tasks, size),
+            RepaintBoundary(
+              child: AnimatedContainer(
+                key: tasksKey,
+                duration: const Duration(milliseconds: 380),
+                curve: Curves.easeInOutCubic,
+                width: tasksWidth,
+                child: TasksCard(
+                  currentSize: config.tasks,
+                  onSelectSize: (size) =>
+                      onSelectSize(DashboardCardType.tasks, size),
+                ),
               ),
             ),
           ],

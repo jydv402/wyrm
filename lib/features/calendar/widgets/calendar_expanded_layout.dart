@@ -1,13 +1,15 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:wyrm_desk/config/app_settings_state.dart';
 import 'package:wyrm_desk/features/calendar/calendar_state.dart';
-import 'package:wyrm_desk/features/calendar/milestone_form_content.dart';
 import 'package:wyrm_desk/features/calendar/widgets/calendar_month_view.dart';
 import 'package:wyrm_desk/features/calendar/widgets/milestone_tile.dart';
-import 'package:wyrm_desk/features/keyboard/two_pane_keyboard_scaffold.dart';
+import 'package:wyrm_desk/routing/app_router.dart';
 import 'package:wyrm_desk/theme/theme.dart';
 import 'package:wyrm_desk/widgets/dusk_glass_button.dart';
+
+export 'package:wyrm_desk/features/calendar/milestone_editor_screen.dart';
 
 /// Dual-pane expanded view for Medium and Fullscreen modes.
 class CalendarExpandedLayout extends ConsumerWidget {
@@ -118,73 +120,11 @@ class CalendarExpandedLayout extends ConsumerWidget {
   }
 }
 
-/// Opens the full-screen two-pane virtual keyboard milestone editor.
+/// Opens the full-screen two-pane virtual keyboard milestone editor using GoRouter.
 void openMilestoneTwoPaneEditor(
   BuildContext context,
   WidgetRef ref, {
   DateTime? initialDate,
 }) {
-  final titleController = TextEditingController();
-  var selectedTargetDate =
-      initialDate ?? ref.read(calendarProvider).selectedDate;
-  var isPinned = false;
-
-  Navigator.of(context).push<void>(
-    MaterialPageRoute(
-      builder: (context) => StatefulBuilder(
-        builder: (context, setEditorState) => _buildMilestoneEditorScaffold(
-          context,
-          ref,
-          titleController,
-          selectedTargetDate,
-          isPinned,
-          (picked) => setEditorState(() => selectedTargetDate = picked),
-          (val) => setEditorState(() => isPinned = val),
-          () => setEditorState(() {}),
-        ),
-      ),
-    ),
-  );
-}
-
-Widget _buildMilestoneEditorScaffold(
-  BuildContext context,
-  WidgetRef ref,
-  TextEditingController titleController,
-  DateTime selectedDate,
-  bool isPinned,
-  ValueChanged<DateTime> onDateChanged,
-  ValueChanged<bool> onPinnedChanged,
-  VoidCallback onChanged,
-) {
-  void onSave() {
-    final title = titleController.text.trim();
-    if (title.isNotEmpty) {
-      ref
-          .read(calendarProvider.notifier)
-          .addMilestone(title, selectedDate, isPinned: isPinned);
-      Navigator.of(context).pop();
-    }
-  }
-
-  return TwoPaneKeyboardScaffold(
-    title: 'New Milestone',
-    saveLabel: 'Save Milestone',
-    saveButtonColor: AppColors.goldAccent,
-    saveTextColor: Colors.black,
-    onSave: onSave,
-    formBuilder: (ctx, kb) => MilestoneFormContent(
-      titleController: titleController,
-      selectedDate: selectedDate,
-      isPinned: isPinned,
-      onDateChanged: onDateChanged,
-      onPinnedChanged: onPinnedChanged,
-      onChanged: onChanged,
-    ),
-    previewBuilder: (ctx) => MilestonePreviewCard(
-      title: titleController.text,
-      targetDate: selectedDate,
-      isPinned: isPinned,
-    ),
-  );
+  context.push(AppRoutes.milestoneEditor, extra: initialDate);
 }

@@ -8,6 +8,7 @@ import 'package:wyrm_desk/features/calendar/widgets/calendar_month_view.dart';
 import 'package:wyrm_desk/theme/theme.dart';
 import 'package:wyrm_desk/widgets/dusk_card_scaffold.dart';
 
+export 'package:wyrm_desk/features/calendar/milestone_editor_screen.dart';
 export 'package:wyrm_desk/features/calendar/widgets/calendar_date_banner.dart';
 export 'package:wyrm_desk/features/calendar/widgets/calendar_expanded_layout.dart';
 export 'package:wyrm_desk/features/calendar/widgets/calendar_grid.dart';

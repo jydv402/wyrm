@@ -1,7 +1,7 @@
 import 'dart:math' as math;
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:wyrm_desk/data/app_database.dart';
+import 'package:wyrm_desk/data/repositories/habit_repository.dart';
 
 import 'habit_model.dart';
 
@@ -43,8 +43,10 @@ class HabitsState {
   }
 }
 
-/// Manages reactive habits operations, check-ins, steppers, and persistence.
+/// Manages reactive habits operations, check-ins, steppers, and persistence via [HabitRepository].
 class HabitsNotifier extends Notifier<HabitsState> {
+  HabitRepository get _repository => ref.read(habitRepositoryProvider);
+
   @override
   HabitsState build() {
     _initializeFromDisk();
@@ -52,10 +54,7 @@ class HabitsNotifier extends Notifier<HabitsState> {
   }
 
   Future<void> _initializeFromDisk() async {
-    final raw = await AppDatabase.readSection('habits');
-    final loaded = raw is List
-        ? raw.whereType<Map<String, dynamic>>().map(HabitItem.fromJson).toList()
-        : <HabitItem>[];
+    final loaded = await _repository.loadHabits();
     // Full completion history is kept in memory; month scoping happens at
     // render time (streak/heatmap math filters by date-key prefix), so
     // stripping here would permanently delete prior-month history on every
@@ -70,10 +69,7 @@ class HabitsNotifier extends Notifier<HabitsState> {
       habits: updated,
       selectedCarouselIndex: updated.length - 1,
     );
-    await AppDatabase.writeSection(
-      'habits',
-      updated.map((h) => h.toJson()).toList(),
-    );
+    await _repository.saveHabits(updated);
   }
 
   /// Modifies an existing habit item and persists to the database.
@@ -82,10 +78,7 @@ class HabitsNotifier extends Notifier<HabitsState> {
         .map((h) => h.id == habit.id ? habit : h)
         .toList();
     state = state.copyWith(habits: updated);
-    await AppDatabase.writeSection(
-      'habits',
-      updated.map((h) => h.toJson()).toList(),
-    );
+    await _repository.saveHabits(updated);
   }
 
   /// Removes a habit item and adjusts carousel focus if needed.
@@ -95,10 +88,7 @@ class HabitsNotifier extends Notifier<HabitsState> {
         ? 0
         : math.min(state.selectedCarouselIndex, updated.length - 1);
     state = state.copyWith(habits: updated, selectedCarouselIndex: newIndex);
-    await AppDatabase.writeSection(
-      'habits',
-      updated.map((h) => h.toJson()).toList(),
-    );
+    await _repository.saveHabits(updated);
   }
 
   /// Toggles completion status for a habit on the given date (defaults to today).
@@ -122,10 +112,7 @@ class HabitsNotifier extends Notifier<HabitsState> {
     }).toList();
 
     state = state.copyWith(habits: updated);
-    await AppDatabase.writeSection(
-      'habits',
-      updated.map((h) => h.toJson()).toList(),
-    );
+    await _repository.saveHabits(updated);
   }
 
   /// Increments or decrements completion progress for a numeric habit on the given date.
@@ -154,10 +141,7 @@ class HabitsNotifier extends Notifier<HabitsState> {
     }).toList();
 
     state = state.copyWith(habits: updated);
-    await AppDatabase.writeSection(
-      'habits',
-      updated.map((h) => h.toJson()).toList(),
-    );
+    await _repository.saveHabits(updated);
   }
 
   /// Cycles carousel forward or backward in Small card mode.

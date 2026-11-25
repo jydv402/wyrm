@@ -1,3 +1,4 @@
+import 'package:go_router/go_router.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:wyrm_desk/theme/theme.dart';
 import 'package:wyrm_desk/widgets/dusk_glass_button.dart';
@@ -23,7 +24,7 @@ class SettingsTopBar extends StatelessWidget {
 
   Widget _buildBackButton(BuildContext context) {
     return DuskGlassButton.icon(
-      onPressed: () => Navigator.of(context).pop(),
+      onPressed: () => context.pop(),
       size: 40.0,
       icon: const Icon(
         Icons.arrow_back_rounded,
@@ -86,7 +87,7 @@ class SettingsTopBar extends StatelessWidget {
 
   Widget _buildCloseButton(BuildContext context) {
     return DuskGlassButton.icon(
-      onPressed: () => Navigator.of(context).pop(),
+      onPressed: () => context.pop(),
       size: 40.0,
       icon: const Icon(
         Icons.close_rounded,

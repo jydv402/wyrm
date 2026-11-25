@@ -1,4 +1,5 @@
 import 'package:material_ui/material_ui.dart';
+import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:wyrm_desk/core/date_names.dart';
 import 'package:wyrm_desk/theme/theme.dart';
@@ -45,15 +46,15 @@ class DatePickerHeader extends StatelessWidget {
     final dateStr = DateFormat('EEEE, MMM d, yyyy').format(selectedDate);
 
     return Row(
+      spacing: 16,
       children: [
         const Icon(
           Icons.explore_rounded,
           size: 20,
           color: AppColors.goldAccent,
         ),
-        const SizedBox(width: 12),
-        Expanded(child: _buildTitleColumn(dateStr)),
-        const SizedBox(width: 8),
+        _buildTitleColumn(dateStr),
+        const Spacer(),
         _buildCloseButton(context),
       ],
     );
@@ -89,7 +90,7 @@ class DatePickerHeader extends StatelessWidget {
 
   Widget _buildCloseButton(BuildContext context) {
     return DuskGlassButton.icon(
-      onPressed: onClose ?? () => Navigator.of(context).pop(null),
+      onPressed: onClose ?? () => context.pop(null),
       icon: const Icon(Icons.close_rounded, size: 20),
       size: 38,
     );

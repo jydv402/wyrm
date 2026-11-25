@@ -1,4 +1,5 @@
 import 'package:material_ui/material_ui.dart';
+import 'package:go_router/go_router.dart';
 import 'package:wyrm_desk/features/calendar/widgets/date_picker/date_picker_actions.dart';
 import 'package:wyrm_desk/features/calendar/widgets/date_picker/date_picker_day_grid.dart';
 import 'package:wyrm_desk/features/calendar/widgets/date_picker/date_picker_header.dart';
@@ -245,7 +246,7 @@ class _DuskDatePickerDialogState extends State<DuskDatePickerDialog> {
               onToggleMonth: _toggleMonthMode,
               onToggleYear: _toggleYearMode,
               onShiftMonth: _shiftMonth,
-              onClose: () => Navigator.of(context).pop(null),
+              onClose: () => context.pop(null),
             ),
             const SizedBox(height: 14),
             Expanded(child: _buildPickerBody()),
@@ -253,8 +254,8 @@ class _DuskDatePickerDialogState extends State<DuskDatePickerDialog> {
             DatePickerActions(
               cancelText: widget.cancelText,
               confirmText: widget.confirmText,
-              onCancel: () => Navigator.of(context).pop(null),
-              onConfirm: () => Navigator.of(context).pop(_selectedDate),
+              onCancel: () => context.pop(null),
+              onConfirm: () => context.pop(_selectedDate),
             ),
           ],
         ),
@@ -267,18 +268,15 @@ class _DuskDatePickerDialogState extends State<DuskDatePickerDialog> {
       duration: const Duration(milliseconds: 200),
       child: switch (_mode) {
         DuskDatePickerMode.day => DatePickerDayGrid(
-          key: const ValueKey('day_picker'),
           viewMonth: _viewMonth,
           selectedDate: _selectedDate,
           onSelectDay: _selectDay,
         ),
         DuskDatePickerMode.month => DatePickerMonthGrid(
-          key: const ValueKey('month_picker'),
           viewMonth: _viewMonth,
           onSelectMonth: _selectMonth,
         ),
         DuskDatePickerMode.year => DatePickerYearSelector(
-          key: const ValueKey('year_picker'),
           controller: _yearScrollController,
           minLoadedYear: _minLoadedYear,
           maxLoadedYear: _maxLoadedYear,

@@ -1,4 +1,5 @@
 import 'package:material_ui/material_ui.dart';
+import 'package:motor/motor.dart';
 import 'package:wyrm_desk/theme/theme.dart';
 
 /// Interactive Dusk Glass button with tactile press scaling and subtle glowing borders.
@@ -130,10 +131,22 @@ class _DuskGlassButtonState extends State<DuskGlassButton> {
       content = const SizedBox.shrink();
     }
 
-    return AnimatedScale(
-      scale: _isPressed ? 0.94 : 1.0,
-      duration: const Duration(milliseconds: 120),
-      curve: Curves.easeOutCubic,
+    final disableMotion = MediaQuery.disableAnimationsOf(context);
+    final targetScale = (isEnabled && _isPressed && !disableMotion)
+        ? 0.94
+        : 1.0;
+    final motion = _isPressed
+        ? const Motion.snappySpring(duration: Duration(milliseconds: 120))
+        : const Motion.bouncySpring(
+            duration: Duration(milliseconds: 320),
+            extraBounce: 0.1,
+          );
+
+    return SingleMotionBuilder(
+      value: targetScale,
+      motion: disableMotion ? const Motion.none() : motion,
+      builder: (context, scale, child) =>
+          Transform.scale(scale: scale, child: child),
       child: Material(
         color: Colors.transparent,
         child: InkWell(

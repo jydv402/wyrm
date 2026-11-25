@@ -1,5 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:wyrm_desk/data/app_database.dart';
+import 'package:wyrm_desk/data/repositories/calendar_repository.dart';
 
 import 'calendar_model.dart';
 
@@ -146,8 +146,10 @@ class CalendarState {
   }
 }
 
-/// Manages reactive calendar operations and local database persistence.
+/// Manages reactive calendar operations and data persistence via [CalendarRepository].
 class CalendarNotifier extends Notifier<CalendarState> {
+  CalendarRepository get _repository => ref.read(calendarRepositoryProvider);
+
   @override
   CalendarState build() {
     final today = CalendarState.todayMidnight;
@@ -159,13 +161,7 @@ class CalendarNotifier extends Notifier<CalendarState> {
   }
 
   Future<void> _initializeFromDisk() async {
-    final raw = await AppDatabase.readSection('calendar');
-    final loaded = raw is List
-        ? raw
-              .whereType<Map<String, dynamic>>()
-              .map(CalendarMilestone.fromJson)
-              .toList()
-        : <CalendarMilestone>[];
+    final loaded = await _repository.loadMilestones();
     state = state.copyWith(milestones: loaded);
   }
 
@@ -221,20 +217,14 @@ class CalendarNotifier extends Notifier<CalendarState> {
 
     final updated = [...state.milestones, newMilestone];
     state = state.copyWith(milestones: updated);
-    await AppDatabase.writeSection(
-      'calendar',
-      updated.map((m) => m.toJson()).toList(),
-    );
+    await _repository.saveMilestones(updated);
   }
 
   /// Deletes a milestone by ID and updates storage.
   Future<void> deleteMilestone(String id) async {
     final updated = state.milestones.where((m) => m.id != id).toList();
     state = state.copyWith(milestones: updated);
-    await AppDatabase.writeSection(
-      'calendar',
-      updated.map((m) => m.toJson()).toList(),
-    );
+    await _repository.saveMilestones(updated);
   }
 
   /// Toggles pinned state of a milestone.
@@ -246,10 +236,7 @@ class CalendarNotifier extends Notifier<CalendarState> {
       return m;
     }).toList();
     state = state.copyWith(milestones: updated);
-    await AppDatabase.writeSection(
-      'calendar',
-      updated.map((m) => m.toJson()).toList(),
-    );
+    await _repository.saveMilestones(updated);
   }
 
   /// Reloads calendar milestones from disk.

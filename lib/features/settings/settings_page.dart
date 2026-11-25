@@ -1,6 +1,8 @@
+import 'package:go_router/go_router.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:package_info_plus/package_info_plus.dart';
+import 'package:wyrm_desk/routing/app_router.dart';
 import 'package:wyrm_desk/features/settings/widgets/settings_ambient_backdrop.dart';
 import 'package:wyrm_desk/features/settings/widgets/settings_content_pane.dart';
 import 'package:wyrm_desk/features/settings/widgets/settings_top_bar.dart';
@@ -31,11 +33,9 @@ final packageInfoProvider = FutureProvider.autoDispose<PackageInfo>((ref) {
 class SettingsPage extends ConsumerWidget {
   const SettingsPage({super.key});
 
-  /// Opens the settings page as a fullscreen modal route.
+  /// Opens the settings page using GoRouter.
   static Future<void> open(BuildContext context) {
-    return Navigator.of(
-      context,
-    ).push<void>(MaterialPageRoute<void>(builder: (_) => const SettingsPage()));
+    return context.push<void>(AppRoutes.settings);
   }
 
   @override

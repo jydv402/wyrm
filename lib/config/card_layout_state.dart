@@ -1,6 +1,6 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:wyrm_desk/data/app_database.dart';
+import 'package:wyrm_desk/data/repositories/card_layout_repository.dart';
 import 'package:wyrm_desk/widgets/card_edit_button.dart';
 
 /// Available sizing dimensions for bento cards across the horizontal layout.
@@ -192,25 +192,25 @@ class CardLayoutConfig {
 
 /// Manages reactive layout sizing state and persists modifications to JSON.
 class CardLayoutNotifier extends Notifier<CardLayoutConfig> {
+  CardLayoutRepository get _repository =>
+      ref.read(cardLayoutRepositoryProvider);
+
   @override
   CardLayoutConfig build() {
     _initializeFromDisk();
     return const CardLayoutConfig();
   }
 
-  /// Asynchronously hydrates state from the `layout` database section.
+  /// Asynchronously hydrates state from the layout repository.
   Future<void> _initializeFromDisk() async {
-    final raw = await AppDatabase.readSection('layout');
-    state = raw is Map<String, dynamic>
-        ? CardLayoutConfig.fromJson(raw)
-        : const CardLayoutConfig();
+    state = await _repository.loadLayout();
   }
 
   /// Sets an explicit size for the given card.
   void setCardSize(DashboardCardType type, CardSize size) {
     final updatedConfig = state.withSize(type, size);
     state = updatedConfig;
-    AppDatabase.writeSection('layout', updatedConfig.toJson());
+    _repository.saveLayout(updatedConfig);
   }
 
   /// Reloads layout configuration from disk.
