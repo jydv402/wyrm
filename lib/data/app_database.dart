@@ -23,6 +23,7 @@ class AppDatabase {
     'tasks',
     'habits',
     'calendar',
+    'reminders',
     'display',
   };
 
@@ -234,6 +235,7 @@ class AppDatabase {
       'tasks': <dynamic>[],
       'habits': <dynamic>[],
       'calendar': <dynamic>[],
+      'reminders': <dynamic>[],
       'display': <String, dynamic>{},
     };
     await writeDatabase(document);
