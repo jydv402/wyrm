@@ -15,7 +15,7 @@
  * Components get state and actions through inject('wyrm'), see createWyrmActions().
  */
 (function () {
-  const { ref, computed, inject, onMounted, onUnmounted, nextTick } = Vue;
+  const { ref, computed, inject, watch, onMounted, onUnmounted, nextTick } = Vue;
 
   const components = {};
   const directives = {};
@@ -244,6 +244,8 @@
     { id: 'tasks', label: 'Tasks', icon: 'checkbox', tone: 'rust', view: 'view-tasks' },
     { id: 'habits', label: 'Habits', icon: 'leaf', tone: 'teal', view: 'view-habits' },
     { id: 'cal', label: 'Calendar', icon: 'calendar', tone: 'gold', view: 'view-calendar' },
+    { id: 'reminder', label: 'Reminders', icon: 'bell', tone: 'plum', view: 'view-reminder' },
+    { id: 'sharing', label: 'Sharing', icon: 'share', tone: 'cobalt', view: 'view-sharing' },
     { id: 'sys', label: 'Settings', icon: 'gear', tone: 'slate', view: 'view-settings' },
   ];
 
@@ -265,14 +267,65 @@
       </button>`,
   };
 
-  /** One component, two layouts: a sidebar on desktop, a floating bottom bar on mobile (CSS only). */
+  /** One component, two layouts: a scrollable sidebar on desktop, a scrollable pill bar on mobile (CSS only). */
   components.NavRail = {
     name: 'NavRail',
     setup() {
       const wyrm = inject('wyrm');
+      const navEl = ref(null);
+      const fadeStart = ref(false);
+      const fadeEnd = ref(false);
       const index = computed(() => Math.max(0, DESTINATIONS.findIndex((d) => d.id === wyrm.state.currentChannel)));
       const openTasks = computed(() => wyrm.state.tasks.filter((t) => !t.is_completed).length);
-      return { wyrm, destinations: DESTINATIONS, index, openTasks };
+      let resizeObserver = null;
+
+      function updateNavScrollState() {
+        const el = navEl.value;
+        if (!el) return;
+        const isHorizontal = typeof window !== 'undefined' && window.matchMedia('(max-width: 879px)').matches;
+        if (isHorizontal) {
+          const maxX = el.scrollWidth - el.clientWidth;
+          fadeStart.value = maxX > 2 && el.scrollLeft > 4;
+          fadeEnd.value = maxX > 2 && el.scrollLeft < maxX - 4;
+        } else {
+          const maxY = el.scrollHeight - el.clientHeight;
+          fadeStart.value = maxY > 2 && el.scrollTop > 4;
+          fadeEnd.value = maxY > 2 && el.scrollTop < maxY - 4;
+        }
+      }
+
+      function scrollActiveIntoView() {
+        nextTick(() => {
+          const el = navEl.value;
+          if (!el) return;
+          const active = el.querySelector('.nav-item.is-active');
+          if (active && typeof active.scrollIntoView === 'function') {
+            active.scrollIntoView({ block: 'nearest', inline: 'center', behavior: 'smooth' });
+          }
+          updateNavScrollState();
+        });
+      }
+
+      watch(index, scrollActiveIntoView);
+
+      onMounted(() => {
+        scrollActiveIntoView();
+        window.addEventListener('resize', updateNavScrollState);
+        if (typeof ResizeObserver !== 'undefined' && navEl.value) {
+          resizeObserver = new ResizeObserver(updateNavScrollState);
+          resizeObserver.observe(navEl.value);
+        }
+      });
+
+      onUnmounted(() => {
+        window.removeEventListener('resize', updateNavScrollState);
+        if (resizeObserver) {
+          resizeObserver.disconnect();
+          resizeObserver = null;
+        }
+      });
+
+      return { wyrm, navEl, fadeStart, fadeEnd, updateNavScrollState, destinations: DESTINATIONS, index, openTasks };
     },
     template: `
       <ui-panel class="nav-rail">
@@ -283,7 +336,11 @@
             <div class="nav-brand__sub">Desk Remote</div>
           </div>
         </div>
-        <nav class="nav-items" aria-label="Destinations" :style="{ '--i': index, '--n': destinations.length }">
+        <nav ref="navEl" class="nav-items"
+             :class="{ 'has-fade-start': fadeStart, 'has-fade-end': fadeEnd }"
+             aria-label="Destinations"
+             :style="{ '--i': index, '--n': destinations.length }"
+             @scroll="updateNavScrollState">
           <span class="nav-thumb" aria-hidden="true"></span>
           <nav-item v-for="d in destinations" :key="d.id" :icon="d.icon" :label="d.label" :tone="d.tone"
                     :active="d.id === wyrm.state.currentChannel"
@@ -1191,23 +1248,42 @@
       </ui-panel>`,
   };
 
+  const DECK_CARDS = [
+    { id: 'clock', label: 'Clock', hint: 'Time and date', icon: 'clock', tone: 'slate' },
+    { id: 'habits', label: 'Habits', hint: "Today's progress", icon: 'leaf', tone: 'teal' },
+    { id: 'calendar', label: 'Calendar', hint: 'Month and milestones', icon: 'calendar', tone: 'gold' },
+    { id: 'tasks', label: 'Tasks', hint: 'Your open list', icon: 'checkbox', tone: 'rust' },
+    { id: 'reminder', label: 'Reminders', hint: 'Timed alarms · Coming soon', icon: 'bell', tone: 'plum' },
+    { id: 'sharing', label: 'Sharing', hint: 'LAN file transfer · Coming soon', icon: 'share', tone: 'cobalt' },
+  ];
+  const cardMeta = (id) => DECK_CARDS.find((c) => c.id === id);
+
+  components.ComingSoonPanel = {
+    name: 'ComingSoonPanel',
+    props: {
+      icon: { type: String, required: true },
+      title: { type: String, required: true },
+      hint: { type: String, required: true },
+      badge: { type: String, default: 'Coming soon' },
+    },
+    template: `
+      <ui-panel class="coming-soon">
+        <div class="coming-soon__head">
+          <status-pill tone="accent">{{ badge }}</status-pill>
+        </div>
+        <empty-state :icon="icon" :title="title" :hint="hint" />
+      </ui-panel>`,
+  };
+
   components.ViewDeck = {
     name: 'ViewDeck',
     setup() {
       const wyrm = inject('wyrm');
-      const cards = [
-        { id: 'clock', label: 'Clock', hint: 'Time and date', icon: 'clock', tone: 'slate' },
-        { id: 'habits', label: 'Habits', hint: "Today's progress", icon: 'leaf', tone: 'teal' },
-        { id: 'calendar', label: 'Calendar', hint: 'Month and milestones', icon: 'calendar', tone: 'gold' },
-        { id: 'tasks', label: 'Tasks', hint: 'Your open list', icon: 'checkbox', tone: 'rust' },
-        { id: 'reminder', label: 'Reminders', hint: 'Timed alarms · Coming soon', icon: 'bell', tone: 'plum' },
-        { id: 'sharing', label: 'Sharing', hint: 'LAN file transfer · Coming soon', icon: 'share', tone: 'cobalt' },
-      ];
       const allSize = computed(() => {
-        const sizes = cards.map((c) => wyrm.state.layout[c.id]);
+        const sizes = DECK_CARDS.map((c) => wyrm.state.layout[c.id]);
         return sizes.every((s) => s === sizes[0]) ? sizes[0] : null;
       });
-      return { wyrm, cards, allSize, sizeOptions: SIZE_OPTIONS };
+      return { wyrm, cards: DECK_CARDS, allSize, sizeOptions: SIZE_OPTIONS };
     },
     template: `
       <div class="view view--deck">
@@ -1231,10 +1307,11 @@
         const open = tasks.value.filter((t) => !t.is_completed).length;
         return open + ' open of ' + tasks.value.length;
       });
-      return { tasks, subtitle };
+      return { tasks, subtitle, tile: cardMeta('tasks') };
     },
     template: `
       <div class="view view--tasks">
+        <deck-tile v-bind="tile" class="deck-tile--inline view-span" />
         <task-composer />
         <ui-panel class="task-panel">
           <panel-head title="Your list" :subtitle="subtitle" icon="checkbox" />
@@ -1256,10 +1333,11 @@
         const done = habits.value.filter((h) => wyrm.isHabitCompletedToday(h)).length;
         return habits.value.length ? done + ' of ' + habits.value.length + ' done today' : 'Nothing tracked yet';
       });
-      return { composing, habits, summary };
+      return { composing, habits, summary, tile: cardMeta('habits') };
     },
     template: `
       <div class="view view--habits">
+        <deck-tile v-bind="tile" class="deck-tile--inline" />
         <div class="toolbar">
           <p class="toolbar__summary">{{ summary }}</p>
           <ui-button :variant="composing ? 'default' : 'primary'" :icon="composing ? 'x' : 'plus'"
@@ -1274,6 +1352,32 @@
         <ui-panel v-else-if="!composing">
           <empty-state icon="sprout" title="No habits yet" hint="Create one to start a streak." />
         </ui-panel>
+      </div>`,
+  };
+
+  components.ViewReminder = {
+    name: 'ViewReminder',
+    setup() {
+      return { tile: cardMeta('reminder') };
+    },
+    template: `
+      <div class="view view--reminder">
+        <deck-tile v-bind="tile" class="deck-tile--inline" />
+        <coming-soon-panel icon="bell" title="Timed & Recurring Alarms"
+                           hint="Schedule one-time alarms, recurring hydration or stand-up nudges, and manage ringing alerts right from here." />
+      </div>`,
+  };
+
+  components.ViewSharing = {
+    name: 'ViewSharing',
+    setup() {
+      return { tile: cardMeta('sharing') };
+    },
+    template: `
+      <div class="view view--sharing">
+        <deck-tile v-bind="tile" class="deck-tile--inline" />
+        <coming-soon-panel icon="share" title="LAN File Sharing"
+                           hint="Upload files to the tablet, download tablet files to this device, or relay files between devices over your local Wi-Fi." />
       </div>`,
   };
 
@@ -1427,10 +1531,24 @@
         wyrm.travelToDate(date);
         showTravel.value = false;
       }
-      return { viewDate, selectedDate, selectedKey, isTraveled, monthLabel, metrics, shift, today, select, showTravel, travel };
+      return {
+        tile: cardMeta('calendar'),
+        viewDate,
+        selectedDate,
+        selectedKey,
+        isTraveled,
+        monthLabel,
+        metrics,
+        shift,
+        today,
+        select,
+        showTravel,
+        travel,
+      };
     },
     template: `
       <div class="view view--cal">
+        <deck-tile v-bind="tile" class="deck-tile--inline view-span" />
         <ui-panel class="cal-main">
           <panel-head title="Calendar" icon="calendar">
             <ui-button class="travel-btn" size="sm" icon="compass" :active="isTraveled" aria-label="Time travel" @click="showTravel = true">Travel</ui-button>
@@ -1592,6 +1710,10 @@
           }
           case 'cal':
             return new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
+          case 'reminder':
+            return 'Timed & recurring alarms · Coming soon';
+          case 'sharing':
+            return 'Local file transfer · Coming soon';
           case 'sys':
             return 'Display and clock';
           default:

@@ -951,6 +951,36 @@ void main() {
       },
     );
 
+    test('Web remote includes Reminder/Sharing destinations, inline size tiles, and scrollable navigation', () async {
+      final css = await File('assets/web/style.css').readAsString();
+      final components = await File('assets/web/components.js').readAsString();
+
+      // Destinations and new views
+      expect(components, contains("view: 'view-reminder'"));
+      expect(components, contains("view: 'view-sharing'"));
+      expect(components, contains('ViewReminder'));
+      expect(components, contains('ViewSharing'));
+      expect(components, contains('ComingSoonPanel'));
+
+      // Inline size control tiles across domain destinations
+      expect(components, contains('deck-tile--inline'));
+      expect(components, contains("cardMeta('tasks')"));
+      expect(components, contains("cardMeta('habits')"));
+      expect(components, contains("cardMeta('calendar')"));
+      expect(components, contains("cardMeta('reminder')"));
+      expect(components, contains("cardMeta('sharing')"));
+
+      // Scrollable navigation (desktop vertical + mobile horizontal + edge fades)
+      expect(components, contains('has-fade-start'));
+      expect(components, contains('has-fade-end'));
+      expect(components, contains('scrollActiveIntoView'));
+      expect(css, contains('.deck-tile--inline'));
+      expect(css, contains('.nav-items.has-fade-start'));
+      expect(css, contains('scroll-snap-type: x proximity'));
+      expect(css, contains('overflow-x: auto'));
+      expect(css, contains('--item-w:'));
+    });
+
     test(
       'POST /api/calendar/milestones accepts dd/mm/yyyy date format',
       () async {
