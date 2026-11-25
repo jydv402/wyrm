@@ -85,7 +85,13 @@ enum DashboardCardType {
   calendar,
 
   /// Tasks and priority management card.
-  tasks;
+  tasks,
+
+  /// Timed and recurring reminders card.
+  reminder,
+
+  /// Local network file sharing card.
+  sharing;
 
   /// Safely resolves a card type from a dynamic string token.
   static DashboardCardType? tryParse(String? value) {
@@ -106,12 +112,16 @@ class CardLayoutConfig {
   final CardSize habits;
   final CardSize calendar;
   final CardSize tasks;
+  final CardSize reminder;
+  final CardSize sharing;
 
   const CardLayoutConfig({
     this.clock = CardSize.small,
     this.habits = CardSize.small,
     this.calendar = CardSize.small,
     this.tasks = CardSize.small,
+    this.reminder = CardSize.small,
+    this.sharing = CardSize.small,
   });
 
   /// Resolves the active size for the specified card type.
@@ -125,6 +135,10 @@ class CardLayoutConfig {
         return calendar;
       case DashboardCardType.tasks:
         return tasks;
+      case DashboardCardType.reminder:
+        return reminder;
+      case DashboardCardType.sharing:
+        return sharing;
     }
   }
 
@@ -139,6 +153,10 @@ class CardLayoutConfig {
         return copyWith(calendar: size);
       case DashboardCardType.tasks:
         return copyWith(tasks: size);
+      case DashboardCardType.reminder:
+        return copyWith(reminder: size);
+      case DashboardCardType.sharing:
+        return copyWith(sharing: size);
     }
   }
 
@@ -148,12 +166,16 @@ class CardLayoutConfig {
     CardSize? habits,
     CardSize? calendar,
     CardSize? tasks,
+    CardSize? reminder,
+    CardSize? sharing,
   }) {
     return CardLayoutConfig(
       clock: clock ?? this.clock,
       habits: habits ?? this.habits,
       calendar: calendar ?? this.calendar,
       tasks: tasks ?? this.tasks,
+      reminder: reminder ?? this.reminder,
+      sharing: sharing ?? this.sharing,
     );
   }
 
@@ -164,6 +186,8 @@ class CardLayoutConfig {
       'habits': habits.name,
       'calendar': calendar.name,
       'tasks': tasks.name,
+      'reminder': reminder.name,
+      'sharing': sharing.name,
     };
   }
 
@@ -174,6 +198,8 @@ class CardLayoutConfig {
       habits: _parseSize(json['habits']),
       calendar: _parseSize(json['calendar']),
       tasks: _parseSize(json['tasks']),
+      reminder: _parseSize(json['reminder']),
+      sharing: _parseSize(json['sharing']),
     );
   }
 

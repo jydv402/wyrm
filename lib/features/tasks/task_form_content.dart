@@ -28,6 +28,7 @@ class TaskFormContent extends StatelessWidget {
     return Column(
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.stretch,
+      spacing: 8.0,
       children: [
         const Text(
           'Task Description',
@@ -38,7 +39,6 @@ class TaskFormContent extends StatelessWidget {
             letterSpacing: 0.5,
           ),
         ),
-        const SizedBox(height: 8),
         InAppKeyboardTextField(
           controller: titleController,
           autofocus: true,
@@ -69,7 +69,7 @@ class TaskFormContent extends StatelessWidget {
           onChanged: (_) => onChanged?.call(),
           onSubmitted: onSubmitted,
         ),
-        const SizedBox(height: 18),
+        const SizedBox(height: 10), // Originally was 18
 
         const Text(
           'Priority Level',
@@ -80,8 +80,8 @@ class TaskFormContent extends StatelessWidget {
             letterSpacing: 0.5,
           ),
         ),
-        const SizedBox(height: 8),
         Row(
+          spacing: 8.0,
           children: [
             PriorityOptionChip(
               value: 'normal',
@@ -91,7 +91,6 @@ class TaskFormContent extends StatelessWidget {
               onPriorityChanged: onPriorityChanged,
               onChanged: onChanged,
             ),
-            const SizedBox(width: 8),
             PriorityOptionChip(
               value: 'low',
               label: 'Low',
@@ -100,7 +99,6 @@ class TaskFormContent extends StatelessWidget {
               onPriorityChanged: onPriorityChanged,
               onChanged: onChanged,
             ),
-            const SizedBox(width: 8),
             PriorityOptionChip(
               value: 'medium',
               label: 'Medium',
@@ -109,7 +107,6 @@ class TaskFormContent extends StatelessWidget {
               onPriorityChanged: onPriorityChanged,
               onChanged: onChanged,
             ),
-            const SizedBox(width: 8),
             PriorityOptionChip(
               value: 'high',
               label: 'High',

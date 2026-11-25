@@ -238,6 +238,7 @@ class _DuskDatePickerDialogState extends State<DuskDatePickerDialog> {
         padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 16.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
+          spacing: 14.0,
           children: [
             DatePickerHeader(
               selectedDate: _selectedDate,
@@ -248,9 +249,7 @@ class _DuskDatePickerDialogState extends State<DuskDatePickerDialog> {
               onShiftMonth: _shiftMonth,
               onClose: () => context.pop(null),
             ),
-            const SizedBox(height: 14),
             Expanded(child: _buildPickerBody()),
-            const SizedBox(height: 14),
             DatePickerActions(
               cancelText: widget.cancelText,
               confirmText: widget.confirmText,

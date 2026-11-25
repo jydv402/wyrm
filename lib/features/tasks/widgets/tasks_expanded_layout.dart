@@ -16,12 +16,14 @@ class TasksExpandedLayout extends StatelessWidget {
 
     return Row(
       crossAxisAlignment: CrossAxisAlignment.stretch,
+      spacing: 16.0,
       children: [
         // Left Column: Active Tasks List
         Expanded(
           flex: 6,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
+            spacing: 12.0,
             children: [
               Text(
                 'Active Priorities (${activeTasks.length})',
@@ -31,7 +33,6 @@ class TasksExpandedLayout extends StatelessWidget {
                   fontWeight: FontWeight.w700,
                 ),
               ),
-              const SizedBox(height: 12),
               Expanded(
                 child: activeTasks.isEmpty
                     ? const Center(
@@ -56,18 +57,15 @@ class TasksExpandedLayout extends StatelessWidget {
           ),
         ),
 
-        const SizedBox(width: 16),
-
         // Vertical divider
         Container(width: 1.0, color: AppColors.lineStrong),
-
-        const SizedBox(width: 16),
 
         // Right Column: Completed Tasks
         Expanded(
           flex: 5,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
+            spacing: 12.0,
             children: [
               Text(
                 'Completed (${completedTasks.length})',
@@ -77,7 +75,6 @@ class TasksExpandedLayout extends StatelessWidget {
                   fontWeight: FontWeight.w700,
                 ),
               ),
-              const SizedBox(height: 12),
               Expanded(
                 child: completedTasks.isEmpty
                     ? const Center(

@@ -21,13 +21,14 @@ class AppearanceSection extends ConsumerWidget {
       padding: const EdgeInsets.all(22.0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
+        spacing: 10.0,
         children: [
           const SettingsSectionHeader(
             icon: Icons.palette_rounded,
             title: 'Card Appearance',
             subtitle: 'Typography scale for tasks, habits, and cards',
           ),
-          const SizedBox(height: 18),
+          const SizedBox(height: 8), // Originally was 18
           SettingRow(
             icon: Icons.format_size_rounded,
             title: 'Card Font Size',
@@ -35,7 +36,6 @@ class AppearanceSection extends ConsumerWidget {
                 'Scale checklist item and habit typography (${settings.cardFontSize.toInt()} pt)',
             trailing: _buildFontSizeControl(ref, settings),
           ),
-          const SizedBox(height: 10),
           _buildLivePreview(settings.cardFontSize),
         ],
       ),
@@ -46,6 +46,7 @@ class AppearanceSection extends ConsumerWidget {
     return SizedBox(
       width: 240,
       child: Row(
+        spacing: 6.0,
         children: [
           const Text(
             'A',
@@ -55,9 +56,7 @@ class AppearanceSection extends ConsumerWidget {
               fontWeight: FontWeight.w600,
             ),
           ),
-          const SizedBox(width: 6),
           Expanded(child: _buildFontSizeSlider(ref, settings.cardFontSize)),
-          const SizedBox(width: 6),
           const Text(
             'A',
             style: TextStyle(
@@ -66,7 +65,7 @@ class AppearanceSection extends ConsumerWidget {
               fontWeight: FontWeight.w700,
             ),
           ),
-          const SizedBox(width: 10),
+          const SizedBox(width: 4), // Originally was 10
           _buildFontSizeBadge(settings.cardFontSize.toInt()),
         ],
       ),
@@ -142,9 +141,10 @@ class AppearanceSection extends ConsumerWidget {
         border: Border.all(color: AppColors.line, width: 1.0),
       ),
       child: Row(
+        spacing: 8.0,
         children: [
           _buildPreviewCheckIcon(),
-          const SizedBox(width: 12),
+          const SizedBox(width: 4), // Originally was 12
           Expanded(
             child: Text(
               'Live Preview: ${fontSize.toInt()} pt',
@@ -157,7 +157,6 @@ class AppearanceSection extends ConsumerWidget {
               overflow: TextOverflow.ellipsis,
             ),
           ),
-          const SizedBox(width: 8),
           DuskGlassPill.priority('HIGH'),
         ],
       ),

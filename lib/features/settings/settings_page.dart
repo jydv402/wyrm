@@ -56,11 +56,8 @@ class SettingsPage extends ConsumerWidget {
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  const SettingsTopBar(),
-                  const SizedBox(height: 16),
-                  _buildContentPane(),
-                ],
+                spacing: 16.0,
+                children: [const SettingsTopBar(), _buildContentPane()],
               ),
             ),
           ),

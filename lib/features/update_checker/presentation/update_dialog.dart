@@ -59,6 +59,7 @@ class UpdateDialog extends StatelessWidget {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
+            spacing: 8.0,
             children: [
               // Header Row
               Row(
@@ -96,6 +97,7 @@ class UpdateDialog extends StatelessWidget {
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
+                      spacing: 2.0,
                       children: [
                         Text(
                           isNew
@@ -108,7 +110,6 @@ class UpdateDialog extends StatelessWidget {
                             letterSpacing: -0.2,
                           ),
                         ),
-                        const SizedBox(height: 2),
                         Text(
                           isNew
                               ? 'Version v${updateInfo.latestVersion} is ready to download'
@@ -132,8 +133,7 @@ class UpdateDialog extends StatelessWidget {
                 ],
               ),
 
-              const SizedBox(height: 18),
-
+              const SizedBox(height: 10), // Originally was 18
               // Version Diff Tag (when update available)
               if (isNew) ...[
                 Container(
@@ -196,8 +196,7 @@ class UpdateDialog extends StatelessWidget {
                     ],
                   ),
                 ),
-                const SizedBox(height: 16),
-
+                const SizedBox(height: 8), // Originally was 16
                 // Markdown Release Notes
                 const Text(
                   "What's New",
@@ -207,7 +206,6 @@ class UpdateDialog extends StatelessWidget {
                     fontWeight: FontWeight.w700,
                   ),
                 ),
-                const SizedBox(height: 8),
                 Container(
                   constraints: const BoxConstraints(maxHeight: 220),
                   padding: const EdgeInsets.all(14),
@@ -274,10 +272,10 @@ class UpdateDialog extends StatelessWidget {
                     ),
                   ),
                 ),
-                const SizedBox(height: 22),
-
+                const SizedBox(height: 14), // Originally was 22
                 // Action Buttons for Update Available
                 Row(
+                  spacing: 12.0,
                   children: [
                     Expanded(
                       child: DuskGlassButton(
@@ -293,7 +291,6 @@ class UpdateDialog extends StatelessWidget {
                         ),
                       ),
                     ),
-                    const SizedBox(width: 12),
                     Expanded(
                       flex: 2,
                       child: DuskGlassButton(
@@ -324,7 +321,7 @@ class UpdateDialog extends StatelessWidget {
                 ),
               ] else ...[
                 // Action Button for Already Up To Date
-                const SizedBox(height: 12),
+                const SizedBox(height: 4), // Originally was 12
                 Align(
                   alignment: Alignment.centerRight,
                   child: DuskGlassButton(

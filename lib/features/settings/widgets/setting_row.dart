@@ -37,15 +37,15 @@ class SettingRow extends StatelessWidget {
   Widget _buildCompact() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
+      spacing: 12.0,
       children: [
         Row(
+          spacing: 12.0,
           children: [
             Icon(icon, size: 20, color: AppColors.glacierAccent),
-            const SizedBox(width: 12),
             Expanded(child: _buildTextContent()),
           ],
         ),
-        const SizedBox(height: 12),
         Align(alignment: Alignment.centerRight, child: trailing),
       ],
     );
@@ -53,11 +53,11 @@ class SettingRow extends StatelessWidget {
 
   Widget _buildWide() {
     return Row(
+      spacing: 12.0,
       children: [
         Icon(icon, size: 20, color: AppColors.glacierAccent),
-        const SizedBox(width: 14),
+        const SizedBox(width: 2), // Originally was 14
         Expanded(child: _buildTextContent()),
-        const SizedBox(width: 12),
         trailing,
       ],
     );
@@ -66,6 +66,7 @@ class SettingRow extends StatelessWidget {
   Widget _buildTextContent() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
+      spacing: 2.0,
       children: [
         Text(
           title,
@@ -75,7 +76,6 @@ class SettingRow extends StatelessWidget {
             fontWeight: FontWeight.w600,
           ),
         ),
-        const SizedBox(height: 2),
         Text(
           subtitle,
           style: const TextStyle(color: AppColors.textSecondary, fontSize: 12),

@@ -24,9 +24,10 @@ class CalendarMonthView extends StatelessWidget {
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
+      spacing: 8.0,
       children: [
         CalendarDateBanner(state: state),
-        const SizedBox(height: 12),
+        const SizedBox(height: 4), // Originally was 12
         Text(
           '$monthName $yearString',
           style: const TextStyle(
@@ -36,7 +37,6 @@ class CalendarMonthView extends StatelessWidget {
             letterSpacing: -0.2,
           ),
         ),
-        const SizedBox(height: 8),
         Expanded(
           child: CalendarGrid(
             state: state,

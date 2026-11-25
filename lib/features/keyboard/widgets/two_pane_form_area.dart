@@ -32,6 +32,7 @@ class TwoPaneFormArea extends StatelessWidget {
         if (isWide) {
           return Row(
             crossAxisAlignment: CrossAxisAlignment.stretch,
+            spacing: 14.0,
             children: [
               Expanded(
                 flex: 4,
@@ -41,7 +42,6 @@ class TwoPaneFormArea extends StatelessWidget {
                   tone: tone,
                 ),
               ),
-              const SizedBox(width: 14),
               Expanded(
                 flex: 6,
                 child: TwoPanePreviewCard(
@@ -117,9 +117,9 @@ class TwoPanePreviewCard extends StatelessWidget {
       padding: const EdgeInsets.all(18),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
+        spacing: 12.0,
         children: [
           Expanded(child: _buildPreviewArea(context)),
-          const SizedBox(height: 12),
           InAppKeyboardWidget(
             controller: keyboardController,
             onDonePressed: onSave,
@@ -133,15 +133,16 @@ class TwoPanePreviewCard extends StatelessWidget {
   Widget _buildPreviewArea(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
+      spacing: 10.0,
       children: [
         Row(
+          spacing: 6.0,
           children: [
             const Icon(
               Icons.visibility_rounded,
               size: 15,
               color: AppColors.textSecondary,
             ),
-            const SizedBox(width: 6),
             Text(
               'LIVE PREVIEW',
               style: TextStyle(
@@ -153,7 +154,6 @@ class TwoPanePreviewCard extends StatelessWidget {
             ),
           ],
         ),
-        const SizedBox(height: 10),
         Expanded(
           child: Center(
             child: SingleChildScrollView(child: previewBuilder(context)),
@@ -186,11 +186,13 @@ class TwoPaneNarrowLayout extends StatelessWidget {
   Widget build(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
+      spacing: 10.0,
       children: [
         Expanded(
           child: SingleChildScrollView(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
+              spacing: 12.0,
               children: [
                 DuskGlassPanel(
                   tone: tone,
@@ -198,7 +200,6 @@ class TwoPaneNarrowLayout extends StatelessWidget {
                   padding: const EdgeInsets.all(16),
                   child: formBuilder(context, keyboardController),
                 ),
-                const SizedBox(height: 12),
                 DuskGlassPanel(
                   tone: tone,
                   borderRadius: 20.0,
@@ -209,7 +210,6 @@ class TwoPaneNarrowLayout extends StatelessWidget {
             ),
           ),
         ),
-        const SizedBox(height: 10),
         InAppKeyboardWidget(
           controller: keyboardController,
           onDonePressed: onSave,

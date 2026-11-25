@@ -49,6 +49,7 @@ class UniversalHabitCard extends ConsumerWidget {
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
+            spacing: 10.0,
             children: [
               HabitCardTopBanner(
                 habit: habit,
@@ -57,10 +58,10 @@ class UniversalHabitCard extends ConsumerWidget {
                 isDoneToday: isDoneToday,
                 onEdit: onEdit,
               ),
-              const SizedBox(height: 10),
               Expanded(
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
+                  spacing: 8.0,
                   children: [
                     Expanded(
                       flex: 5,
@@ -71,7 +72,6 @@ class UniversalHabitCard extends ConsumerWidget {
                         startWeekOnMonday: startWeekOnMonday,
                       ),
                     ),
-                    const SizedBox(width: 8),
                     Expanded(
                       flex: 4,
                       child: HabitHeatmap(
@@ -125,6 +125,7 @@ class HabitCardTopBanner extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return Row(
+      spacing: 8.0,
       children: [
         // Glyph circle
         Container(
@@ -144,8 +145,7 @@ class HabitCardTopBanner extends ConsumerWidget {
             color: AppColors.tealAccent,
           ),
         ),
-        const SizedBox(width: 10),
-
+        const SizedBox(width: 2), // Originally was 10
         // Habit title
         Expanded(
           child: Text(
@@ -159,7 +159,6 @@ class HabitCardTopBanner extends ConsumerWidget {
             overflow: TextOverflow.ellipsis,
           ),
         ),
-        const SizedBox(width: 8),
 
         // Trailing controls (Streak, Complete, Edit, Delete)
         FittedBox(
@@ -352,8 +351,10 @@ class HabitWeekPanel extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        spacing: 6.0,
         children: [
           const Row(
+            spacing: 4.0,
             children: [
               Expanded(
                 child: Text(
@@ -366,7 +367,6 @@ class HabitWeekPanel extends StatelessWidget {
                   ),
                 ),
               ),
-              SizedBox(width: 4),
               Text(
                 '7 Days',
                 style: TextStyle(
@@ -377,7 +377,6 @@ class HabitWeekPanel extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: 6),
           Expanded(
             child: Center(
               child: HabitWeekDots(

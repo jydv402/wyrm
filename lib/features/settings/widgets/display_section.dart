@@ -27,13 +27,14 @@ class DisplaySection extends ConsumerWidget {
       padding: const EdgeInsets.all(22.0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
+        spacing: 12.0,
         children: [
           const SettingsSectionHeader(
             icon: Icons.brightness_6_rounded,
             title: 'Display & Brightness',
             subtitle: 'Screen intensity and ambient nightstand behavior',
           ),
-          const SizedBox(height: 18),
+          const SizedBox(height: 6), // Originally was 18
           SettingRow(
             icon: Icons.brightness_medium_rounded,
             title: 'Brightness',
@@ -44,7 +45,6 @@ class DisplaySection extends ConsumerWidget {
               pct,
             ),
           ),
-          const SizedBox(height: 12),
           SettingRow(
             icon: Icons.format_size_rounded,
             title: 'Text Scale Clamp',
@@ -52,7 +52,6 @@ class DisplaySection extends ConsumerWidget {
                 'Restricts max scale to ${(settings.maxTextScaleFactor * 100).round()}% to prevent layout overflow',
             trailing: _buildTextScaleControl(ref, settings),
           ),
-          const SizedBox(height: 12),
           SettingRow(
             icon: Icons.bedtime_rounded,
             title: 'Nightstand Mode',
@@ -70,8 +69,9 @@ class DisplaySection extends ConsumerWidget {
 
     return Row(
       mainAxisSize: MainAxisSize.min,
+      spacing: 6.0,
       children: [
-        for (final opt in options) ...[
+        for (final opt in options)
           DuskGlassPill(
             onTap: () {
               ref
@@ -94,8 +94,6 @@ class DisplaySection extends ConsumerWidget {
               ),
             ),
           ),
-          const SizedBox(width: 6),
-        ],
       ],
     );
   }
@@ -104,15 +102,15 @@ class DisplaySection extends ConsumerWidget {
     return SizedBox(
       width: 240,
       child: Row(
+        spacing: 8.0,
         children: [
           const Icon(
             Icons.brightness_5_rounded,
             size: 16,
             color: AppColors.textSecondary,
           ),
-          const SizedBox(width: 8),
           Expanded(child: _buildBrightnessSlider(ref, brightness)),
-          const SizedBox(width: 10),
+          const SizedBox(width: 2), // Originally was 10
           _buildPercentBadge(pct),
         ],
       ),

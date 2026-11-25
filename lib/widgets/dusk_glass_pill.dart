@@ -79,10 +79,8 @@ class DuskGlassPill extends StatelessWidget {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            if (icon != null) ...[icon!, const SizedBox(width: 8)],
-            child,
-          ],
+          spacing: 8.0,
+          children: [?icon, child],
         ),
       ),
     );

@@ -28,21 +28,17 @@ class SettingsContentPane extends ConsumerWidget {
 
     return SingleChildScrollView(
       physics: const BouncingScrollPhysics(),
+      padding: const EdgeInsets.only(bottom: 32),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
+        spacing: 16.0,
         children: [
           DisplaySection(isNightstand: isNightstand),
-          const SizedBox(height: 16),
           const ClockCalendarSection(),
-          const SizedBox(height: 16),
           const AppearanceSection(),
-          const SizedBox(height: 16),
           const NetworkSection(),
-          const SizedBox(height: 16),
           DataBackupSection(serverUrl: serverUrl),
-          const SizedBox(height: 16),
           const AppUpdatesSection(),
-          const SizedBox(height: 32),
         ],
       ),
     );

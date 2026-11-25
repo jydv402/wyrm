@@ -143,6 +143,7 @@ class HabitIconPicker extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       mainAxisSize: MainAxisSize.min,
+      spacing: 8.0,
       children: [
         const Text(
           'Choose Glyph',
@@ -153,7 +154,6 @@ class HabitIconPicker extends StatelessWidget {
             letterSpacing: 0.5,
           ),
         ),
-        const SizedBox(height: 8),
         Wrap(
           spacing: 8,
           runSpacing: 8,

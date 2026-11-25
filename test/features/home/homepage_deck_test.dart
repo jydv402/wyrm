@@ -8,6 +8,8 @@ import 'package:wyrm_desk/widgets/top_pill_bar.dart';
 import 'package:wyrm_desk/widgets/card_edit_button.dart';
 import 'package:wyrm_desk/features/habits/habits_card.dart';
 import 'package:wyrm_desk/features/home/homepage.dart';
+import 'package:wyrm_desk/features/reminder/reminder_card.dart';
+import 'package:wyrm_desk/features/sharing/sharing_card.dart';
 import 'package:wyrm_desk/features/tasks/tasks_card.dart';
 
 /// Integration tests for the homepage deck shell: card rendering, in-place
@@ -29,14 +31,17 @@ void main() {
       expect(find.byType(TopPillBar), findsOneWidget);
       expect(find.byType(SingleChildScrollView), findsOneWidget);
 
-      // Verify all four domain cards are rendered.
+      // Verify all six domain cards are rendered.
       expect(find.byType(ClockContainer), findsOneWidget);
       expect(find.byType(HabitsCard), findsOneWidget);
       expect(find.byType(CalendarCard), findsOneWidget);
       expect(find.byType(TasksCard), findsOneWidget);
+      expect(find.byType(ReminderCard), findsOneWidget);
+      expect(find.byType(SharingCard), findsOneWidget);
+      expect(find.text('Coming soon'), findsNWidgets(2));
 
-      // Verify presence of corner cycle buttons on all four cards.
-      expect(find.byType(CardEditButton<CardSize>), findsNWidgets(4));
+      // Verify presence of corner cycle buttons on all six cards.
+      expect(find.byType(CardEditButton<CardSize>), findsNWidgets(6));
     },
   );
 
@@ -156,6 +161,113 @@ void main() {
 
       expect(find.byType(HabitsCard), findsOneWidget);
       expect(find.byType(CalendarCard), findsOneWidget);
+    },
+  );
+
+  testWidgets(
+    'Reminder and Sharing cards stack as squares when Small and unstack independently on resize',
+    (WidgetTester tester) async {
+      tester.view.physicalSize = const Size(1280, 800);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      await tester.pumpWidget(
+        const ProviderScope(child: MaterialApp(home: HomePage())),
+      );
+      await tester.pumpAndSettle();
+
+      final reminderFinder = find.byType(ReminderCard);
+      final sharingFinder = find.byType(SharingCard);
+      expect(reminderFinder, findsOneWidget);
+      expect(sharingFinder, findsOneWidget);
+
+      // Primary 3 columns fit within 1280px, so Reminder & Sharing sit to the right
+      // as stacked 1:1 square cards.
+      final reminderRect = tester.getRect(reminderFinder);
+      final sharingRect = tester.getRect(sharingFinder);
+      expect(reminderRect.left, greaterThanOrEqualTo(1280.0));
+      expect(reminderRect.width, closeTo(reminderRect.height, 1.0));
+      expect(sharingRect.width, closeTo(sharingRect.height, 1.0));
+      expect(reminderRect.left, closeTo(sharingRect.left, 0.5));
+      expect(sharingRect.top, greaterThan(reminderRect.bottom));
+
+      // Scroll to Reminder and resize it independently to Medium.
+      final reminderMenuButton = find.descendant(
+        of: reminderFinder,
+        matching: find.byType(CardEditButton<CardSize>),
+      );
+      await tester.ensureVisible(reminderMenuButton);
+      await tester.pumpAndSettle();
+      await tester.tap(reminderMenuButton);
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Medium'));
+      await tester.pumpAndSettle();
+
+      final unstackedReminder = tester.getRect(reminderFinder);
+      final unstackedSharing = tester.getRect(sharingFinder);
+      expect(unstackedReminder.width, greaterThan(reminderRect.width));
+      // Sharing unstacks into its own full-height column while keeping Small width.
+      expect(unstackedSharing.left, greaterThan(unstackedReminder.right));
+      expect(unstackedSharing.height, greaterThan(sharingRect.height));
+      expect(unstackedSharing.width, closeTo(sharingRect.width, 1.0));
+
+      // Resize Sharing independently to Fullscreen.
+      final sharingMenuButton = find.descendant(
+        of: sharingFinder,
+        matching: find.byType(CardEditButton<CardSize>),
+      );
+      await tester.ensureVisible(sharingMenuButton);
+      await tester.pumpAndSettle();
+      await tester.tap(sharingMenuButton);
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Fullscreen'));
+      await tester.pumpAndSettle();
+
+      expect(tester.getSize(sharingFinder).width, greaterThanOrEqualTo(1200));
+
+      // Restore both to Small and confirm they re-stack as squares.
+      await tester.ensureVisible(reminderMenuButton);
+      await tester.pumpAndSettle();
+      await tester.tap(reminderMenuButton);
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Small'));
+      await tester.pumpAndSettle();
+
+      await tester.ensureVisible(sharingMenuButton);
+      await tester.pumpAndSettle();
+      await tester.tap(sharingMenuButton);
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Small'));
+      await tester.pumpAndSettle();
+
+      final reStackedReminder = tester.getRect(reminderFinder);
+      final reStackedSharing = tester.getRect(sharingFinder);
+      expect(reStackedReminder.left, closeTo(reStackedSharing.left, 0.5));
+      expect(reStackedReminder.width, closeTo(reStackedReminder.height, 1.0));
+      expect(reStackedSharing.width, closeTo(reStackedSharing.height, 1.0));
+    },
+  );
+
+  testWidgets(
+    'Reminder and Sharing cards render without overflow at 2.0x text scale',
+    (WidgetTester tester) async {
+      tester.view.physicalSize = const Size(1280, 800);
+      tester.view.devicePixelRatio = 1.0;
+      tester.platformDispatcher.textScaleFactorTestValue = 2.0;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+
+      await tester.pumpWidget(
+        const ProviderScope(child: MaterialApp(home: HomePage())),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.byType(ReminderCard), findsOneWidget);
+      expect(find.byType(SharingCard), findsOneWidget);
     },
   );
 }

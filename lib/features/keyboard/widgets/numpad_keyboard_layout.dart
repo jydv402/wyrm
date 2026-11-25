@@ -21,13 +21,11 @@ class NumpadKeyboardLayout extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Column(
+      spacing: 5.0,
       children: [
         _buildRow123(),
-        const SizedBox(height: 5),
         _buildRow456(),
-        const SizedBox(height: 5),
         _buildRow789(),
-        const SizedBox(height: 5),
         _buildRow0Done(),
       ],
     );

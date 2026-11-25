@@ -118,9 +118,9 @@ class _DuskGlassButtonState extends State<DuskGlassButton> {
         mainAxisSize: MainAxisSize.min,
         mainAxisAlignment: MainAxisAlignment.center,
         crossAxisAlignment: CrossAxisAlignment.center,
+        spacing: 8.0,
         children: [
           widget.icon!,
-          const SizedBox(width: 8),
           Flexible(child: widget.label!),
         ],
       );

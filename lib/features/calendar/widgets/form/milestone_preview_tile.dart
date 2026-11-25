@@ -57,9 +57,9 @@ class MilestonePreviewTile extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         mainAxisSize: MainAxisSize.min,
+        spacing: 14.0,
         children: [
           _buildHeader(displayTitle, formattedDate),
-          const SizedBox(height: 14),
           _buildCountdownBar(daysLabel),
         ],
       ),
@@ -68,9 +68,9 @@ class MilestonePreviewTile extends StatelessWidget {
 
   Widget _buildHeader(String displayTitle, String formattedDate) {
     return Row(
+      spacing: 10.0,
       children: [
         _buildHeaderIcon(),
-        const SizedBox(width: 10),
         Expanded(child: _buildHeaderText(displayTitle, formattedDate)),
       ],
     );
@@ -140,9 +140,9 @@ class MilestonePreviewTile extends StatelessWidget {
 
   Widget _buildDaysSection(String daysLabel) {
     return Row(
+      spacing: 6.0,
       children: [
         const Icon(Icons.timer_outlined, size: 16, color: AppColors.goldAccent),
-        const SizedBox(width: 6),
         Flexible(
           child: Text(
             daysLabel,

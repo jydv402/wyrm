@@ -37,6 +37,7 @@ class HabitFormContent extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       mainAxisSize: MainAxisSize.min,
+      spacing: 8.0,
       children: [
         const Text(
           'Habit Title',
@@ -47,7 +48,6 @@ class HabitFormContent extends StatelessWidget {
             letterSpacing: 0.5,
           ),
         ),
-        const SizedBox(height: 8),
         InAppKeyboardTextField(
           controller: titleController,
           autofocus: !isEditing,
@@ -77,9 +77,9 @@ class HabitFormContent extends StatelessWidget {
     return Column(
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.stretch,
+      spacing: 18.0,
       children: [
         _buildTitleInput(),
-        const SizedBox(height: 18),
         HabitFrequencySelector(
           habitType: habitType,
           onTypeChanged: onTypeChanged,
@@ -87,7 +87,6 @@ class HabitFormContent extends StatelessWidget {
           currentTargetCount: targetCount,
           onChanged: onChanged,
         ),
-        const SizedBox(height: 18),
         if (habitType == HabitType.numeric)
           HabitTargetStepper(
             targetCount: targetCount,
@@ -162,6 +161,7 @@ class HabitFrequencySelector extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       mainAxisSize: MainAxisSize.min,
+      spacing: 8.0,
       children: [
         const Text(
           'Goal Type',
@@ -172,8 +172,8 @@ class HabitFrequencySelector extends StatelessWidget {
             letterSpacing: 0.5,
           ),
         ),
-        const SizedBox(height: 8),
         Row(
+          spacing: 8.0,
           children: [
             _buildTypeButton(
               type: HabitType.binary,
@@ -184,7 +184,6 @@ class HabitFrequencySelector extends StatelessWidget {
                 onChanged?.call();
               },
             ),
-            const SizedBox(width: 8),
             _buildTypeButton(
               type: HabitType.numeric,
               label: 'Target Count (e.g. 8 cups)',
@@ -254,6 +253,7 @@ class HabitTargetStepper extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       mainAxisSize: MainAxisSize.min,
+      spacing: 8.0,
       children: [
         const Text(
           'Daily Target & Unit',
@@ -264,7 +264,6 @@ class HabitTargetStepper extends StatelessWidget {
             letterSpacing: 0.5,
           ),
         ),
-        const SizedBox(height: 8),
         Row(
           children: [
             IconButton(
@@ -300,7 +299,6 @@ class HabitTargetStepper extends StatelessWidget {
             Expanded(child: _buildUnitField()),
           ],
         ),
-        const SizedBox(height: 18),
       ],
     );
   }

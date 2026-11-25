@@ -164,11 +164,10 @@ class _NetworkConnectionModalState
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.stretch,
+                  spacing: 20.0,
                   children: [
                     _buildHeader(),
-                    const SizedBox(height: 20),
                     _buildQrSection(serverUrl),
-                    const SizedBox(height: 20),
                     _buildAddressBar(serverUrl),
                   ],
                 ),
@@ -190,6 +189,7 @@ class _NetworkConnectionModalState
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
+            spacing: 2.0,
             children: [
               Text(
                 'Web remote',
@@ -200,7 +200,6 @@ class _NetworkConnectionModalState
                   letterSpacing: -0.2,
                 ),
               ),
-              SizedBox(height: 2),
               Text(
                 'Connect from your phone or laptop',
                 style: TextStyle(
@@ -225,6 +224,7 @@ class _NetworkConnectionModalState
 
   Widget _buildQrSection(String serverUrl) {
     return Column(
+      spacing: 16.0,
       children: [
         Container(
           width: 232.0,
@@ -262,7 +262,6 @@ class _NetworkConnectionModalState
             ),
           ),
         ),
-        const SizedBox(height: 16),
         ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 260.0),
           child: const Text(
@@ -288,6 +287,7 @@ class _NetworkConnectionModalState
       ),
       padding: const EdgeInsets.only(left: 20, top: 8, bottom: 8, right: 8),
       child: Row(
+        spacing: 10.0,
         children: [
           Expanded(
             child: Column(
@@ -316,7 +316,6 @@ class _NetworkConnectionModalState
               ],
             ),
           ),
-          const SizedBox(width: 10),
           DuskGlassButton(
             onPressed: () => _copyUrl(serverUrl),
             height: 36,

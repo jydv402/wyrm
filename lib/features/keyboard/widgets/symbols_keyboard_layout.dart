@@ -25,13 +25,11 @@ class SymbolsKeyboardLayout extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Column(
+      spacing: 5.0,
       children: [
         _buildCharRow(_row1),
-        const SizedBox(height: 5),
         _buildCharRow(_row2),
-        const SizedBox(height: 5),
         _buildBottomSymbolsRow(),
-        const SizedBox(height: 5),
         KeyboardBottomBar(
           kb: kb,
           modeSwitchLabel: 'ABC',

@@ -27,13 +27,13 @@ class NetworkSection extends ConsumerWidget {
       padding: const EdgeInsets.all(22.0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
+        spacing: 18.0,
         children: [
           const SettingsSectionHeader(
             icon: Icons.wifi_rounded,
             title: 'Web Remote Companion',
             subtitle: 'Control and sync Wyrm Desk wirelessly from any browser',
           ),
-          const SizedBox(height: 18),
           _buildStatusBanner(context, ref, serverUrl),
         ],
       ),
@@ -54,11 +54,8 @@ class NetworkSection extends ConsumerWidget {
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _buildServerHeader(context, ref),
-          const SizedBox(height: 10),
-          _buildUrlBox(serverUrl),
-        ],
+        spacing: 10.0,
+        children: [_buildServerHeader(context, ref), _buildUrlBox(serverUrl)],
       ),
     );
   }
@@ -108,9 +105,9 @@ class NetworkSection extends ConsumerWidget {
       padding: const EdgeInsets.symmetric(horizontal: 12),
       label: const Row(
         mainAxisSize: MainAxisSize.min,
+        spacing: 6.0,
         children: [
           Icon(Icons.qr_code_rounded, size: 16, color: AppColors.textPrimary),
-          SizedBox(width: 6),
           Text(
             'Show QR',
             style: TextStyle(
@@ -133,13 +130,13 @@ class NetworkSection extends ConsumerWidget {
         border: Border.all(color: AppColors.line, width: 1.0),
       ),
       child: Row(
+        spacing: 8.0,
         children: [
           const Icon(
             Icons.link_rounded,
             size: 16,
             color: AppColors.glacierAccent,
           ),
-          const SizedBox(width: 8),
           Expanded(
             child: Text(
               serverUrl,

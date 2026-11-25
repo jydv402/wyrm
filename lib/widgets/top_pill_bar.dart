@@ -98,13 +98,13 @@ class _ServerNetworkPill extends ConsumerWidget {
           child: Row(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.center,
+            spacing: 10.0,
             children: [
               const Icon(
                 Icons.wifi_rounded,
                 size: 17,
                 color: AppColors.tealAccent,
               ),
-              const SizedBox(width: 10),
               Text(
                 serverUrl,
                 style: const TextStyle(

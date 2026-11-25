@@ -37,9 +37,9 @@ class DatePickerDayGrid extends StatelessWidget {
     final numWeeks = (totalCells ~/ 7).clamp(4, 6);
 
     return Column(
+      spacing: 6.0,
       children: [
         _buildWeekdayHeader(),
-        const SizedBox(height: 6),
         Expanded(
           child: _buildWeeksList(
             numWeeks,

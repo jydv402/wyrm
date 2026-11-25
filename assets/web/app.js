@@ -14,7 +14,14 @@ class WyrmStateStore {
       isConnected: false,
       latencyMs: null,
 
-      layout: { clock: 'small', habits: 'small', calendar: 'small', tasks: 'small' },
+      layout: {
+        clock: 'small',
+        habits: 'small',
+        calendar: 'small',
+        tasks: 'small',
+        reminder: 'small',
+        sharing: 'small',
+      },
       settings: { is24HourFormat: false, cardFontSize: 14.0, startWeekOnMonday: false },
       display: { brightness: 1.0 },
       networkModalOpen: false,
@@ -211,7 +218,7 @@ class WyrmWebSocketManager {
    -------------------------------------------------------------------------- */
 function createWyrmActions(store, ws) {
   const state = store.state;
-  const CARDS = ['clock', 'habits', 'calendar', 'tasks'];
+  const CARDS = ['clock', 'habits', 'calendar', 'tasks', 'reminder', 'sharing'];
 
   // Shared draft: the glyph picked for the next habit (also drives window.wyrmRemote).
   const draft = Vue.reactive({ glyph: '💧' });

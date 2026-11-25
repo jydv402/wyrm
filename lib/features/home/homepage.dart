@@ -51,6 +51,8 @@ class _HomePageState extends ConsumerState<HomePage>
   final GlobalKey _habitsKey = GlobalKey();
   final GlobalKey _calendarKey = GlobalKey();
   final GlobalKey _tasksKey = GlobalKey();
+  final GlobalKey _reminderKey = GlobalKey();
+  final GlobalKey _sharingKey = GlobalKey();
 
   @override
   void initState() {
@@ -90,6 +92,10 @@ class _HomePageState extends ConsumerState<HomePage>
         return _calendarKey;
       case DashboardCardType.tasks:
         return _tasksKey;
+      case DashboardCardType.reminder:
+        return _reminderKey;
+      case DashboardCardType.sharing:
+        return _sharingKey;
     }
   }
 
@@ -200,6 +206,8 @@ class _HomePageState extends ConsumerState<HomePage>
                           habitsKey: _habitsKey,
                           calendarKey: _calendarKey,
                           tasksKey: _tasksKey,
+                          reminderKey: _reminderKey,
+                          sharingKey: _sharingKey,
                           onSelectSize: _handleSelectSize,
                           spacing: widget.spacing,
                           config: layoutConfig,

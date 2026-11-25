@@ -88,6 +88,7 @@ class _TwoPaneKeyboardScaffoldState extends State<TwoPaneKeyboardScaffold> {
                 padding: const EdgeInsets.all(16.0),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
+                  spacing: 14.0,
                   children: [
                     TwoPaneHeader(
                       title: widget.title,
@@ -98,7 +99,6 @@ class _TwoPaneKeyboardScaffoldState extends State<TwoPaneKeyboardScaffold> {
                       saveIcon: widget.saveIcon,
                       tone: tone,
                     ),
-                    const SizedBox(height: 14),
                     Expanded(
                       child: TwoPaneFormArea(
                         formBuilder: widget.formBuilder,

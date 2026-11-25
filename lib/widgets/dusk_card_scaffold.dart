@@ -72,6 +72,7 @@ class DuskCardScaffold extends StatelessWidget {
       background: background,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
+        spacing: headerGap,
         children: [
           DuskCardHeader(
             icon: icon,
@@ -84,7 +85,6 @@ class DuskCardScaffold extends StatelessWidget {
             editButton: editButton,
             extraActions: extraActions,
           ),
-          if (headerGap > 0) SizedBox(height: headerGap),
           Expanded(child: child),
         ],
       ),
@@ -223,6 +223,154 @@ class DuskCardEmptyState extends StatelessWidget {
       child: scaleDown
           ? FittedBox(fit: BoxFit.scaleDown, child: content)
           : content,
+    );
+  }
+}
+
+/// Centred Dusk Glass placeholder body for upcoming dashboard cards.
+///
+/// Adapts icon proportions to available height via [LayoutBuilder] and scrolls
+/// if enlarged text requires extra vertical room, avoiding clipping or clamping.
+class DuskComingSoonBody extends StatelessWidget {
+  /// Domain icon rendered inside the tinted emblem circle.
+  final IconData icon;
+
+  /// Accent colour of the owning card tone.
+  final Color accentColor;
+
+  /// Concise capability headline shown beneath the emblem.
+  final String headline;
+
+  /// Short supporting description of what the card will do.
+  final String description;
+
+  /// Status tagline text shown inside the pill indicator.
+  final String tagline;
+
+  const DuskComingSoonBody({
+    super.key,
+    required this.icon,
+    required this.accentColor,
+    required this.headline,
+    required this.description,
+    this.tagline = 'Coming soon',
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final boldText = MediaQuery.boldTextOf(context);
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isCompact = constraints.maxHeight < 240.0;
+        final circleSize = isCompact ? 50.0 : 66.0;
+        final iconSize = isCompact ? 24.0 : 32.0;
+
+        return Center(
+          child: ListView(
+            shrinkWrap: true,
+            physics: const BouncingScrollPhysics(),
+            padding: const EdgeInsetsDirectional.symmetric(
+              horizontal: 8.0,
+              vertical: 4.0,
+            ),
+            children: [
+              Column(
+                mainAxisSize: MainAxisSize.min,
+                spacing: 4.0,
+                children: [
+                  ExcludeSemantics(
+                    child: Container(
+                      width: circleSize,
+                      height: circleSize,
+                      decoration: BoxDecoration(
+                        color: accentColor.withValues(alpha: 0.14),
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: accentColor.withValues(alpha: 0.38),
+                          width: 1.4,
+                        ),
+                      ),
+                      child: Icon(icon, size: iconSize, color: accentColor),
+                    ),
+                  ),
+                  SizedBox(
+                    height: isCompact ? 6.0 : 10.0,
+                  ), // Originally was 10.0 / 14.0
+                  Container(
+                    padding: const EdgeInsetsDirectional.symmetric(
+                      horizontal: 10.0,
+                      vertical: 4.0,
+                    ),
+                    decoration: BoxDecoration(
+                      color: accentColor.withValues(alpha: 0.14),
+                      borderRadius: BorderRadius.circular(999.0),
+                      border: Border.all(
+                        color: accentColor.withValues(alpha: 0.35),
+                        width: 1.0,
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      spacing: 5.0,
+                      children: [
+                        ExcludeSemantics(
+                          child: Icon(
+                            Icons.upcoming_rounded,
+                            size: 13.0,
+                            color: accentColor,
+                          ),
+                        ),
+                        Flexible(
+                          child: Text(
+                            tagline,
+                            style: TextStyle(
+                              color: accentColor,
+                              fontSize: 11.5,
+                              fontWeight: boldText
+                                  ? FontWeight.w800
+                                  : FontWeight.w700,
+                              letterSpacing: 0.3,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  SizedBox(
+                    height: isCompact ? 4.0 : 8.0,
+                  ), // Originally was 8.0 / 12.0
+                  Text(
+                    headline,
+                    style: TextStyle(
+                      color: AppColors.textPrimary,
+                      fontSize: isCompact ? 15.5 : 18.0,
+                      fontWeight: boldText ? FontWeight.w700 : FontWeight.w600,
+                      letterSpacing: -0.2,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 360.0),
+                    child: Text(
+                      description,
+                      style: TextStyle(
+                        color: AppColors.textSecondary,
+                        fontSize: isCompact ? 12.5 : 13.5,
+                        fontWeight: boldText
+                            ? FontWeight.w600
+                            : FontWeight.w400,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 }

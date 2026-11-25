@@ -3,10 +3,12 @@
    One dark theme. Near-black canvas, large tinted-glass cards, circular glass
    controls. Every destination owns a tone taken from the tablet UI:
 
-     slate  Clock, Deck, Settings   cool slate, sunset peach
-     teal   Habits                  deep green, mint
-     gold   Calendar                olive bronze, cream
-     rust   Tasks                   burnt umber, ember orange
+     slate   Clock, Deck, Settings   cool slate, sunset peach
+     teal    Habits                  deep green, mint
+     gold    Calendar                olive bronze, cream
+     rust    Tasks                   burnt umber, ember orange
+     plum    Reminders               twilight violet, lavender
+     cobalt  Sharing                 deep royal blue, periwinkle
 
    A tone is five variables (--t-top, --t-bot, --t-accent, --t-fill, --t-ink)
    plus --t-rgb for alpha tints. Set data-tone on any element to re-tone
@@ -99,6 +101,24 @@
   --t-fill: #dc582b;
   --t-ink: #ffffff;
   --t-rgb: 229 105 62;
+}
+
+[data-tone='plum'] {
+  --t-top: #2c213d;
+  --t-bot: #14101d;
+  --t-accent: #c7b2f8;
+  --t-fill: #a486f0;
+  --t-ink: #1b1033;
+  --t-rgb: 199 178 248;
+}
+
+[data-tone='cobalt'] {
+  --t-top: #1a2542;
+  --t-bot: #0c1221;
+  --t-accent: #82aaff;
+  --t-fill: #76a1ff;
+  --t-ink: #081229;
+  --t-rgb: 130 170 255;
 }
 
 .app {

@@ -25,13 +25,11 @@ class LettersKeyboardLayout extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Column(
+      spacing: 5.0,
       children: [
         _buildTopRow(),
-        const SizedBox(height: 5),
         _buildMiddleRow(),
-        const SizedBox(height: 5),
         _buildBottomRow(),
-        const SizedBox(height: 5),
         KeyboardBottomBar(
           kb: kb,
           modeSwitchLabel: '?123',

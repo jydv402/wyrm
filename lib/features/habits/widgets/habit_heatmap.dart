@@ -18,6 +18,7 @@ class HabitHeatmap extends StatelessWidget {
 
   Widget _buildHeader(String monthName, int completedCount, int totalDays) {
     return Row(
+      spacing: 4.0,
       children: [
         Expanded(
           child: Text(
@@ -30,7 +31,6 @@ class HabitHeatmap extends StatelessWidget {
             ),
           ),
         ),
-        const SizedBox(width: 4),
         Text(
           '$completedCount/$totalDays days',
           style: const TextStyle(
@@ -151,9 +151,9 @@ class HabitHeatmap extends StatelessWidget {
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
+        spacing: 6.0,
         children: [
           _buildHeader(monthName, completedCount, totalDays),
-          const SizedBox(height: 6),
           Expanded(child: _buildCalendarMatrix(weeks, weekdayLabels)),
         ],
       ),

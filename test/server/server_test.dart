@@ -399,6 +399,38 @@ void main() {
       expect(lastScrolledCard, DashboardCardType.clock);
     });
 
+    test(
+      'POST /api/layout and /api/scroll support reminder and sharing cards',
+      () async {
+        final reminderResp = await http.post(
+          Uri.parse('http://127.0.0.1:${server.port}/api/layout'),
+          headers: {'Content-Type': 'application/json'},
+          body: jsonEncode({'card': 'reminder', 'size': 'medium'}),
+        );
+        expect(reminderResp.statusCode, 200);
+        expect(activeLayout.reminder, CardSize.medium);
+        expect(lastScrolledCard, DashboardCardType.reminder);
+
+        final sharingResp = await http.post(
+          Uri.parse('http://127.0.0.1:${server.port}/api/layout'),
+          headers: {'Content-Type': 'application/json'},
+          body: jsonEncode({'card': 'sharing', 'size': 'fullscreen'}),
+        );
+        expect(sharingResp.statusCode, 200);
+        expect(activeLayout.sharing, CardSize.fullscreen);
+        expect(lastScrolledCard, DashboardCardType.sharing);
+
+        final scrollResp = await http.post(
+          Uri.parse('http://127.0.0.1:${server.port}/api/scroll'),
+          headers: {'Content-Type': 'application/json'},
+          body: jsonEncode({'card': 'reminder'}),
+        );
+        expect(scrollResp.statusCode, 200);
+        expect(jsonDecode(scrollResp.body)['card'], 'reminder');
+        expect(lastScrolledCard, DashboardCardType.reminder);
+      },
+    );
+
     test('POST /api/scroll triggers onScrollToCard with valid card', () async {
       final response = await http.post(
         Uri.parse('http://127.0.0.1:${server.port}/api/scroll'),
@@ -613,6 +645,8 @@ void main() {
             jsonDecode(firstMessage.toString()) as Map<String, dynamic>;
         expect(snapshot['type'], 'snapshot');
         expect(snapshot['layout']['clock'], 'small');
+        expect(snapshot['layout']['reminder'], 'small');
+        expect(snapshot['layout']['sharing'], 'small');
         expect(snapshot['settings']['cardFontSize'], 14.0);
         expect(snapshot['display']['brightness'], 1.0);
         expect(snapshot['tasks'], isList);
@@ -858,6 +892,10 @@ void main() {
         expect(components, contains('WyrmUI'));
         expect(components, contains('WyrmApp'));
         expect(components, contains('ViewDeck'));
+        expect(components, contains("id: 'reminder'"));
+        expect(components, contains("id: 'sharing'"));
+        expect(components, contains("tone: 'plum'"));
+        expect(components, contains("tone: 'cobalt'"));
         expect(components, contains('ViewTasks'));
         expect(components, contains('ViewHabits'));
         expect(components, contains('ViewCalendar'));
@@ -875,6 +913,8 @@ void main() {
 
         final css = await cssFile.readAsString();
         expect(css, contains('--t-accent'));
+        expect(css, contains("[data-tone='plum']"));
+        expect(css, contains("[data-tone='cobalt']"));
         expect(css, contains('.app'));
         expect(css, contains('.nav-rail'));
         expect(css, contains('.modal-backdrop'));
@@ -889,6 +929,8 @@ void main() {
         expect(js, contains('WyrmStateStore'));
         expect(js, contains('WyrmWebSocketManager'));
         expect(js, contains('createWyrmActions'));
+        expect(js, contains("'reminder'"));
+        expect(js, contains("'sharing'"));
         expect(js, contains('window.wyrmRemote'));
         expect(js, contains('travelToDate'));
         expect(js, contains('setAllCardsSize'));

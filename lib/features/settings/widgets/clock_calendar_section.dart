@@ -21,13 +21,14 @@ class ClockCalendarSection extends ConsumerWidget {
       padding: const EdgeInsets.all(22.0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
+        spacing: 12.0,
         children: [
           const SettingsSectionHeader(
             icon: Icons.schedule_rounded,
             title: 'Clock & Calendar',
             subtitle: 'Time format and calendar week start conventions',
           ),
-          const SizedBox(height: 18),
+          const SizedBox(height: 6), // Originally was 18
           SettingRow(
             icon: Icons.access_time_filled_rounded,
             title: 'Time Format',
@@ -35,7 +36,6 @@ class ClockCalendarSection extends ConsumerWidget {
                 'Choose between 12-hour AM/PM and 24-hour military format',
             trailing: _buildTimeFormatControl(ref, settings.is24HourFormat),
           ),
-          const SizedBox(height: 12),
           SettingRow(
             icon: Icons.calendar_view_week_rounded,
             title: 'Week Starts On',

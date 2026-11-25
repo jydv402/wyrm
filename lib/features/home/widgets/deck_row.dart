@@ -3,6 +3,8 @@ import 'package:wyrm_desk/config/card_layout_state.dart';
 import 'package:wyrm_desk/features/calendar/calendar_card.dart';
 import 'package:wyrm_desk/features/clock/clock_card.dart';
 import 'package:wyrm_desk/features/habits/habits_card.dart';
+import 'package:wyrm_desk/features/reminder/reminder_card.dart';
+import 'package:wyrm_desk/features/sharing/sharing_card.dart';
 import 'package:wyrm_desk/features/tasks/tasks_card.dart';
 
 /// One row of adaptive-width card columns inside a horizontally scrollable
@@ -15,6 +17,8 @@ class DeckRow extends StatelessWidget {
   final GlobalKey habitsKey;
   final GlobalKey calendarKey;
   final GlobalKey tasksKey;
+  final GlobalKey reminderKey;
+  final GlobalKey sharingKey;
   final void Function(DashboardCardType type, CardSize size) onSelectSize;
   final double spacing;
   final CardLayoutConfig config;
@@ -28,18 +32,35 @@ class DeckRow extends StatelessWidget {
     required this.habitsKey,
     required this.calendarKey,
     required this.tasksKey,
+    required this.reminderKey,
+    required this.sharingKey,
     required this.onSelectSize,
     required this.spacing,
     required this.config,
     this.clockWidget,
   });
 
+  static double _resolveCardWidth({
+    required CardSize size,
+    required double smallWidth,
+    required double mediumWidth,
+    required double viewportWidth,
+  }) {
+    return switch (size) {
+      CardSize.fullscreen => viewportWidth,
+      CardSize.medium => mediumWidth,
+      CardSize.small || CardSize.nightstand => smallWidth,
+    };
+  }
+
   @override
   Widget build(BuildContext context) {
     final viewportWidth = constraints.maxWidth;
     final mediumWidth = (viewportWidth * 0.55).clamp(380.0, 900.0);
 
-    final bool allSmall =
+    // Primary 3 columns preserve their 1280x800 viewport fit independently of
+    // Column 4 so Reminder and Sharing sit cleanly to the right via scroll.
+    final bool primaryAllSmall =
         config.clock == CardSize.small &&
         config.habits == CardSize.small &&
         config.calendar == CardSize.small &&
@@ -53,7 +74,7 @@ class DeckRow extends StatelessWidget {
     } else if (config.clock == CardSize.medium) {
       clockWidth = mediumWidth;
     } else {
-      clockWidth = (allSmall && viewportWidth > 1100)
+      clockWidth = (primaryAllSmall && viewportWidth > 1100)
           ? (viewportWidth - spacing * 2) * (3.1 / 14)
           : 300.0;
     }
@@ -62,29 +83,56 @@ class DeckRow extends StatelessWidget {
     final bool centerStacked =
         config.habits == CardSize.small && config.calendar == CardSize.small;
 
-    final double centerStackedWidth = (allSmall && viewportWidth > 1100)
+    final double centerStackedWidth = (primaryAllSmall && viewportWidth > 1100)
         ? (viewportWidth - spacing * 2) * (6.9 / 14)
         : 540.0;
 
-    final double habitsWidth = config.habits == CardSize.fullscreen
-        ? viewportWidth
-        : (config.habits == CardSize.medium ? mediumWidth : 360.0);
+    final double habitsWidth = _resolveCardWidth(
+      size: config.habits,
+      smallWidth: 360.0,
+      mediumWidth: mediumWidth,
+      viewportWidth: viewportWidth,
+    );
 
-    final double calendarWidth = config.calendar == CardSize.fullscreen
-        ? viewportWidth
-        : (config.calendar == CardSize.medium ? mediumWidth : 440.0);
+    final double calendarWidth = _resolveCardWidth(
+      size: config.calendar,
+      smallWidth: 440.0,
+      mediumWidth: mediumWidth,
+      viewportWidth: viewportWidth,
+    );
 
     // Calculate tasks width based on active sizing state.
-    final double tasksWidth;
-    if (config.tasks == CardSize.fullscreen) {
-      tasksWidth = viewportWidth;
-    } else if (config.tasks == CardSize.medium) {
-      tasksWidth = mediumWidth;
-    } else {
-      tasksWidth = (allSmall && viewportWidth > 1100)
+    final double tasksWidth = _resolveCardWidth(
+      size: config.tasks,
+      smallWidth: (primaryAllSmall && viewportWidth > 1100)
           ? (viewportWidth - spacing * 2) * (4.0 / 14)
-          : 340.0;
-    }
+          : 340.0,
+      mediumWidth: mediumWidth,
+      viewportWidth: viewportWidth,
+    );
+
+    // Column 4 square geometry: when Reminder and Sharing are both small, they
+    // stack vertically with width equal to each half-height (~1:1 square).
+    final double squareCardSide = constraints.hasBoundedHeight
+        ? ((constraints.maxHeight - spacing) / 2).clamp(260.0, 420.0)
+        : 340.0;
+
+    final bool utilityStacked =
+        config.reminder == CardSize.small && config.sharing == CardSize.small;
+
+    final double reminderWidth = _resolveCardWidth(
+      size: config.reminder,
+      smallWidth: squareCardSide,
+      mediumWidth: mediumWidth,
+      viewportWidth: viewportWidth,
+    );
+
+    final double sharingWidth = _resolveCardWidth(
+      size: config.sharing,
+      smallWidth: squareCardSide,
+      mediumWidth: mediumWidth,
+      viewportWidth: viewportWidth,
+    );
 
     return SingleChildScrollView(
       controller: scrollController,
@@ -99,6 +147,7 @@ class DeckRow extends StatelessWidget {
         ),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.stretch,
+          spacing: spacing,
           children: [
             // Column 1: Clock Container
             RepaintBoundary(
@@ -116,8 +165,6 @@ class DeckRow extends StatelessWidget {
               ),
             ),
 
-            SizedBox(width: spacing),
-
             // Column 2: Center Section (Stacked Habits & Calendar)
             if (centerStacked)
               RepaintBoundary(
@@ -126,6 +173,7 @@ class DeckRow extends StatelessWidget {
                   curve: Curves.easeInOutCubic,
                   width: centerStackedWidth,
                   child: Column(
+                    spacing: spacing,
                     children: [
                       Expanded(
                         flex: 4,
@@ -136,7 +184,6 @@ class DeckRow extends StatelessWidget {
                               onSelectSize(DashboardCardType.habits, size),
                         ),
                       ),
-                      SizedBox(height: spacing),
                       Expanded(
                         flex: 6,
                         child: CalendarCard(
@@ -164,7 +211,6 @@ class DeckRow extends StatelessWidget {
                   ),
                 ),
               ),
-              SizedBox(width: spacing),
               RepaintBoundary(
                 child: AnimatedContainer(
                   key: calendarKey,
@@ -180,8 +226,6 @@ class DeckRow extends StatelessWidget {
               ),
             ],
 
-            SizedBox(width: spacing),
-
             // Column 3: Tasks Container
             RepaintBoundary(
               child: AnimatedContainer(
@@ -196,6 +240,65 @@ class DeckRow extends StatelessWidget {
                 ),
               ),
             ),
+
+            // Column 4: Utility Section (Stacked Square Reminder & Sharing)
+            if (utilityStacked)
+              RepaintBoundary(
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 380),
+                  curve: Curves.easeInOutCubic,
+                  width: squareCardSide,
+                  child: Column(
+                    spacing: spacing,
+                    children: [
+                      Expanded(
+                        child: ReminderCard(
+                          key: reminderKey,
+                          currentSize: config.reminder,
+                          onSelectSize: (size) =>
+                              onSelectSize(DashboardCardType.reminder, size),
+                        ),
+                      ),
+                      Expanded(
+                        child: SharingCard(
+                          key: sharingKey,
+                          currentSize: config.sharing,
+                          onSelectSize: (size) =>
+                              onSelectSize(DashboardCardType.sharing, size),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              )
+            else ...[
+              RepaintBoundary(
+                child: AnimatedContainer(
+                  key: reminderKey,
+                  duration: const Duration(milliseconds: 380),
+                  curve: Curves.easeInOutCubic,
+                  width: reminderWidth,
+                  child: ReminderCard(
+                    currentSize: config.reminder,
+                    onSelectSize: (size) =>
+                        onSelectSize(DashboardCardType.reminder, size),
+                  ),
+                ),
+              ),
+              RepaintBoundary(
+                child: AnimatedContainer(
+                  key: sharingKey,
+                  duration: const Duration(milliseconds: 380),
+                  curve: Curves.easeInOutCubic,
+                  width: sharingWidth,
+                  child: SharingCard(
+                    currentSize: config.sharing,
+                    onSelectSize: (size) =>
+                        onSelectSize(DashboardCardType.sharing, size),
+                  ),
+                ),
+              ),
+            ],
           ],
         ),
       ),

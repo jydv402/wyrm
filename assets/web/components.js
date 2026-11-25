@@ -50,6 +50,8 @@
     copy: '<rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>',
     database: '<ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/>',
     compass: '<circle cx="12" cy="12" r="9"/><polygon points="16.2 7.8 14.1 14.1 7.8 16.2 9.9 9.9 16.2 7.8"/>',
+    bell: '<path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/>',
+    share: '<path d="M8 7h12m0 0-4-4m4 4-4 4"/><path d="M16 17H4m0 0 4 4m-4-4 4-4"/>',
   };
 
   components.UiIcon = {
@@ -1198,10 +1200,12 @@
         { id: 'habits', label: 'Habits', hint: "Today's progress", icon: 'leaf', tone: 'teal' },
         { id: 'calendar', label: 'Calendar', hint: 'Month and milestones', icon: 'calendar', tone: 'gold' },
         { id: 'tasks', label: 'Tasks', hint: 'Your open list', icon: 'checkbox', tone: 'rust' },
+        { id: 'reminder', label: 'Reminders', hint: 'Timed alarms · Coming soon', icon: 'bell', tone: 'plum' },
+        { id: 'sharing', label: 'Sharing', hint: 'LAN file transfer · Coming soon', icon: 'share', tone: 'cobalt' },
       ];
       const allSize = computed(() => {
-        const { clock, habits, calendar, tasks } = wyrm.state.layout;
-        return clock === habits && habits === calendar && calendar === tasks ? clock : null;
+        const sizes = cards.map((c) => wyrm.state.layout[c.id]);
+        return sizes.every((s) => s === sizes[0]) ? sizes[0] : null;
       });
       return { wyrm, cards, allSize, sizeOptions: SIZE_OPTIONS };
     },

@@ -49,6 +49,7 @@ class MilestoneDateSelector extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       mainAxisSize: MainAxisSize.min,
+      spacing: 8.0,
       children: [
         const Text(
           'Target Date',
@@ -59,7 +60,6 @@ class MilestoneDateSelector extends StatelessWidget {
             letterSpacing: 0.5,
           ),
         ),
-        const SizedBox(height: 8),
         InkWell(
           onTap: () => _pickDate(context),
           borderRadius: BorderRadius.circular(16),

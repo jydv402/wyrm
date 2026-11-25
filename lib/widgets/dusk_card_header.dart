@@ -42,27 +42,32 @@ class DuskCardHeader extends StatelessWidget {
       children: [
         // Domain Icon
         if (iconWidget != null)
-          iconWidget!
+          ExcludeSemantics(child: iconWidget!)
         else if (icon != null)
-          Icon(icon, size: 20, color: domainAccent),
+          ExcludeSemantics(child: Icon(icon, size: 20, color: domainAccent)),
 
         if (icon != null || iconWidget != null) const SizedBox(width: 10),
 
-        // Title
-        Text(
-          title,
-          style: const TextStyle(
-            color: AppColors.textPrimary,
-            fontSize: 18,
-            fontWeight: FontWeight.w600,
-            letterSpacing: -0.2,
+        // Title and optional auxiliary badge share remaining space cleanly
+        Expanded(
+          child: Row(
+            spacing: 8.0,
+            children: [
+              Flexible(
+                child: Text(
+                  title,
+                  style: const TextStyle(
+                    color: AppColors.textPrimary,
+                    fontSize: 18,
+                    fontWeight: FontWeight.w600,
+                    letterSpacing: -0.2,
+                  ),
+                ),
+              ),
+              ?badge,
+            ],
           ),
         ),
-
-        // Optional auxiliary badge
-        if (badge != null) ...[const SizedBox(width: 8), badge!],
-
-        const Spacer(),
 
         // Extra action buttons (if any)
         ...?extraActions,

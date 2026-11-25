@@ -30,15 +30,14 @@ class MilestoneFormContent extends StatelessWidget {
     return Column(
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.stretch,
+      spacing: 18.0,
       children: [
         _buildNameField(),
-        const SizedBox(height: 18),
         MilestoneDateSelector(
           selectedDate: selectedDate,
           onDateChanged: onDateChanged,
           onChanged: onChanged,
         ),
-        const SizedBox(height: 18),
         _buildPinTile(),
       ],
     );
@@ -48,6 +47,7 @@ class MilestoneFormContent extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       mainAxisSize: MainAxisSize.min,
+      spacing: 8.0,
       children: [
         const Text(
           'Milestone Name',
@@ -58,7 +58,6 @@ class MilestoneFormContent extends StatelessWidget {
             letterSpacing: 0.5,
           ),
         ),
-        const SizedBox(height: 8),
         _buildTextField(),
       ],
     );

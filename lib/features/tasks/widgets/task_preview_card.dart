@@ -54,15 +54,17 @@ class TaskPreviewCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         mainAxisSize: MainAxisSize.min,
+        spacing: 14.0,
         children: [
           Row(
+            spacing: 6.0,
             children: [
               const Icon(
                 Icons.check_box_outlined,
                 size: 18,
                 color: AppColors.rustAccent,
               ),
-              const SizedBox(width: 8),
+              const SizedBox(width: 2), // Originally was 8
               const Expanded(
                 child: Text(
                   'PRIORITY PREVIEW',
@@ -75,8 +77,7 @@ class TaskPreviewCard extends StatelessWidget {
                   overflow: TextOverflow.ellipsis,
                 ),
               ),
-              if (badge != null) ...[
-                const SizedBox(width: 6),
+              if (badge != null)
                 Container(
                   padding: const EdgeInsets.symmetric(
                     horizontal: 6,
@@ -100,10 +101,8 @@ class TaskPreviewCard extends StatelessWidget {
                     ),
                   ),
                 ),
-              ],
             ],
           ),
-          const SizedBox(height: 14),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
             decoration: BoxDecoration(
@@ -115,6 +114,7 @@ class TaskPreviewCard extends StatelessWidget {
               ),
             ),
             child: Row(
+              spacing: 12.0,
               children: [
                 Container(
                   width: 20,
@@ -128,7 +128,6 @@ class TaskPreviewCard extends StatelessWidget {
                     ),
                   ),
                 ),
-                const SizedBox(width: 12),
                 Expanded(
                   child: Text(
                     displayTitle,

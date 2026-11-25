@@ -25,20 +25,20 @@ class AppUpdatesSection extends ConsumerWidget {
       padding: const EdgeInsets.all(22.0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
+        spacing: 12.0,
         children: [
           const SettingsSectionHeader(
             icon: Icons.system_update_rounded,
             title: 'App Updates',
             subtitle: 'Version tracking and automated release alerts',
           ),
-          const SizedBox(height: 18),
+          const SizedBox(height: 6), // Originally was 18
           SettingRow(
             icon: Icons.info_outline_rounded,
             title: 'Current Version',
             subtitle: 'Wyrm Desk on ${settings.githubRepo}',
             trailing: _buildVersionBadge(versionStr),
           ),
-          const SizedBox(height: 12),
           SettingRow(
             icon: Icons.update_rounded,
             title: 'Hourly Auto-Check',
@@ -49,7 +49,6 @@ class AppUpdatesSection extends ConsumerWidget {
               settings.enableAutoUpdateChecks,
             ),
           ),
-          const SizedBox(height: 12),
           SettingRow(
             icon: Icons.cloud_download_rounded,
             title: 'Check for Updates',

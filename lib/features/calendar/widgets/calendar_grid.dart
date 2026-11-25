@@ -53,9 +53,9 @@ class CalendarGrid extends ConsumerWidget {
     final numWeeks = totalCells ~/ 7;
 
     return Column(
+      spacing: 6.0,
       children: [
         _buildWeekdayHeader(weekdayLabels),
-        const SizedBox(height: 6),
         Expanded(
           child: _buildWeeksList(
             ref,

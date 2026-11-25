@@ -23,27 +23,27 @@ class DataBackupSection extends ConsumerWidget {
       padding: const EdgeInsets.all(22.0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
+        spacing: 12.0,
         children: [
           const SettingsSectionHeader(
             icon: Icons.storage_rounded,
             title: 'Data & Backups',
             subtitle: 'Backup or restore dashboard data between release and test versions',
           ),
-          const SizedBox(height: 18),
+          const SizedBox(height: 6), // Originally was 18
           SettingRow(
             icon: Icons.upload_file_rounded,
             title: 'Export backup',
             subtitle: 'Save every card, task, habit and setting to a JSON file',
             trailing: _buildExportButton(context),
           ),
-          const SizedBox(height: 12),
           SettingRow(
             icon: Icons.download_rounded,
             title: 'Import backup',
             subtitle: 'Restore from a WYRM backup file',
             trailing: _buildImportButton(context, ref),
           ),
-          const SizedBox(height: 14),
+          const SizedBox(height: 2), // Originally was 14
           _buildTipBanner(),
         ],
       ),
@@ -196,13 +196,13 @@ class DataBackupSection extends ConsumerWidget {
         border: Border.all(color: AppColors.line, width: 1.0),
       ),
       child: Row(
+        spacing: 10.0,
         children: [
           const Icon(
             Icons.wifi_rounded,
             size: 16,
             color: AppColors.glacierAccent,
           ),
-          const SizedBox(width: 10),
           Expanded(
             child: Text(
               'Tip: You can also download or upload backups wirelessly from any computer or phone browser at $serverUrl',

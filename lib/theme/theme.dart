@@ -97,6 +97,22 @@ class AppColors {
   static const Color glacierInk = Color(0xFF091C24);
   static const Color glacierGlow = Color(0x268CC8DC);
 
+  // Plum Tone Colors (Reminder Card - Deep Twilight Violet)
+  static const Color plumTop = Color(0xFF2C213D);
+  static const Color plumBottom = Color(0xFF14101D);
+  static const Color plumAccent = Color(0xFFC7B2F8);
+  static const Color plumFill = Color(0xFFA486F0);
+  static const Color plumInk = Color(0xFF1B1033);
+  static const Color plumGlow = Color(0x26C7B2F8);
+
+  // Cobalt Tone Colors (Sharing Card - Deep Periwinkle Blue)
+  static const Color cobaltTop = Color(0xFF1A2542);
+  static const Color cobaltBottom = Color(0xFF0C1221);
+  static const Color cobaltAccent = Color(0xFF82AAFF);
+  static const Color cobaltFill = Color(0xFF76A1FF);
+  static const Color cobaltInk = Color(0xFF081229);
+  static const Color cobaltGlow = Color(0x2682AAFF);
+
   // Backward-compatibility aliases
   static const Color lilacTop = glacierTop;
   static const Color lilacBottom = glacierBottom;
@@ -149,6 +165,24 @@ class AppColors {
     fill: glacierFill,
     ink: glacierInk,
     glow: glacierGlow,
+  );
+
+  static const DuskTone plum = DuskTone(
+    top: plumTop,
+    bottom: plumBottom,
+    accent: plumAccent,
+    fill: plumFill,
+    ink: plumInk,
+    glow: plumGlow,
+  );
+
+  static const DuskTone cobalt = DuskTone(
+    top: cobaltTop,
+    bottom: cobaltBottom,
+    accent: cobaltAccent,
+    fill: cobaltFill,
+    ink: cobaltInk,
+    glow: cobaltGlow,
   );
 
   static const DuskTone lilac = glacier;

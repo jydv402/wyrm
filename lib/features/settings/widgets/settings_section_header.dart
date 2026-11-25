@@ -17,9 +17,9 @@ class SettingsSectionHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Row(
+      spacing: 14.0,
       children: [
         _buildIconBadge(),
-        const SizedBox(width: 14),
         Expanded(child: _buildTitleBlock()),
       ],
     );
@@ -44,6 +44,7 @@ class SettingsSectionHeader extends StatelessWidget {
   Widget _buildTitleBlock() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
+      spacing: 2.0,
       children: [
         Text(
           title,
@@ -54,7 +55,6 @@ class SettingsSectionHeader extends StatelessWidget {
             letterSpacing: -0.2,
           ),
         ),
-        const SizedBox(height: 2),
         Text(
           subtitle,
           style: const TextStyle(

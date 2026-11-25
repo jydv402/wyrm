@@ -241,10 +241,9 @@ class _ActionKeyButtonState extends State<ActionKeyButton> {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       mainAxisSize: MainAxisSize.min,
+      spacing: 4.0,
       children: [
         if (widget.icon != null) Icon(widget.icon, size: 16, color: fgColor),
-        if (widget.icon != null && widget.label != null)
-          const SizedBox(width: 4),
         if (widget.label != null)
           Text(
             widget.label!,

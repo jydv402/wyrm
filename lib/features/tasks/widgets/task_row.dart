@@ -27,6 +27,7 @@ class TaskRow extends ConsumerWidget {
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
+        spacing: 4.0,
         children: [
           // Circular Check Toggle
           InkWell(
@@ -67,8 +68,7 @@ class TaskRow extends ConsumerWidget {
             ),
           ),
 
-          const SizedBox(width: 12),
-
+          const SizedBox(width: 8), // Originally was 12
           // Task Title
           Expanded(
             child: GestureDetector(
@@ -96,14 +96,11 @@ class TaskRow extends ConsumerWidget {
             ),
           ),
 
-          const SizedBox(width: 8),
-
+          const SizedBox(width: 4), // Originally was 8
           // Priority Pill
           if (task.priority.isNotEmpty &&
               task.priority.toLowerCase() != 'normal')
             DuskGlassPill.priority(task.priority),
-
-          const SizedBox(width: 4),
 
           // Delete Action Button
           Container(

@@ -43,9 +43,9 @@ class CalendarExpandedLayout extends ConsumerWidget {
   Widget _buildMilestonesPane(BuildContext context, WidgetRef ref) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
+      spacing: 12.0,
       children: [
         _buildMilestonesHeader(context, ref),
-        const SizedBox(height: 12),
         Expanded(child: _buildMilestonesContent()),
       ],
     );

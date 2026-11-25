@@ -10,13 +10,12 @@ class SettingsTopBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Row(
+      spacing: 12.0,
       children: [
         _buildBackButton(context),
-        const SizedBox(width: 14),
+        const SizedBox(width: 2), // Originally was 14
         _buildBrandedIcon(),
-        const SizedBox(width: 12),
         _buildTitleText(),
-        const SizedBox(width: 12),
         _buildCloseButton(context),
       ],
     );
@@ -58,6 +57,7 @@ class SettingsTopBar extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
+        spacing: 1.0,
         children: [
           Text(
             'Settings',
@@ -68,7 +68,6 @@ class SettingsTopBar extends StatelessWidget {
               letterSpacing: -0.2,
             ),
           ),
-          SizedBox(height: 1),
           Text(
             'Ambient display, clock preferences, and companion server',
             style: TextStyle(

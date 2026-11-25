@@ -34,11 +34,8 @@ class DatePickerHeader extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       mainAxisSize: MainAxisSize.min,
-      children: [
-        _buildTitleRow(context),
-        const SizedBox(height: 12),
-        _buildControlsRow(),
-      ],
+      spacing: 12.0,
+      children: [_buildTitleRow(context), _buildControlsRow()],
     );
   }
 
@@ -64,6 +61,7 @@ class DatePickerHeader extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
+      spacing: 2.0,
       children: [
         const Text(
           'Time Travel',
@@ -74,7 +72,6 @@ class DatePickerHeader extends StatelessWidget {
             letterSpacing: -0.2,
           ),
         ),
-        const SizedBox(height: 2),
         Text(
           dateStr,
           style: const TextStyle(
@@ -174,6 +171,7 @@ class DatePickerHeader extends StatelessWidget {
   Widget _buildChevrons() {
     return Row(
       mainAxisSize: MainAxisSize.min,
+      spacing: 6.0,
       children: [
         DuskGlassButton.icon(
           onPressed: () => onShiftMonth?.call(-1),
@@ -183,7 +181,6 @@ class DatePickerHeader extends StatelessWidget {
             color: AppColors.textPrimary,
           ),
         ),
-        const SizedBox(width: 6),
         DuskGlassButton.icon(
           onPressed: () => onShiftMonth?.call(1),
           icon: const Icon(
