@@ -1,9 +1,14 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:clock/clock.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:web_socket_channel/io.dart';
+import 'package:wyrm_desk/core/notifications/reminder_model.dart';
+import 'package:wyrm_desk/data/repositories/reminder_repository.dart';
 import 'package:wyrm_desk/features/calendar/calendar_model.dart';
 import 'package:wyrm_desk/features/calendar/calendar_server_section.dart';
 import 'package:wyrm_desk/features/calendar/calendar_state.dart';
@@ -15,12 +20,45 @@ import 'package:wyrm_desk/features/habits/habits_state.dart';
 import 'package:wyrm_desk/config/card_layout_state.dart';
 import 'package:wyrm_desk/config/layout_server_section.dart';
 import 'package:wyrm_desk/config/settings_server_section.dart';
+import 'package:wyrm_desk/features/clock/clock_provider.dart';
 import 'package:wyrm_desk/features/network/network_info.dart';
 import 'package:wyrm_desk/features/network/network_server_section.dart';
 import 'package:wyrm_desk/config/app_settings_state.dart';
+import 'package:wyrm_desk/features/reminder/active_alarm_provider.dart';
+import 'package:wyrm_desk/features/reminder/reminder_server_section.dart';
+import 'package:wyrm_desk/features/reminder/reminder_state.dart';
 import 'package:wyrm_desk/features/tasks/task_model.dart';
 import 'package:wyrm_desk/features/tasks/tasks_server_section.dart';
+import 'package:wyrm_desk/native/alarm_audio_gateway.dart';
 import 'package:wyrm_desk/server/web_server.dart';
+import 'package:wyrm_desk/services/clock_provider.dart';
+import 'package:wyrm_desk/services/notifications/fake_notification_gateway.dart';
+import 'package:wyrm_desk/services/notifications/notification_gateway.dart';
+
+class _TestClock extends Clock {
+  final DateTime _now;
+
+  const _TestClock(this._now);
+
+  @override
+  DateTime now() => _now;
+}
+
+class _InMemoryReminderRepository implements ReminderRepository {
+  List<ReminderItem> items = <ReminderItem>[];
+
+  @override
+  Future<List<ReminderItem>> loadReminders() async => items;
+
+  @override
+  Future<List<ReminderItem>> activeReminders() async =>
+      items.where((item) => item.isEnabled).toList();
+
+  @override
+  Future<void> saveReminders(List<ReminderItem> reminders) async {
+    items = List<ReminderItem>.unmodifiable(reminders);
+  }
+}
 
 void main() {
   group('ShelfWebServer REST and WebSocket tests', () {
@@ -30,6 +68,10 @@ void main() {
     late List<TaskItem> activeTasks;
     late List<CalendarMilestone> activeMilestones;
     late List<HabitItem> activeHabits;
+    late List<ReminderItem> activeReminders;
+    ActiveAlarmState? activeAlarm;
+    late _TestClock reminderClock;
+    late int reminderSeq;
     late DisplayState activeDisplay;
     late bool activeNetworkModal;
     DashboardCardType? lastScrolledCard;
@@ -42,6 +84,19 @@ void main() {
       activeDisplay = const DisplayState();
       activeNetworkModal = false;
       lastScrolledCard = null;
+      reminderClock = _TestClock(DateTime(2026, 9, 20, 8, 0));
+      reminderSeq = 1;
+      activeAlarm = null;
+      activeReminders = [
+        ReminderItem(
+          id: 'rem_1',
+          title: 'Initial Test Reminder',
+          scheduledAt: DateTime(2026, 9, 20, 9, 0),
+          recurrence: ReminderRecurrence.daily,
+          isEnabled: true,
+          createdAt: reminderClock.now(),
+        ),
+      ];
       activeHabits = [
         HabitItem(
           id: 'h_1',
@@ -213,6 +268,104 @@ void main() {
             getNetworkModalOpen: () => activeNetworkModal,
             onToggleNetworkModal: (open) {
               activeNetworkModal = open;
+            },
+          ),
+          ReminderServerSection(
+            clock: reminderClock,
+            getReminders: () =>
+                RemindersState(items: activeReminders, isLoaded: true),
+            getActiveAlarm: () => activeAlarm,
+            onAddReminder:
+                ({
+                  required title,
+                  required scheduledAt,
+                  recurrence = ReminderRecurrence.once,
+                  customWeekdays = const <int>[],
+                  isEnabled = true,
+                }) {
+                  reminderSeq += 1;
+                  final item = ReminderItem(
+                    id: 'rem_$reminderSeq',
+                    title: title,
+                    scheduledAt: scheduledAt,
+                    recurrence: recurrence,
+                    customWeekdays: ReminderItem.normalizeWeekdays(
+                      customWeekdays,
+                    ),
+                    isEnabled: isEnabled,
+                    createdAt: reminderClock.now(),
+                  );
+                  activeReminders = [...activeReminders, item];
+                  server.broadcastState();
+                  return item;
+                },
+            onEditReminder: (reminder) {
+              activeReminders = activeReminders
+                  .map((r) => r.id == reminder.id ? reminder : r)
+                  .toList();
+              server.broadcastState();
+            },
+            onToggleReminder: (id, [isEnabled]) {
+              activeReminders = activeReminders.map((r) {
+                if (r.id != id) return r;
+                final next = isEnabled ?? !r.isEnabled;
+                return r.copyWith(isEnabled: next, clearSnoozedUntil: !next);
+              }).toList();
+              server.broadcastState();
+            },
+            onDeleteReminder: (id) {
+              activeReminders = activeReminders
+                  .where((r) => r.id != id)
+                  .toList();
+              server.broadcastState();
+            },
+            onSnoozeReminder: (id, duration) {
+              final now = reminderClock.now();
+              final target = now.add(duration);
+              activeReminders = activeReminders.map((r) {
+                if (r.id != id) return r;
+                return r.copyWith(
+                  isEnabled: true,
+                  snoozedUntil: target,
+                  lastTriggeredAt: r.lastTriggeredAt ?? now,
+                );
+              }).toList();
+              server.broadcastState();
+            },
+            onDismissAlarm: () {
+              final current = activeAlarm;
+              if (current == null) return;
+              activeAlarm = null;
+              if (!current.isPreview) {
+                activeReminders = activeReminders.map((r) {
+                  if (r.id != current.reminder.id) return r;
+                  return r.copyWith(
+                    isEnabled: r.recurrence == ReminderRecurrence.once
+                        ? false
+                        : r.isEnabled,
+                    clearSnoozedUntil: true,
+                    lastTriggeredAt: current.firedAt,
+                  );
+                }).toList();
+              }
+              server.broadcastState();
+            },
+            onSnoozeAlarm: (duration) {
+              final current = activeAlarm;
+              if (current == null) return;
+              activeAlarm = null;
+              if (!current.isPreview) {
+                final now = reminderClock.now();
+                activeReminders = activeReminders.map((r) {
+                  if (r.id != current.reminder.id) return r;
+                  return r.copyWith(
+                    isEnabled: true,
+                    snoozedUntil: now.add(duration),
+                    lastTriggeredAt: r.lastTriggeredAt ?? now,
+                  );
+                }).toList();
+              }
+              server.broadcastState();
             },
           ),
         ],
@@ -1158,5 +1311,642 @@ void main() {
         expect(corruptResp.statusCode, 400);
       },
     );
+
+    group('Reminders & Alarms REST and WebSocket endpoints', () {
+      test('GET /api/status and GET /api/reminders include reminders and active_alarm', () async {
+        final statusResp = await http.get(
+          Uri.parse('http://127.0.0.1:${server.port}/api/status'),
+        );
+        expect(statusResp.statusCode, 200);
+        final statusJson = jsonDecode(statusResp.body) as Map<String, dynamic>;
+        expect(statusJson['reminders'], isList);
+        expect((statusJson['reminders'] as List).length, 1);
+        expect(statusJson.containsKey('active_alarm'), isTrue);
+        expect(statusJson['active_alarm'], isNull);
+
+        // Set an active alarm and verify both /api/reminders and /api/status reflect it.
+        final firedAt = DateTime(2026, 9, 20, 9, 0);
+        activeAlarm = ActiveAlarmState(
+          reminder: activeReminders.first,
+          firedAt: firedAt,
+        );
+
+        final remResp = await http.get(
+          Uri.parse('http://127.0.0.1:${server.port}/api/reminders'),
+        );
+        expect(remResp.statusCode, 200);
+        final remJson = jsonDecode(remResp.body) as Map<String, dynamic>;
+        expect((remJson['reminders'] as List).length, 1);
+        expect(
+          remJson['reminders'][0]['title'],
+          equals('Initial Test Reminder'),
+        );
+        expect(remJson['active_alarm'], isMap);
+        expect(remJson['active_alarm']['reminder']['id'], equals('rem_1'));
+        expect(
+          remJson['active_alarm']['fired_at'],
+          equals(firedAt.toIso8601String()),
+        );
+        expect(remJson['active_alarm']['is_preview'], isFalse);
+
+        final statusWithAlarmResp = await http.get(
+          Uri.parse('http://127.0.0.1:${server.port}/api/status'),
+        );
+        final statusWithAlarm =
+            jsonDecode(statusWithAlarmResp.body) as Map<String, dynamic>;
+        expect(statusWithAlarm['active_alarm'], isMap);
+        expect(
+          statusWithAlarm['active_alarm']['reminder']['title'],
+          equals('Initial Test Reminder'),
+        );
+      });
+
+      test('POST /api/reminders creates reminders (snake_case & camelCase) and validates inputs', () async {
+        final resp1 = await http.post(
+          Uri.parse('http://127.0.0.1:${server.port}/api/reminders'),
+          headers: {'Content-Type': 'application/json'},
+          body: jsonEncode({
+            'title': '  Stretch break  ',
+            'scheduled_at': '2026-09-20T14:30:00.000',
+            'recurrence': 'custom',
+            'custom_weekdays': [5, 1, 3, 1],
+            'is_enabled': true,
+          }),
+        );
+        expect(resp1.statusCode, 200);
+        final body1 = jsonDecode(resp1.body) as Map<String, dynamic>;
+        expect(body1['success'], isTrue);
+        expect(body1['reminder']['title'], equals('Stretch break'));
+        expect(body1['reminder']['recurrence'], equals('custom'));
+        expect(body1['reminder']['custom_weekdays'], equals([1, 3, 5]));
+        expect(body1['reminder']['is_enabled'], isTrue);
+        expect((body1['reminders'] as List).length, 2);
+        expect(body1.containsKey('active_alarm'), isTrue);
+
+        final resp2 = await http.post(
+          Uri.parse('http://127.0.0.1:${server.port}/api/reminders'),
+          headers: {'Content-Type': 'application/json'},
+          body: jsonEncode({
+            'title': 'Evening meds',
+            'scheduledAt': '2026-09-20T21:00:00.000',
+            'recurrence': 'weekdays',
+            'isEnabled': false,
+          }),
+        );
+        expect(resp2.statusCode, 200);
+        final body2 = jsonDecode(resp2.body) as Map<String, dynamic>;
+        expect(body2['reminder']['recurrence'], equals('weekdays'));
+        expect(body2['reminder']['is_enabled'], isFalse);
+        expect(activeReminders.length, 3);
+
+        // Invalid payloads return 400 without mutating state.
+        final blankTitleResp = await http.post(
+          Uri.parse('http://127.0.0.1:${server.port}/api/reminders'),
+          headers: {'Content-Type': 'application/json'},
+          body: jsonEncode({
+            'title': '   ',
+            'scheduled_at': '2026-09-20T14:30:00.000',
+          }),
+        );
+        expect(blankTitleResp.statusCode, 400);
+
+        final badDateResp = await http.post(
+          Uri.parse('http://127.0.0.1:${server.port}/api/reminders'),
+          headers: {'Content-Type': 'application/json'},
+          body: jsonEncode({
+            'title': 'Valid title',
+            'scheduled_at': 'not-a-timestamp',
+          }),
+        );
+        expect(badDateResp.statusCode, 400);
+
+        final missingDateResp = await http.post(
+          Uri.parse('http://127.0.0.1:${server.port}/api/reminders'),
+          headers: {'Content-Type': 'application/json'},
+          body: jsonEncode({'title': 'No date'}),
+        );
+        expect(missingDateResp.statusCode, 400);
+
+        final emptyCustomDaysResp = await http.post(
+          Uri.parse('http://127.0.0.1:${server.port}/api/reminders'),
+          headers: {'Content-Type': 'application/json'},
+          body: jsonEncode({
+            'title': 'Custom no days',
+            'scheduled_at': '2026-09-20T14:30:00.000',
+            'recurrence': 'custom',
+            'custom_weekdays': <int>[],
+          }),
+        );
+        expect(emptyCustomDaysResp.statusCode, 400);
+
+        final badJsonResp = await http.post(
+          Uri.parse('http://127.0.0.1:${server.port}/api/reminders'),
+          headers: {'Content-Type': 'application/json'},
+          body: '{broken',
+        );
+        expect(badJsonResp.statusCode, 400);
+        expect(activeReminders.length, 3);
+      });
+
+      test('PUT /api/reminders/<id> updates fields, toggles is_enabled, snoozes, and handles 404/400', () async {
+        // Unknown ID -> 404
+        final notFoundResp = await http.put(
+          Uri.parse('http://127.0.0.1:${server.port}/api/reminders/missing'),
+          headers: {'Content-Type': 'application/json'},
+          body: jsonEncode({'title': 'Nope'}),
+        );
+        expect(notFoundResp.statusCode, 404);
+
+        // Snooze via PUT
+        final snoozeResp = await http.put(
+          Uri.parse('http://127.0.0.1:${server.port}/api/reminders/rem_1'),
+          headers: {'Content-Type': 'application/json'},
+          body: jsonEncode({'snooze_minutes': 25}),
+        );
+        expect(snoozeResp.statusCode, 200);
+        final snoozeBody = jsonDecode(snoozeResp.body) as Map<String, dynamic>;
+        expect(
+          snoozeBody['reminder']['snoozed_until'],
+          equals(DateTime(2026, 9, 20, 8, 25).toIso8601String()),
+        );
+
+        // Full field edit clears snoozed_until and updates fields
+        final editResp = await http.put(
+          Uri.parse('http://127.0.0.1:${server.port}/api/reminders/rem_1'),
+          headers: {'Content-Type': 'application/json'},
+          body: jsonEncode({
+            'title': 'Updated Morning Check',
+            'scheduled_at': '2026-09-20T10:15:00.000',
+            'recurrence': 'custom',
+            'custom_weekdays': [2, 4],
+            'is_enabled': true,
+          }),
+        );
+        expect(editResp.statusCode, 200);
+        final editBody = jsonDecode(editResp.body) as Map<String, dynamic>;
+        expect(editBody['reminder']['title'], equals('Updated Morning Check'));
+        expect(editBody['reminder']['recurrence'], equals('custom'));
+        expect(editBody['reminder']['custom_weekdays'], equals([2, 4]));
+        expect(editBody['reminder']['snoozed_until'], isNull);
+
+        // Toggle is_enabled only
+        final toggleResp = await http.put(
+          Uri.parse('http://127.0.0.1:${server.port}/api/reminders/rem_1'),
+          headers: {'Content-Type': 'application/json'},
+          body: jsonEncode({'is_enabled': false}),
+        );
+        expect(toggleResp.statusCode, 200);
+        final toggleBody = jsonDecode(toggleResp.body) as Map<String, dynamic>;
+        expect(toggleBody['reminder']['is_enabled'], isFalse);
+        expect(activeReminders.first.isEnabled, isFalse);
+
+        // Invalid PUT payloads -> 400
+        final emptyUpdateResp = await http.put(
+          Uri.parse('http://127.0.0.1:${server.port}/api/reminders/rem_1'),
+          headers: {'Content-Type': 'application/json'},
+          body: jsonEncode(<String, dynamic>{}),
+        );
+        expect(emptyUpdateResp.statusCode, 400);
+
+        final blankTitleResp = await http.put(
+          Uri.parse('http://127.0.0.1:${server.port}/api/reminders/rem_1'),
+          headers: {'Content-Type': 'application/json'},
+          body: jsonEncode({'title': ''}),
+        );
+        expect(blankTitleResp.statusCode, 400);
+
+        final badSnoozeResp = await http.put(
+          Uri.parse('http://127.0.0.1:${server.port}/api/reminders/rem_1'),
+          headers: {'Content-Type': 'application/json'},
+          body: jsonEncode({'snooze_minutes': 'invalid'}),
+        );
+        expect(badSnoozeResp.statusCode, 400);
+      });
+
+      test('DELETE /api/reminders/<id> deletes reminder and returns 404 for unknown id', () async {
+        final missingResp = await http.delete(
+          Uri.parse('http://127.0.0.1:${server.port}/api/reminders/unknown'),
+        );
+        expect(missingResp.statusCode, 404);
+
+        final deleteResp = await http.delete(
+          Uri.parse('http://127.0.0.1:${server.port}/api/reminders/rem_1'),
+        );
+        expect(deleteResp.statusCode, 200);
+        final body = jsonDecode(deleteResp.body) as Map<String, dynamic>;
+        expect(body['success'], isTrue);
+        expect(body['deleted_id'], equals('rem_1'));
+        expect(body['reminders'], isEmpty);
+        expect(activeReminders, isEmpty);
+      });
+
+      test('POST /api/reminders/alarm/dismiss and /snooze control active alarm cleanly', () async {
+        // Dismiss while idle succeeds cleanly.
+        final idleDismissResp = await http.post(
+          Uri.parse(
+            'http://127.0.0.1:${server.port}/api/reminders/alarm/dismiss',
+          ),
+        );
+        expect(idleDismissResp.statusCode, 200);
+        final idleBody =
+            jsonDecode(idleDismissResp.body) as Map<String, dynamic>;
+        expect(idleBody['ok'], isTrue);
+        expect(idleBody['active_alarm'], isNull);
+
+        // Trigger an alarm and dismiss it.
+        activeAlarm = ActiveAlarmState(
+          reminder: activeReminders.first,
+          firedAt: DateTime(2026, 9, 20, 9, 0),
+        );
+        final dismissResp = await http.post(
+          Uri.parse(
+            'http://127.0.0.1:${server.port}/api/reminders/alarm/dismiss',
+          ),
+        );
+        expect(dismissResp.statusCode, 200);
+        final dismissBody =
+            jsonDecode(dismissResp.body) as Map<String, dynamic>;
+        expect(dismissBody['ok'], isTrue);
+        expect(dismissBody['active_alarm'], isNull);
+        expect(activeAlarm, isNull);
+        expect(
+          activeReminders.first.lastTriggeredAt,
+          equals(DateTime(2026, 9, 20, 9, 0)),
+        );
+
+        // Trigger again and snooze with default 10m (empty body).
+        activeAlarm = ActiveAlarmState(
+          reminder: activeReminders.first,
+          firedAt: DateTime(2026, 9, 20, 9, 5),
+        );
+        final defaultSnoozeResp = await http.post(
+          Uri.parse(
+            'http://127.0.0.1:${server.port}/api/reminders/alarm/snooze',
+          ),
+        );
+        expect(defaultSnoozeResp.statusCode, 200);
+        final defaultSnoozeBody =
+            jsonDecode(defaultSnoozeResp.body) as Map<String, dynamic>;
+        expect(defaultSnoozeBody['ok'], isTrue);
+        expect(defaultSnoozeBody['minutes'], equals(10));
+        expect(defaultSnoozeBody['active_alarm'], isNull);
+        expect(
+          activeReminders.first.snoozedUntil,
+          equals(DateTime(2026, 9, 20, 8, 10)),
+        );
+
+        // Clamping 1..120 and explicit minutes.
+        activeAlarm = ActiveAlarmState(
+          reminder: activeReminders.first,
+          firedAt: DateTime(2026, 9, 20, 9, 10),
+        );
+        final clampedLowResp = await http.post(
+          Uri.parse(
+            'http://127.0.0.1:${server.port}/api/reminders/alarm/snooze',
+          ),
+          headers: {'Content-Type': 'application/json'},
+          body: jsonEncode({'minutes': 0}),
+        );
+        expect(clampedLowResp.statusCode, 200);
+        expect(jsonDecode(clampedLowResp.body)['minutes'], equals(1));
+        expect(
+          activeReminders.first.snoozedUntil,
+          equals(DateTime(2026, 9, 20, 8, 1)),
+        );
+
+        activeAlarm = ActiveAlarmState(
+          reminder: activeReminders.first,
+          firedAt: DateTime(2026, 9, 20, 9, 12),
+        );
+        final clampedHighResp = await http.post(
+          Uri.parse(
+            'http://127.0.0.1:${server.port}/api/reminders/alarm/snooze',
+          ),
+          headers: {'Content-Type': 'application/json'},
+          body: jsonEncode({'minutes': 999}),
+        );
+        expect(clampedHighResp.statusCode, 200);
+        expect(jsonDecode(clampedHighResp.body)['minutes'], equals(120));
+        expect(
+          activeReminders.first.snoozedUntil,
+          equals(DateTime(2026, 9, 20, 10, 0)),
+        );
+
+        // Malformed snooze payloads -> 400.
+        final badJsonSnooze = await http.post(
+          Uri.parse(
+            'http://127.0.0.1:${server.port}/api/reminders/alarm/snooze',
+          ),
+          headers: {'Content-Type': 'application/json'},
+          body: '{bad',
+        );
+        expect(badJsonSnooze.statusCode, 400);
+
+        final nonNumericSnooze = await http.post(
+          Uri.parse(
+            'http://127.0.0.1:${server.port}/api/reminders/alarm/snooze',
+          ),
+          headers: {'Content-Type': 'application/json'},
+          body: jsonEncode({'minutes': 'abc'}),
+        );
+        expect(nonNumericSnooze.statusCode, 400);
+      });
+
+      test(
+        'WebSocket reminder_* commands round-trip and broadcast state_update',
+        () async {
+          final channel = IOWebSocketChannel.connect(
+            Uri.parse('ws://127.0.0.1:${server.port}/ws'),
+          );
+          final incoming = StreamController<Map<String, dynamic>>.broadcast();
+          final sub = channel.stream.listen((raw) {
+            incoming.add(jsonDecode(raw.toString()) as Map<String, dynamic>);
+          });
+          addTearDown(() async {
+            await sub.cancel();
+            await channel.sink.close();
+            await incoming.close();
+          });
+
+          Future<Map<String, dynamic>> nextMsg() =>
+              incoming.stream.first.timeout(const Duration(seconds: 2));
+
+          // 1. Initial snapshot contains reminders and active_alarm: null.
+          final snapshot = await nextMsg();
+          expect(snapshot['type'], equals('snapshot'));
+          expect((snapshot['reminders'] as List).length, 1);
+          expect(snapshot.containsKey('active_alarm'), isTrue);
+          expect(snapshot['active_alarm'], isNull);
+
+          // 2. reminder_add
+          final addFuture = nextMsg();
+          channel.sink.add(
+            jsonEncode({
+              'type': 'reminder_add',
+              'title': 'WS Hydration',
+              'scheduled_at': '2026-09-20T11:30:00.000',
+              'recurrence': 'custom',
+              'custom_weekdays': [1, 3, 5],
+            }),
+          );
+          final addUpdate = await addFuture;
+          expect(addUpdate['type'], equals('state_update'));
+          final added = (addUpdate['reminders'] as List).last;
+          expect(added['title'], equals('WS Hydration'));
+          expect(added['custom_weekdays'], equals([1, 3, 5]));
+          final addedId = added['id'] as String;
+
+          // 3. reminder_edit
+          final editFuture = nextMsg();
+          channel.sink.add(
+            jsonEncode({
+              'type': 'reminder_edit',
+              'id': addedId,
+              'title': 'WS Deep Work',
+              'scheduled_at': '2026-09-20T12:00:00.000',
+              'recurrence': 'daily',
+              'custom_weekdays': <int>[],
+              'is_enabled': true,
+            }),
+          );
+          final editUpdate = await editFuture;
+          expect(editUpdate['type'], equals('state_update'));
+          final edited = (editUpdate['reminders'] as List).firstWhere(
+            (r) => r['id'] == addedId,
+          );
+          expect(edited['title'], equals('WS Deep Work'));
+          expect(edited['recurrence'], equals('daily'));
+
+          // 4. reminder_toggle
+          final toggleFuture = nextMsg();
+          channel.sink.add(
+            jsonEncode({
+              'type': 'reminder_toggle',
+              'id': addedId,
+              'is_enabled': false,
+            }),
+          );
+          final toggleUpdate = await toggleFuture;
+          final toggled = (toggleUpdate['reminders'] as List).firstWhere(
+            (r) => r['id'] == addedId,
+          );
+          expect(toggled['is_enabled'], isFalse);
+
+          // 5. Tablet triggers active alarm and broadcasts state_update
+          final ringFuture = nextMsg();
+          activeAlarm = ActiveAlarmState(
+            reminder: activeReminders.first,
+            firedAt: DateTime(2026, 9, 20, 9, 0),
+          );
+          server.broadcastState();
+          final ringUpdate = await ringFuture;
+          expect(ringUpdate['active_alarm'], isMap);
+          expect(ringUpdate['active_alarm']['reminder']['id'], equals('rem_1'));
+
+          // 6. reminder_snooze_alarm
+          final snoozeFuture = nextMsg();
+          channel.sink.add(
+            jsonEncode({'type': 'reminder_snooze_alarm', 'minutes': 15}),
+          );
+          final snoozeUpdate = await snoozeFuture;
+          expect(snoozeUpdate['active_alarm'], isNull);
+          expect(
+            snoozeUpdate['reminders'][0]['snoozed_until'],
+            equals(DateTime(2026, 9, 20, 8, 15).toIso8601String()),
+          );
+
+          // 7. Ring again and dismiss via reminder_dismiss_alarm
+          final ringAgainFuture = nextMsg();
+          activeAlarm = ActiveAlarmState(
+            reminder: activeReminders.first,
+            firedAt: DateTime(2026, 9, 20, 8, 15),
+          );
+          server.broadcastState();
+          await ringAgainFuture;
+
+          final dismissFuture = nextMsg();
+          channel.sink.add(jsonEncode({'type': 'reminder_dismiss_alarm'}));
+          final dismissUpdate = await dismissFuture;
+          expect(dismissUpdate['active_alarm'], isNull);
+
+          // 8. reminder_delete
+          final deleteFuture = nextMsg();
+          channel.sink.add(
+            jsonEncode({'type': 'reminder_delete', 'id': addedId}),
+          );
+          final deleteUpdate = await deleteFuture;
+          expect(
+            (deleteUpdate['reminders'] as List).any((r) => r['id'] == addedId),
+            isFalse,
+          );
+
+          // 9. Malformed WebSocket messages do not crash or mutate state.
+          final countBefore = activeReminders.length;
+          channel.sink.add(
+            jsonEncode({
+              'type': 'reminder_add',
+              'title': '',
+              'scheduled_at': 'bad-date',
+            }),
+          );
+          channel.sink.add(
+            jsonEncode({
+              'type': 'reminder_edit',
+              'id': 'non_existent',
+              'title': 'X',
+            }),
+          );
+          channel.sink.add(
+            jsonEncode({'type': 'reminder_snooze_alarm', 'minutes': 'bad'}),
+          );
+          await Future<void>.delayed(const Duration(milliseconds: 50));
+          expect(activeReminders.length, countBefore);
+        },
+      );
+    });
+  });
+
+  group('ReminderServerSection + Riverpod Notifier integration', () {
+    test('bridges RemindersNotifier & ActiveAlarmNotifier with OS sync and WS broadcasts', () async {
+      final clock = _TestClock(DateTime(2026, 9, 20, 8, 0));
+      final repository = _InMemoryReminderRepository();
+      final gateway = FakeNotificationGateway();
+      final audio = FakeAlarmAudioGateway();
+      final tickController = StreamController<DateTime>.broadcast();
+
+      final container = ProviderContainer(
+        overrides: [
+          clockProvider.overrideWithValue(clock),
+          clockTimeProvider.overrideWith((ref) => tickController.stream),
+          reminderRepositoryProvider.overrideWithValue(repository),
+          notificationGatewayProvider.overrideWithValue(gateway),
+          alarmAudioGatewayProvider.overrideWithValue(audio),
+        ],
+      );
+      await container.read(remindersProvider.notifier).initialized;
+
+      final server = ShelfWebServer(
+        sections: [
+          ReminderServerSection(
+            clock: container.read(clockProvider),
+            getReminders: () => container.read(remindersProvider),
+            getActiveAlarm: () => container.read(activeAlarmProvider),
+            onAddReminder:
+                ({
+                  required title,
+                  required scheduledAt,
+                  recurrence = ReminderRecurrence.once,
+                  customWeekdays = const <int>[],
+                  isEnabled = true,
+                }) {
+                  return container
+                      .read(remindersProvider.notifier)
+                      .addReminder(
+                        title: title,
+                        scheduledAt: scheduledAt,
+                        recurrence: recurrence,
+                        customWeekdays: customWeekdays,
+                        isEnabled: isEnabled,
+                      );
+                },
+            onEditReminder: (reminder) => container
+                .read(remindersProvider.notifier)
+                .editReminder(reminder),
+            onToggleReminder: (id, [isEnabled]) => container
+                .read(remindersProvider.notifier)
+                .toggleReminder(id, isEnabled),
+            onDeleteReminder: (id) =>
+                container.read(remindersProvider.notifier).deleteReminder(id),
+            onSnoozeReminder: (id, duration) => container
+                .read(remindersProvider.notifier)
+                .snoozeReminder(id, duration: duration),
+            onDismissAlarm: () =>
+                container.read(activeAlarmProvider.notifier).dismissActive(),
+            onSnoozeAlarm: (duration) => container
+                .read(activeAlarmProvider.notifier)
+                .snoozeActive(duration),
+          ),
+        ],
+      );
+
+      final remSub = container.listen<RemindersState>(
+        remindersProvider,
+        (_, _) => server.broadcastState(),
+      );
+      final alarmSub = container.listen<ActiveAlarmState?>(
+        activeAlarmProvider,
+        (_, _) => server.broadcastState(),
+      );
+
+      await server.start(port: 0);
+
+      final wsChannel = IOWebSocketChannel.connect(
+        Uri.parse('ws://127.0.0.1:${server.port}/ws'),
+      );
+      final events = StreamController<Map<String, dynamic>>.broadcast();
+      final wsSub = wsChannel.stream.listen((raw) {
+        events.add(jsonDecode(raw.toString()) as Map<String, dynamic>);
+      });
+
+      addTearDown(() async {
+        remSub.close();
+        alarmSub.close();
+        await wsSub.cancel();
+        await wsChannel.sink.close();
+        await events.close();
+        await server.stop();
+        container.dispose();
+        await gateway.dispose();
+        await tickController.close();
+      });
+
+      final initial = await events.stream.first;
+      expect(initial['type'], equals('snapshot'));
+      expect(initial['reminders'], isEmpty);
+      expect(initial['active_alarm'], isNull);
+
+      // Create reminder over HTTP -> updates RemindersNotifier, schedules OS alarm, broadcasts WS.
+      final broadcastFuture = events.stream.first;
+      final createResp = await http.post(
+        Uri.parse('http://127.0.0.1:${server.port}/api/reminders'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'title': 'Standup Call',
+          'scheduled_at': '2026-09-20T09:00:00.000',
+          'recurrence': 'once',
+        }),
+      );
+      expect(createResp.statusCode, 200);
+      final createUpdate = await broadcastFuture;
+      expect((createUpdate['reminders'] as List).length, 1);
+      expect(gateway.scheduled.length, 1);
+
+      final created = container.read(remindersProvider).items.single;
+      expect(created.title, equals('Standup Call'));
+
+      // Trigger alarm on tablet side -> audio plays & WS receives active_alarm.
+      final ringBroadcast = events.stream.first;
+      await container
+          .read(activeAlarmProvider.notifier)
+          .triggerAlarm(created, DateTime(2026, 9, 20, 9, 0));
+      final ringUpdate = await ringBroadcast;
+      expect(audio.isPlaying, isTrue);
+      expect(ringUpdate['active_alarm']['reminder']['id'], created.id);
+
+      // Dismiss via WS -> stops chime, clears activeAlarm, disables once reminder, broadcasts null.
+      final dismissBroadcast = events.stream.firstWhere(
+        (msg) =>
+            msg['active_alarm'] == null &&
+            (msg['reminders'] as List).first['is_enabled'] == false,
+      );
+      wsChannel.sink.add(jsonEncode({'type': 'reminder_dismiss_alarm'}));
+      final dismissedUpdate = await dismissBroadcast.timeout(
+        const Duration(seconds: 2),
+      );
+      expect(dismissedUpdate['active_alarm'], isNull);
+      expect(audio.isPlaying, isFalse);
+      expect(container.read(activeAlarmProvider), isNull);
+      expect(container.read(remindersProvider).items.single.isEnabled, isFalse);
+    });
   });
 }

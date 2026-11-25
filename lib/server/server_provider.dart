@@ -5,6 +5,7 @@ import 'package:wyrm_desk/config/app_settings_state.dart';
 import 'package:wyrm_desk/config/card_layout_state.dart';
 import 'package:wyrm_desk/config/layout_server_section.dart';
 import 'package:wyrm_desk/config/settings_server_section.dart';
+import 'package:wyrm_desk/core/notifications/reminder_model.dart';
 import 'package:wyrm_desk/data/database_service.dart';
 import 'package:wyrm_desk/features/calendar/calendar_state.dart';
 import 'package:wyrm_desk/features/calendar/calendar_server_section.dart';
@@ -15,10 +16,14 @@ import 'package:wyrm_desk/features/habits/habits_server_section.dart';
 import 'package:wyrm_desk/features/habits/habits_state.dart';
 import 'package:wyrm_desk/features/network/network_modal.dart';
 import 'package:wyrm_desk/features/network/network_server_section.dart';
+import 'package:wyrm_desk/features/reminder/active_alarm_provider.dart';
+import 'package:wyrm_desk/features/reminder/reminder_server_section.dart';
+import 'package:wyrm_desk/features/reminder/reminder_state.dart';
 import 'package:wyrm_desk/features/tasks/task_model.dart';
 import 'package:wyrm_desk/features/tasks/tasks_server_section.dart';
 import 'package:wyrm_desk/features/tasks/tasks_state.dart';
 import 'package:wyrm_desk/server/web_server.dart';
+import 'package:wyrm_desk/services/clock_provider.dart';
 
 /// Provider managing the background Shelf HTTP and WebSocket server lifecycle.
 ///
@@ -119,6 +124,51 @@ final webServerProvider = Provider<ShelfWebServer>((ref) {
           ref.read(networkModalOpenProvider.notifier).setOpen(open);
         },
       ),
+      ReminderServerSection(
+        clock: ref.read(clockProvider),
+        getReminders: () => ref.read(remindersProvider),
+        getActiveAlarm: () => ref.read(activeAlarmProvider),
+        onAddReminder:
+            ({
+              required title,
+              required scheduledAt,
+              recurrence = ReminderRecurrence.once,
+              customWeekdays = const <int>[],
+              isEnabled = true,
+            }) {
+              return ref
+                  .read(remindersProvider.notifier)
+                  .addReminder(
+                    title: title,
+                    scheduledAt: scheduledAt,
+                    recurrence: recurrence,
+                    customWeekdays: customWeekdays,
+                    isEnabled: isEnabled,
+                  );
+            },
+        onEditReminder: (reminder) {
+          return ref.read(remindersProvider.notifier).editReminder(reminder);
+        },
+        onToggleReminder: (id, [isEnabled]) {
+          return ref
+              .read(remindersProvider.notifier)
+              .toggleReminder(id, isEnabled);
+        },
+        onDeleteReminder: (id) {
+          return ref.read(remindersProvider.notifier).deleteReminder(id);
+        },
+        onSnoozeReminder: (id, duration) {
+          return ref
+              .read(remindersProvider.notifier)
+              .snoozeReminder(id, duration: duration);
+        },
+        onDismissAlarm: () {
+          return ref.read(activeAlarmProvider.notifier).dismissActive();
+        },
+        onSnoozeAlarm: (duration) {
+          return ref.read(activeAlarmProvider.notifier).snoozeActive(duration);
+        },
+      ),
     ],
     onImportDatabase: (jsonString) async {
       return await ref
@@ -165,6 +215,16 @@ final webServerProvider = Provider<ShelfWebServer>((ref) {
 
   // Synchronize network connection modal state changes to connected web clients.
   ref.listen<bool>(networkModalOpenProvider, (previous, next) {
+    server.broadcastState();
+  });
+
+  // Synchronize reminder list changes to connected web clients.
+  ref.listen<RemindersState>(remindersProvider, (previous, next) {
+    server.broadcastState();
+  });
+
+  // Synchronize active alarm ringing/dismiss/snooze transitions to connected web clients.
+  ref.listen<ActiveAlarmState?>(activeAlarmProvider, (previous, next) {
     server.broadcastState();
   });
 
