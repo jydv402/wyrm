@@ -1,7 +1,15 @@
 package com.jdmakes.wyrm
 
+import android.content.Context
 import android.content.Intent
+import android.media.AudioAttributes
+import android.media.MediaPlayer
+import android.media.RingtoneManager
 import android.net.Uri
+import android.os.Build
+import android.os.VibrationEffect
+import android.os.Vibrator
+import android.os.VibratorManager
 import android.provider.OpenableColumns
 import android.util.Log
 import android.view.WindowManager
@@ -15,10 +23,13 @@ class MainActivity : FlutterActivity() {
 
     private val displayChannelName = "wyrm_desk/display"
     private val backupChannelName = "wyrm_desk/backup"
+    private val alarmChannelName = "wyrm_desk/alarm"
     private val tag = "WyrmDesk"
 
     private val saveBackupRequest = 4101
     private val openBackupRequest = 4102
+
+    private var alarmPlayer: MediaPlayer? = null
 
     // Backup transfers are asynchronous: the method call stays pending until the
     // system document picker returns, then these hold the reply to send back.
@@ -56,6 +67,27 @@ class MainActivity : FlutterActivity() {
                     else -> result.notImplemented()
                 }
             }
+
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, alarmChannelName)
+            .setMethodCallHandler { call, result ->
+                when (call.method) {
+                    "startAlarmChime" -> result.success(startAlarmChime())
+                    "stopAlarmChime" -> {
+                        stopAlarmChime()
+                        result.success(null)
+                    }
+                    "setWakeScreen" -> {
+                        val enabled = when (val args = call.arguments) {
+                            is Boolean -> args
+                            is Map<*, *> -> (args["enabled"] as? Boolean) ?: false
+                            else -> false
+                        }
+                        setWakeScreen(enabled)
+                        result.success(null)
+                    }
+                    else -> result.notImplemented()
+                }
+            }
     }
 
     private fun applyPanelBrightness(brightness: Double) {
@@ -63,6 +95,150 @@ class MainActivity : FlutterActivity() {
             val attributes = window.attributes
             attributes.screenBrightness = brightness.toFloat().coerceIn(0.01f, 1.0f)
             window.attributes = attributes
+        }
+    }
+
+    // =========================================================================
+    // ALARM AUDIO & WAKE SCREEN
+    // =========================================================================
+
+    private fun startAlarmChime(): Boolean {
+        releaseAlarmPlayer()
+        cancelAlarmVibration()
+        setKeepScreenOn(true)
+        startAlarmVibration()
+
+        val candidateUris = listOfNotNull(
+            safeDefaultRingtoneUri(RingtoneManager.TYPE_ALARM),
+            safeDefaultRingtoneUri(RingtoneManager.TYPE_NOTIFICATION),
+            safeDefaultRingtoneUri(RingtoneManager.TYPE_RINGTONE)
+        ).distinct()
+
+        for (uri in candidateUris) {
+            var player: MediaPlayer? = null
+            try {
+                player = MediaPlayer().apply {
+                    setAudioAttributes(
+                        AudioAttributes.Builder()
+                            .setUsage(AudioAttributes.USAGE_ALARM)
+                            .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                            .build()
+                    )
+                    setDataSource(applicationContext, uri)
+                    isLooping = true
+                    prepare()
+                    start()
+                }
+                alarmPlayer = player
+                return true
+            } catch (error: Exception) {
+                Log.w(tag, "Could not start alarm chime for $uri", error)
+                try {
+                    player?.release()
+                } catch (_: Exception) {
+                }
+            }
+        }
+
+        Log.w(tag, "No playable alarm ringtone URI available")
+        return false
+    }
+
+    private fun stopAlarmChime() {
+        releaseAlarmPlayer()
+        cancelAlarmVibration()
+        setKeepScreenOn(false)
+    }
+
+    private fun safeDefaultRingtoneUri(type: Int): Uri? {
+        return try {
+            RingtoneManager.getDefaultUri(type)
+        } catch (error: Exception) {
+            Log.w(tag, "Could not resolve default ringtone URI for type=$type", error)
+            null
+        }
+    }
+
+    private fun releaseAlarmPlayer() {
+        val player = alarmPlayer ?: return
+        alarmPlayer = null
+        try {
+            if (player.isPlaying) {
+                player.stop()
+            }
+        } catch (_: Exception) {
+        }
+        try {
+            player.release()
+        } catch (_: Exception) {
+        }
+    }
+
+    private fun resolveVibrator(): Vibrator? {
+        return try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                val manager =
+                    getSystemService(Context.VIBRATOR_MANAGER_SERVICE) as? VibratorManager
+                manager?.defaultVibrator
+            } else {
+                @Suppress("DEPRECATION")
+                getSystemService(Context.VIBRATOR_SERVICE) as? Vibrator
+            }
+        } catch (error: Exception) {
+            Log.w(tag, "Could not resolve Vibrator service", error)
+            null
+        }
+    }
+
+    private fun startAlarmVibration() {
+        try {
+            val vibrator = resolveVibrator() ?: return
+            if (!vibrator.hasVibrator()) return
+            val pattern = longArrayOf(0L, 350L, 650L)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                vibrator.vibrate(VibrationEffect.createWaveform(pattern, 0))
+            } else {
+                @Suppress("DEPRECATION")
+                vibrator.vibrate(pattern, 0)
+            }
+        } catch (error: Exception) {
+            Log.w(tag, "Could not start alarm vibration", error)
+        }
+    }
+
+    private fun cancelAlarmVibration() {
+        try {
+            resolveVibrator()?.cancel()
+        } catch (error: Exception) {
+            Log.w(tag, "Could not cancel alarm vibration", error)
+        }
+    }
+
+    private fun setKeepScreenOn(enabled: Boolean) {
+        runOnUiThread {
+            if (enabled) {
+                window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+            } else {
+                window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+            }
+        }
+    }
+
+    private fun setWakeScreen(enabled: Boolean) {
+        runOnUiThread {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O_MR1) {
+                setShowWhenLocked(enabled)
+                setTurnScreenOn(enabled)
+            } else {
+                @Suppress("DEPRECATION")
+                val flags = WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED or
+                    WindowManager.LayoutParams.FLAG_TURN_SCREEN_ON
+                if (enabled) {
+                    window.addFlags(flags)
+                } else {
+                    window.clearFlags(flags)
+                }
+            }
         }
     }
 
@@ -217,6 +393,8 @@ class MainActivity : FlutterActivity() {
     }
 
     override fun onDestroy() {
+        releaseAlarmPlayer()
+        cancelAlarmVibration()
         // A picker still open when the activity dies would otherwise leave Dart
         // awaiting forever; resolve both as cancellations.
         pendingSaveResult?.success(null)
