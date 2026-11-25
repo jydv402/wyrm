@@ -30,6 +30,8 @@ class WyrmStateStore {
 
       tasks: [],
       habits: [],
+      reminders: [],
+      activeAlarm: null,
       calendar: { selectedDate: null, viewMonth: new Date().toISOString(), milestones: [] },
     });
 
@@ -93,6 +95,15 @@ class WyrmStateStore {
           iconName: h.iconName ?? h.icon_name ?? 'bolt',
         }));
       }
+    });
+    apply('reminders', data.reminders, () => {
+      if (Array.isArray(data.reminders)) {
+        this.state.reminders = data.reminders;
+      }
+    });
+    const incomingAlarm = data.active_alarm !== undefined ? data.active_alarm : data.activeAlarm;
+    apply('activeAlarm', incomingAlarm, () => {
+      this.state.activeAlarm = incomingAlarm || null;
     });
     apply('calendar', data.calendar, () => Object.assign(this.state.calendar, data.calendar));
   }
@@ -194,19 +205,31 @@ class WyrmWebSocketManager {
     return false;
   }
 
-  async sendOrPost(endpoint, data, wsType = null) {
-    if (wsType && this.send({ type: wsType, ...data })) return true;
+  async sendOrPost(endpoint, data, wsType = null, method = 'POST', wsData = null) {
+    if (wsType && this.send({ type: wsType, ...(wsData || data) })) return true;
     try {
-      const res = await fetch(endpoint, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data),
-      });
+      const options = { method };
+      if (method !== 'DELETE' && method !== 'GET') {
+        options.headers = { 'Content-Type': 'application/json' };
+        options.body = JSON.stringify(data ?? {});
+      }
+      const res = await fetch(endpoint, options);
+      if (res.ok) {
+        this._refreshStatusFallback();
+      }
       return res.ok;
     } catch (e) {
       console.warn(`[WyrmNet] Request to ${endpoint} failed:`, e);
       return false;
     }
+  }
+
+  async _refreshStatusFallback() {
+    try {
+      let res = await fetch('/api/status');
+      if (!res.ok) res = await fetch('/api/state');
+      if (res.ok) this.store.mergeSnapshot(await res.json());
+    } catch (_) { }
   }
 }
 
@@ -224,12 +247,43 @@ function createWyrmActions(store, ws) {
   const draft = Vue.reactive({ glyph: '💧' });
 
   const pad = (n) => String(n).padStart(2, '0');
+  const pad3 = (n) => String(n).padStart(3, '0');
   const padYear = (y) => String(y).padStart(4, '0');
   // Local calendar date as YYYY-MM-DD. Used everywhere so "today" can never
   // disagree with the week strip (toISOString is UTC and flips at the wrong hour).
   const dateKey = (d = new Date()) => `${padYear(d.getFullYear())}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+  const toLocalIsoString = (d = new Date()) => {
+    const dt = d instanceof Date ? d : new Date(d);
+    if (isNaN(dt.getTime())) return '';
+    return `${padYear(dt.getFullYear())}-${pad(dt.getMonth() + 1)}-${pad(dt.getDate())}T${pad(dt.getHours())}:${pad(dt.getMinutes())}:${pad(dt.getSeconds())}.${pad3(dt.getMilliseconds())}`;
+  };
 
-  const post = (endpoint, data, type) => ws.sendOrPost(endpoint, data, type);
+  const RECURRENCES = new Set(['once', 'daily', 'weekdays', 'custom']);
+  const normalizeRecurrence = (val) => {
+    const v = String(val || 'once').trim().toLowerCase();
+    return RECURRENCES.has(v) ? v : 'once';
+  };
+  const normalizeWeekdays = (list) => {
+    if (!Array.isArray(list)) return [];
+    const seen = new Set();
+    list.forEach((raw) => {
+      const n = parseInt(raw, 10);
+      if (n >= 1 && n <= 7) seen.add(n);
+    });
+    return Array.from(seen).sort((a, b) => a - b);
+  };
+  const parseIsoDate = (val) => {
+    if (!val) return null;
+    const d = val instanceof Date ? val : new Date(val);
+    return isNaN(d.getTime()) ? null : d;
+  };
+
+  // Shared reactive wall-clock ticker so reminder countdowns stay fresh.
+  const nowMs = Vue.ref(Date.now());
+  setInterval(() => { nowMs.value = Date.now(); }, 15000);
+
+  const post = (endpoint, data, type, method = 'POST', wsData = null) =>
+    ws.sendOrPost(endpoint, data, type, method, wsData);
 
   // Brightness drags fire constantly; send at most one update per 80ms, always ending on the final value.
   let brightTimer = null;
@@ -239,7 +293,11 @@ function createWyrmActions(store, ws) {
   const actions = {
     state,
     draft,
+    nowMs,
     dateKey,
+    toLocalIsoString,
+    normalizeRecurrence,
+    normalizeWeekdays,
 
     /* Navigation & layout */
     setChannel(name) {
@@ -326,6 +384,259 @@ function createWyrmActions(store, ws) {
       store.markPendingOnce('habits', state.habits);
       state.habits = state.habits.filter((h) => h.id !== id);
       post('/api/habits/delete', { id }, 'delete_habit');
+    },
+
+    /* Reminders & Alarms */
+    addReminder(payload = {}) {
+      const clean = String(payload.title || '').trim();
+      const rawSched = payload.scheduled_at ?? payload.scheduledAt;
+      const schedDate = parseIsoDate(rawSched);
+      if (!clean || !schedDate) return false;
+
+      const recurrence = normalizeRecurrence(payload.recurrence);
+      const customWeekdays = recurrence === 'custom'
+        ? normalizeWeekdays(payload.custom_weekdays ?? payload.customWeekdays)
+        : [];
+      if (recurrence === 'custom' && customWeekdays.length === 0) return false;
+
+      const isEnabled = payload.is_enabled !== undefined
+        ? !!payload.is_enabled
+        : (payload.isEnabled !== undefined ? !!payload.isEnabled : true);
+      const scheduledAtIso = typeof rawSched === 'string' && rawSched.includes('T')
+        ? rawSched
+        : toLocalIsoString(schedDate);
+
+      post(
+        '/api/reminders',
+        {
+          title: clean,
+          scheduled_at: scheduledAtIso,
+          recurrence,
+          custom_weekdays: customWeekdays,
+          is_enabled: isEnabled,
+        },
+        'reminder_add',
+        'POST',
+        {
+          title: clean,
+          scheduled_at: scheduledAtIso,
+          recurrence,
+          custom_weekdays: customWeekdays,
+        }
+      );
+      return true;
+    },
+    editReminder(idOrPayload, maybeFields = {}) {
+      let id = idOrPayload;
+      let fields = maybeFields;
+      if (idOrPayload && typeof idOrPayload === 'object') {
+        id = idOrPayload.id;
+        fields = idOrPayload;
+      }
+      if (!id) return false;
+      const existing = state.reminders.find((r) => r.id === id);
+
+      const titleRaw = fields.title !== undefined ? fields.title : (existing && existing.title);
+      const cleanTitle = String(titleRaw || '').trim();
+      if (!cleanTitle) return false;
+
+      const rawSched = fields.scheduled_at ?? fields.scheduledAt ?? (existing && (existing.scheduled_at ?? existing.scheduledAt));
+      const schedDate = parseIsoDate(rawSched);
+      if (!schedDate) return false;
+
+      const recurrence = normalizeRecurrence(fields.recurrence ?? (existing && existing.recurrence));
+      const rawDays = fields.custom_weekdays ?? fields.customWeekdays ?? (existing && (existing.custom_weekdays ?? existing.customWeekdays));
+      const customWeekdays = recurrence === 'custom' ? normalizeWeekdays(rawDays) : [];
+      if (recurrence === 'custom' && customWeekdays.length === 0) return false;
+
+      const isEnabled = fields.is_enabled !== undefined
+        ? !!fields.is_enabled
+        : (fields.isEnabled !== undefined
+          ? !!fields.isEnabled
+          : (existing ? !!(existing.is_enabled ?? existing.isEnabled ?? true) : true));
+
+      const scheduledAtIso = typeof rawSched === 'string' && rawSched.includes('T')
+        ? rawSched
+        : toLocalIsoString(schedDate);
+
+      if (existing) {
+        store.markPendingOnce('reminders', state.reminders);
+        existing.title = cleanTitle;
+        existing.scheduled_at = scheduledAtIso;
+        existing.recurrence = recurrence;
+        existing.custom_weekdays = customWeekdays;
+        existing.is_enabled = isEnabled;
+        existing.snoozed_until = null;
+      }
+
+      const body = {
+        title: cleanTitle,
+        scheduled_at: scheduledAtIso,
+        recurrence,
+        custom_weekdays: customWeekdays,
+        is_enabled: isEnabled,
+      };
+      post(
+        `/api/reminders/${encodeURIComponent(id)}`,
+        body,
+        'reminder_edit',
+        'PUT',
+        { id, ...body }
+      );
+      return true;
+    },
+    toggleReminder(id, explicitEnabled) {
+      if (!id) return false;
+      const r = state.reminders.find((item) => item.id === id);
+      const current = r ? !!(r.is_enabled ?? r.isEnabled ?? true) : false;
+      const nextEnabled = typeof explicitEnabled === 'boolean' ? explicitEnabled : !current;
+      if (r) {
+        store.markPendingOnce('reminders', state.reminders);
+        r.is_enabled = nextEnabled;
+      }
+      post(
+        `/api/reminders/${encodeURIComponent(id)}`,
+        { is_enabled: nextEnabled },
+        'reminder_toggle',
+        'PUT',
+        { id, is_enabled: nextEnabled }
+      );
+      return true;
+    },
+    deleteReminder(id) {
+      if (!id) return false;
+      store.markPendingOnce('reminders', state.reminders);
+      state.reminders = state.reminders.filter((item) => item.id !== id);
+      post(
+        `/api/reminders/${encodeURIComponent(id)}`,
+        {},
+        'reminder_delete',
+        'DELETE',
+        { id }
+      );
+      return true;
+    },
+    dismissActiveAlarm() {
+      store.markPendingOnce('activeAlarm', state.activeAlarm);
+      state.activeAlarm = null;
+      post('/api/reminders/alarm/dismiss', {}, 'reminder_dismiss_alarm', 'POST', {});
+      return true;
+    },
+    snoozeActiveAlarm(minutes = 10) {
+      const mins = Math.max(1, parseInt(minutes, 10) || 10);
+      store.markPendingOnce('activeAlarm', state.activeAlarm);
+      state.activeAlarm = null;
+      post('/api/reminders/alarm/snooze', { minutes: mins }, 'reminder_snooze_alarm', 'POST', { minutes: mins });
+      return true;
+    },
+    formatReminderTime(dateOrIso) {
+      const d = parseIsoDate(dateOrIso);
+      if (!d) return '';
+      const hh = d.getHours();
+      const mm = pad(d.getMinutes());
+      if (state.settings.is24HourFormat) {
+        return `${pad(hh)}:${mm}`;
+      }
+      const suffix = hh >= 12 ? 'PM' : 'AM';
+      const h12 = hh % 12 || 12;
+      return `${h12}:${mm} ${suffix}`;
+    },
+    isReminderSnoozed(reminder, refNow = new Date(nowMs.value)) {
+      if (!reminder) return false;
+      const enabled = reminder.is_enabled ?? reminder.isEnabled ?? true;
+      if (!enabled) return false;
+      const now = refNow instanceof Date ? refNow : new Date(refNow);
+      const snoozed = parseIsoDate(reminder.snoozed_until ?? reminder.snoozedUntil);
+      return !!(snoozed && snoozed.getTime() > now.getTime());
+    },
+    nextReminderFireDate(reminder, refNow = new Date(nowMs.value)) {
+      if (!reminder) return null;
+      const enabled = reminder.is_enabled ?? reminder.isEnabled ?? true;
+      if (!enabled) return null;
+
+      const now = refNow instanceof Date ? refNow : new Date(refNow);
+      const snoozed = parseIsoDate(reminder.snoozed_until ?? reminder.snoozedUntil);
+      if (snoozed && snoozed.getTime() > now.getTime()) {
+        return snoozed;
+      }
+
+      const scheduled = parseIsoDate(reminder.scheduled_at ?? reminder.scheduledAt);
+      if (!scheduled) return null;
+      const lastTriggered = parseIsoDate(reminder.last_triggered_at ?? reminder.lastTriggeredAt);
+      const recurrence = normalizeRecurrence(reminder.recurrence);
+
+      if (recurrence === 'once') {
+        if (scheduled.getTime() > now.getTime() && (!lastTriggered || lastTriggered.getTime() < scheduled.getTime())) {
+          return scheduled;
+        }
+        return null;
+      }
+
+      const customDays = normalizeWeekdays(reminder.custom_weekdays ?? reminder.customWeekdays);
+      if (recurrence === 'custom' && customDays.length === 0) return null;
+
+      const hour = scheduled.getHours();
+      const minute = scheduled.getMinutes();
+      for (let offset = 0; offset <= 14; offset++) {
+        const candidate = new Date(now.getFullYear(), now.getMonth(), now.getDate() + offset, hour, minute, 0, 0);
+        const isoDay = candidate.getDay() === 0 ? 7 : candidate.getDay();
+        const matches =
+          recurrence === 'daily' ||
+          (recurrence === 'weekdays' && isoDay >= 1 && isoDay <= 5) ||
+          (recurrence === 'custom' && customDays.includes(isoDay));
+        if (!matches) continue;
+        if (candidate.getTime() > now.getTime() && (!lastTriggered || candidate.getTime() > lastTriggered.getTime())) {
+          return candidate;
+        }
+      }
+      return null;
+    },
+    nextUpcomingReminder(refNow = new Date(nowMs.value)) {
+      let best = null;
+      (state.reminders || []).forEach((r) => {
+        const fireAt = actions.nextReminderFireDate(r, refNow);
+        if (!fireAt) return;
+        if (!best || fireAt.getTime() < best.fireAt.getTime()) {
+          best = { reminder: r, fireAt, isSnoozed: actions.isReminderSnoozed(r, refNow) };
+        }
+      });
+      return best;
+    },
+    formatRelativeDuration(targetDate, refNow = new Date(nowMs.value)) {
+      const target = parseIsoDate(targetDate);
+      if (!target) return '';
+      const now = refNow instanceof Date ? refNow : new Date(refNow);
+      const diffMs = target.getTime() - now.getTime();
+      if (diffMs <= 0) return 'Now';
+      if (diffMs < 60000) return 'In <1m';
+
+      const totalMins = Math.max(1, Math.round(diffMs / 60000));
+      if (totalMins < 60) return `In ${totalMins}m`;
+
+      const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      const targetStart = new Date(target.getFullYear(), target.getMonth(), target.getDate());
+      const dayDiff = Math.round((targetStart.getTime() - todayStart.getTime()) / 86400000);
+
+      if (dayDiff === 0) {
+        const hrs = Math.floor(totalMins / 60);
+        const mins = totalMins % 60;
+        return mins ? `In ${hrs}h ${mins}m` : `In ${hrs}h`;
+      }
+      if (dayDiff === 1) return 'Tomorrow';
+      return `In ${dayDiff}d`;
+    },
+    reminderCountdown(reminder, refNow = new Date(nowMs.value)) {
+      if (!reminder) return '';
+      const enabled = reminder.is_enabled ?? reminder.isEnabled ?? true;
+      if (!enabled) {
+        const recurrence = normalizeRecurrence(reminder.recurrence);
+        const last = parseIsoDate(reminder.last_triggered_at ?? reminder.lastTriggeredAt);
+        return recurrence === 'once' && last ? 'Done' : 'Paused';
+      }
+      const next = actions.nextReminderFireDate(reminder, refNow);
+      if (!next) return 'Scheduled';
+      const rel = actions.formatRelativeDuration(next, refNow);
+      return actions.isReminderSnoozed(reminder, refNow) ? `Snoozed · ${rel}` : rel;
     },
 
     /* Milestones (date is dd/mm/yyyy, as the tablet expects) */
@@ -446,7 +757,8 @@ const vm = app.mount('#app');
 
 (async function boot() {
   try {
-    const res = await fetch('/api/status');
+    let res = await fetch('/api/status');
+    if (!res.ok) res = await fetch('/api/state');
     if (res.ok) store.mergeSnapshot(await res.json());
   } catch (err) {
     console.warn('[WyrmInit] REST initial sync warning:', err);
@@ -476,6 +788,12 @@ window.wyrmRemote = {
   toggleHabit: (id) => wyrm.toggleHabit(id),
   stepHabit: (id, delta) => wyrm.stepHabit(id, delta),
   deleteHabit: (id) => wyrm.deleteHabit(id),
+  addReminder: (payload) => wyrm.addReminder(payload),
+  editReminder: (idOrPayload, fields) => wyrm.editReminder(idOrPayload, fields),
+  toggleReminder: (id, isEnabled) => wyrm.toggleReminder(id, isEnabled),
+  deleteReminder: (id) => wyrm.deleteReminder(id),
+  dismissActiveAlarm: () => wyrm.dismissActiveAlarm(),
+  snoozeActiveAlarm: (minutes) => wyrm.snoozeActiveAlarm(minutes),
   setBrightness: (val) => wyrm.setBrightness(val),
   exportBackup: () => wyrm.exportBackup(),
   importBackup: (json) => wyrm.importBackup(json),

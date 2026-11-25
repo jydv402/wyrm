@@ -8,8 +8,10 @@
  * Layers (each only uses the one above it):
  *   1. Primitives  ui-icon, ui-panel, ui-button, segmented-control, …
  *   2. Chrome      nav-rail, top-bar, connection-badge, nightstand-toggle
- *   3. Features    task-row, habit-card, month-grid, milestones-panel, …
- *   4. Views       view-deck, view-tasks, view-habits, view-calendar, view-settings
+ *   3. Features    task-row, habit-card, month-grid, milestones-panel, alarm-banner,
+ *                  reminder-composer, reminder-row, …
+ *   4. Views       view-deck, view-tasks, view-habits, view-calendar, view-reminder,
+ *                  view-sharing, view-settings
  *   5. Root        wyrm-app
  *
  * Components get state and actions through inject('wyrm'), see createWyrmActions().
@@ -51,6 +53,9 @@
     database: '<ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/>',
     compass: '<circle cx="12" cy="12" r="9"/><polygon points="16.2 7.8 14.1 14.1 7.8 16.2 9.9 9.9 16.2 7.8"/>',
     bell: '<path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/>',
+    'bell-off': '<path d="M8.7 3A6 6 0 0 1 18 8a21.3 21.3 0 0 0 .6 5"/><path d="M17 17H3s3-2 3-9a4.67 4.67 0 0 1 .3-1.7"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/><path d="m2 2 20 20"/>',
+    alarm: '<circle cx="12" cy="13" r="8"/><path d="M12 9v4l2 2"/><path d="M5 3 2 6"/><path d="m22 6-3-3"/>',
+    edit: '<path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/>',
     share: '<path d="M8 7h12m0 0-4-4m4 4-4 4"/><path d="M16 17H4m0 0 4 4m-4-4 4-4"/>',
   };
 
@@ -160,10 +165,10 @@
 
   components.DateField = {
     name: 'DateField',
-    props: { modelValue: { type: String, default: '' } },
+    props: { modelValue: { type: String, default: '' }, min: String },
     emits: ['update:modelValue'],
     template: `
-      <input class="field field--date" type="date" :value="modelValue"
+      <input class="field field--date" type="date" :value="modelValue" :min="min"
              @input="$emit('update:modelValue', $event.target.value)">`,
   };
 
@@ -783,6 +788,462 @@
       </ui-panel>`,
   };
 
+  /* ---- Reminders & Alarms ---- */
+  const RECURRENCE_OPTIONS = [
+    { value: 'once', label: 'Once' },
+    { value: 'daily', label: 'Daily' },
+    { value: 'weekdays', label: 'Weekdays' },
+    { value: 'custom', label: 'Custom' },
+  ];
+
+  const WEEKDAY_CHIPS = [
+    { value: 1, short: 'M', name: 'Monday' },
+    { value: 2, short: 'T', name: 'Tuesday' },
+    { value: 3, short: 'W', name: 'Wednesday' },
+    { value: 4, short: 'T', name: 'Thursday' },
+    { value: 5, short: 'F', name: 'Friday' },
+    { value: 6, short: 'S', name: 'Saturday' },
+    { value: 7, short: 'S', name: 'Sunday' },
+  ];
+
+  const DAY_ABBR = { 1: 'Mon', 2: 'Tue', 3: 'Wed', 4: 'Thu', 5: 'Fri', 6: 'Sat', 7: 'Sun' };
+
+  const REMINDER_OFFSETS = [
+    { minutes: 5, label: '+5m' },
+    { minutes: 15, label: '+15m' },
+    { minutes: 30, label: '+30m' },
+    { minutes: 60, label: '+1h' },
+  ];
+
+  function pad2(n) {
+    return String(n).padStart(2, '0');
+  }
+
+  function isoWeekdayOf(d) {
+    return d.getDay() === 0 ? 7 : d.getDay();
+  }
+
+  function formatRecurrenceLabel(reminder, nextFire) {
+    const rec = String((reminder && reminder.recurrence) || 'once').toLowerCase();
+    if (rec === 'daily') return 'Daily';
+    if (rec === 'weekdays') return 'Weekdays';
+    if (rec === 'custom') {
+      const days = [...new Set((reminder.custom_weekdays ?? reminder.customWeekdays ?? [])
+        .map((n) => parseInt(n, 10))
+        .filter((n) => n >= 1 && n <= 7))].sort((a, b) => a - b);
+      if (days.length === 7) return 'Every day';
+      if (days.length) return days.map((d) => DAY_ABBR[d]).join(', ');
+      return 'Custom';
+    }
+    if (nextFire instanceof Date && !isNaN(nextFire.getTime())) {
+      const now = new Date();
+      const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      const targetStart = new Date(nextFire.getFullYear(), nextFire.getMonth(), nextFire.getDate());
+      const dayDiff = Math.round((targetStart.getTime() - todayStart.getTime()) / 86400000);
+      if (dayDiff >= 2) {
+        return 'Once · ' + nextFire.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+      }
+    }
+    return 'Once';
+  }
+
+  components.AlarmBanner = {
+    name: 'AlarmBanner',
+    setup() {
+      const wyrm = inject('wyrm');
+      const alarm = computed(() => wyrm.state.activeAlarm);
+      const reminder = computed(() => (alarm.value && alarm.value.reminder) ? alarm.value.reminder : null);
+      const title = computed(() => (reminder.value && reminder.value.title) || 'Reminder');
+      const timeLabel = computed(() => {
+        if (!alarm.value) return '';
+        const raw = alarm.value.fired_at ||
+          (reminder.value && (reminder.value.scheduled_at ?? reminder.value.scheduledAt));
+        return wyrm.formatReminderTime(raw);
+      });
+      const recurrenceLabel = computed(() => (reminder.value ? formatRecurrenceLabel(reminder.value) : ''));
+      const isSnoozed = computed(() => !!(reminder.value && (reminder.value.snoozed_until ?? reminder.value.snoozedUntil)));
+      return { wyrm, alarm, title, timeLabel, recurrenceLabel, isSnoozed };
+    },
+    template: `
+      <ui-panel v-if="alarm" class="alarm-banner" data-tone="plum" role="alert" aria-live="assertive">
+        <div class="alarm-banner__info">
+          <div class="alarm-banner__meta">
+            <span class="alarm-banner__badge">
+              <span class="alarm-banner__dot" aria-hidden="true"></span>
+              <span>ALARM RINGING</span>
+            </span>
+            <status-pill v-if="timeLabel" tone="accent">{{ timeLabel }}</status-pill>
+            <status-pill v-if="recurrenceLabel" tone="neutral">{{ recurrenceLabel }}</status-pill>
+            <status-pill v-if="isSnoozed" tone="accent">Snoozed</status-pill>
+          </div>
+          <h2 class="alarm-banner__title">{{ title }}</h2>
+          <p class="alarm-banner__sub">Active on tablet · Silence or snooze from here</p>
+        </div>
+        <div class="alarm-banner__actions">
+          <ui-button class="alarm-banner__btn alarm-banner__dismiss" variant="primary" icon="bell-off"
+                     @click="wyrm.dismissActiveAlarm()">
+            Cancel / Dismiss
+          </ui-button>
+          <ui-button class="alarm-banner__btn alarm-banner__snooze" icon="alarm"
+                     @click="wyrm.snoozeActiveAlarm(10)">
+            Snooze 10m
+          </ui-button>
+        </div>
+      </ui-panel>`,
+  };
+
+  components.ReminderComposer = {
+    name: 'ReminderComposer',
+    props: {
+      editing: { type: Object, default: null },
+    },
+    emits: ['cancel-edit', 'saved'],
+    setup(props, { emit }) {
+      const wyrm = inject('wyrm');
+      const title = ref('');
+      const timeStr = ref('');
+      const dateStr = ref('');
+      const recurrence = ref('once');
+      const customWeekdays = ref([isoWeekdayOf(new Date())]);
+      const editEnabled = ref(true);
+      const activeOffset = ref(null);
+
+      function defaultTimeString() {
+        const d = new Date(Date.now() + 15 * 60000);
+        return pad2(d.getHours()) + ':' + pad2(d.getMinutes());
+      }
+
+      function resetForm() {
+        title.value = '';
+        timeStr.value = defaultTimeString();
+        dateStr.value = '';
+        recurrence.value = 'once';
+        customWeekdays.value = [isoWeekdayOf(new Date())];
+        editEnabled.value = true;
+        activeOffset.value = null;
+      }
+
+      watch(() => props.editing, (item) => {
+        if (!item) {
+          resetForm();
+          return;
+        }
+        title.value = item.title || '';
+        const rec = wyrm.normalizeRecurrence(item.recurrence);
+        recurrence.value = rec;
+        const rawSched = item.scheduled_at ?? item.scheduledAt;
+        const sched = rawSched ? new Date(rawSched) : null;
+        if (sched && !isNaN(sched.getTime())) {
+          timeStr.value = pad2(sched.getHours()) + ':' + pad2(sched.getMinutes());
+          const schedKey = wyrm.dateKey(sched);
+          const nowKey = wyrm.dateKey(new Date());
+          dateStr.value = (rec === 'once' && schedKey >= nowKey) ? schedKey : '';
+        } else {
+          timeStr.value = defaultTimeString();
+          dateStr.value = '';
+        }
+        const days = wyrm.normalizeWeekdays(item.custom_weekdays ?? item.customWeekdays);
+        customWeekdays.value = days.length ? days : [isoWeekdayOf(new Date())];
+        const wasEnabled = item.is_enabled !== undefined
+          ? !!item.is_enabled
+          : (item.isEnabled !== undefined ? !!item.isEnabled : true);
+        editEnabled.value = (rec === 'once' && !wasEnabled && sched && sched.getTime() <= Date.now())
+          ? true
+          : wasEnabled;
+        activeOffset.value = null;
+      }, { immediate: true });
+
+      watch(recurrence, (val) => {
+        if (val === 'custom' && customWeekdays.value.length === 0) {
+          customWeekdays.value = [isoWeekdayOf(new Date())];
+        }
+      });
+
+      const todayKey = computed(() => wyrm.dateKey(new Date(wyrm.nowMs.value)));
+
+      function parseTimeParts(val) {
+        const m = /^(\d{1,2}):(\d{2})$/.exec(String(val || '').trim());
+        if (!m) return null;
+        const hh = parseInt(m[1], 10);
+        const mm = parseInt(m[2], 10);
+        if (hh < 0 || hh > 23 || mm < 0 || mm > 59) return null;
+        return { hh, mm };
+      }
+
+      function resolveSchedule(refNow) {
+        const parts = parseTimeParts(timeStr.value);
+        if (!parts) return null;
+        const now = refNow instanceof Date ? refNow : new Date(refNow);
+        const todayStr = wyrm.dateKey(now);
+
+        if (recurrence.value === 'once') {
+          let targetDate;
+          let autoTomorrow = false;
+          if (dateStr.value && dateStr.value !== todayStr) {
+            const [y, mo, da] = dateStr.value.split('-').map((n) => parseInt(n, 10));
+            if (!y || !mo || !da) return null;
+            targetDate = new Date(y, mo - 1, da, parts.hh, parts.mm, 0, 0);
+            if (y >= 0 && y < 100) targetDate.setFullYear(y);
+          } else {
+            targetDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), parts.hh, parts.mm, 0, 0);
+            if (targetDate.getTime() <= now.getTime()) {
+              targetDate.setDate(targetDate.getDate() + 1);
+              autoTomorrow = true;
+            }
+          }
+          const isPast = targetDate.getTime() <= now.getTime();
+          return { targetDate, nextFire: isPast ? null : targetDate, autoTomorrow, isPast };
+        }
+
+        const baseDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), parts.hh, parts.mm, 0, 0);
+        const nextFire = wyrm.nextReminderFireDate({
+          scheduled_at: wyrm.toLocalIsoString(baseDate),
+          recurrence: recurrence.value,
+          custom_weekdays: customWeekdays.value,
+          is_enabled: true,
+        }, now);
+        return { targetDate: baseDate, nextFire, autoTomorrow: false, isPast: false };
+      }
+
+      const preview = computed(() => resolveSchedule(new Date(wyrm.nowMs.value)));
+
+      const dayBadge = computed(() => {
+        if (!preview.value || recurrence.value !== 'once') return '';
+        if (preview.value.isPast) return 'Past date';
+        if (preview.value.autoTomorrow) return 'Tomorrow';
+        const now = new Date(wyrm.nowMs.value);
+        const target = preview.value.targetDate;
+        if (wyrm.dateKey(target) === wyrm.dateKey(now)) return 'Today';
+        const tomorrow = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
+        if (wyrm.dateKey(target) === wyrm.dateKey(tomorrow)) return 'Tomorrow';
+        return target.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+      });
+
+      const previewSummary = computed(() => {
+        const p = preview.value;
+        if (!p) return 'Pick a target time';
+        if (p.isPast) return 'Choose today or a future date';
+        const target = p.nextFire || p.targetDate;
+        const timeText = wyrm.formatReminderTime(target);
+        const relText = p.nextFire ? wyrm.formatRelativeDuration(p.nextFire, new Date(wyrm.nowMs.value)) : '';
+        if (p.autoTomorrow) {
+          return 'Passed today · fires tomorrow at ' + timeText + (relText ? ' (' + relText + ')' : '');
+        }
+        return relText ? 'Fires ' + timeText + ' · ' + relText : 'Fires at ' + timeText;
+      });
+
+      const canSubmit = computed(() => {
+        if (!title.value.trim()) return false;
+        if (!preview.value || preview.value.isPast) return false;
+        if (recurrence.value === 'custom' && customWeekdays.value.length === 0) return false;
+        return true;
+      });
+
+      function onTimeInput(val) {
+        timeStr.value = val;
+        activeOffset.value = null;
+      }
+
+      function onDateInput(val) {
+        dateStr.value = val;
+        activeOffset.value = null;
+      }
+
+      function applyOffset(minutes) {
+        const now = new Date();
+        const target = new Date(now.getTime() + minutes * 60000);
+        timeStr.value = pad2(target.getHours()) + ':' + pad2(target.getMinutes());
+        dateStr.value = wyrm.dateKey(target) !== wyrm.dateKey(now) ? wyrm.dateKey(target) : '';
+        activeOffset.value = minutes;
+      }
+
+      function toggleWeekday(dayNum) {
+        const set = new Set(customWeekdays.value);
+        if (set.has(dayNum)) set.delete(dayNum);
+        else set.add(dayNum);
+        customWeekdays.value = Array.from(set).sort((a, b) => a - b);
+      }
+
+      function cancelEdit() {
+        resetForm();
+        emit('cancel-edit');
+      }
+
+      function submit() {
+        if (!title.value.trim()) return;
+        const res = resolveSchedule(new Date());
+        if (!res || res.isPast) return;
+        if (recurrence.value === 'custom' && customWeekdays.value.length === 0) return;
+
+        const scheduledAt = wyrm.toLocalIsoString(res.targetDate);
+        const payload = {
+          title: title.value.trim(),
+          scheduled_at: scheduledAt,
+          recurrence: recurrence.value,
+          custom_weekdays: recurrence.value === 'custom' ? [...customWeekdays.value] : [],
+        };
+
+        let ok = false;
+        if (props.editing) {
+          ok = wyrm.editReminder(props.editing.id, { ...payload, is_enabled: editEnabled.value });
+        } else {
+          ok = wyrm.addReminder({ ...payload, is_enabled: true });
+        }
+        if (ok) {
+          resetForm();
+          emit('saved');
+        }
+      }
+
+      return {
+        wyrm,
+        title,
+        timeStr,
+        dateStr,
+        recurrence,
+        customWeekdays,
+        editEnabled,
+        activeOffset,
+        todayKey,
+        preview,
+        dayBadge,
+        previewSummary,
+        canSubmit,
+        recurrenceOptions: RECURRENCE_OPTIONS,
+        weekdayChips: WEEKDAY_CHIPS,
+        offsets: REMINDER_OFFSETS,
+        onTimeInput,
+        onDateInput,
+        applyOffset,
+        toggleWeekday,
+        cancelEdit,
+        submit,
+      };
+    },
+    template: `
+      <ui-panel class="reminder-composer">
+        <panel-head :title="editing ? 'Edit alarm' : 'New alarm'"
+                    :subtitle="editing ? 'Update target time or repeat schedule' : 'Schedule a future time or quick offset'"
+                    :icon="editing ? 'edit' : 'bell'">
+          <ui-button v-if="editing" size="sm" variant="ghost" @click="cancelEdit">Cancel</ui-button>
+        </panel-head>
+
+        <div class="stack">
+          <ui-input v-model="title" placeholder="What is this reminder for?" @enter="submit" />
+
+          <div class="reminder-presets" role="group" aria-label="Quick offsets from now">
+            <button v-for="o in offsets" :key="o.minutes" type="button" class="reminder-preset glass"
+                    :class="{ 'is-on': activeOffset === o.minutes }"
+                    @click="applyOffset(o.minutes)">{{ o.label }}</button>
+          </div>
+
+          <div class="reminder-pickers">
+            <label class="reminder-field">
+              <span class="reminder-field__label">Target time</span>
+              <input class="field field--time" type="time" :value="timeStr" aria-label="Target time"
+                     @input="onTimeInput($event.target.value)">
+            </label>
+
+            <label v-if="recurrence === 'once'" class="reminder-field">
+              <span class="reminder-field__label">
+                <span>Date</span>
+                <span class="reminder-field__opt">Optional</span>
+              </span>
+              <div class="reminder-date-wrap">
+                <date-field :model-value="dateStr" :min="todayKey" aria-label="Target date"
+                            @update:model-value="onDateInput" />
+                <ui-button v-if="dateStr" size="icon" variant="ghost" icon="x"
+                           aria-label="Clear explicit date" title="Auto-select today or tomorrow"
+                           @click="onDateInput('')" />
+              </div>
+            </label>
+          </div>
+
+          <div class="reminder-preview" :class="{ 'is-tomorrow': preview && preview.autoTomorrow, 'is-warn': preview && preview.isPast }">
+            <status-pill v-if="dayBadge" :tone="preview && preview.isPast ? 'high' : (preview && preview.autoTomorrow ? 'accent' : 'neutral')">
+              {{ dayBadge }}
+            </status-pill>
+            <span class="reminder-preview__text">{{ previewSummary }}</span>
+          </div>
+
+          <segmented-control v-model="recurrence" :options="recurrenceOptions" aria-label="Recurrence" />
+
+          <div v-if="recurrence === 'custom'" class="reminder-weekdays-block">
+            <div class="reminder-weekdays" role="group" aria-label="Custom repeat days">
+              <button v-for="d in weekdayChips" :key="d.value" type="button" class="weekday-chip glass"
+                      :class="{ 'is-on': customWeekdays.includes(d.value) }"
+                      :aria-pressed="customWeekdays.includes(d.value)"
+                      :aria-label="d.name" :title="d.name"
+                      @click="toggleWeekday(d.value)">{{ d.short }}</button>
+            </div>
+            <p v-if="!customWeekdays.length" class="reminder-field__error">Select at least one day of the week.</p>
+          </div>
+
+          <setting-row v-if="editing" label="Alarm enabled" hint="Turn off to keep saved while paused">
+            <button type="button" role="switch" class="switch" :class="{ 'is-on': editEnabled }"
+                    :aria-checked="editEnabled" aria-label="Alarm enabled"
+                    @click="editEnabled = !editEnabled">
+              <span class="switch__thumb" aria-hidden="true"></span>
+            </button>
+          </setting-row>
+
+          <ui-button variant="primary" :icon="editing ? 'check' : 'plus'" :disabled="!canSubmit" @click="submit">
+            {{ editing ? 'Save changes' : 'Add alarm' }}
+          </ui-button>
+        </div>
+      </ui-panel>`,
+  };
+
+  components.ReminderRow = {
+    name: 'ReminderRow',
+    props: {
+      reminder: { type: Object, required: true },
+      editing: Boolean,
+    },
+    emits: ['edit'],
+    setup(props) {
+      const wyrm = inject('wyrm');
+      const isEnabled = computed(() => !!(props.reminder.is_enabled ?? props.reminder.isEnabled ?? true));
+      const now = computed(() => new Date(wyrm.nowMs.value));
+      const nextFire = computed(() => wyrm.nextReminderFireDate(props.reminder, now.value));
+      const isSnoozed = computed(() => wyrm.isReminderSnoozed(props.reminder, now.value));
+      const displayTime = computed(() => {
+        const target = nextFire.value || props.reminder.scheduled_at || props.reminder.scheduledAt;
+        return wyrm.formatReminderTime(target);
+      });
+      const countdown = computed(() => wyrm.reminderCountdown(props.reminder, now.value));
+      const recurrenceLabel = computed(() => formatRecurrenceLabel(props.reminder, nextFire.value));
+      return { wyrm, isEnabled, isSnoozed, displayTime, countdown, recurrenceLabel };
+    },
+    template: `
+      <li class="reminder-row" :class="{ 'is-off': !isEnabled, 'is-editing': editing, 'is-snoozed': isSnoozed }">
+        <div class="reminder-row__time-col">
+          <div class="reminder-row__time">{{ displayTime }}</div>
+          <div class="reminder-row__countdown" :class="{ 'is-snoozed': isSnoozed }">{{ countdown }}</div>
+        </div>
+        <div class="reminder-row__body">
+          <div class="reminder-row__title">{{ reminder.title }}</div>
+          <div class="reminder-row__pills">
+            <status-pill tone="neutral">{{ recurrenceLabel }}</status-pill>
+            <status-pill v-if="isSnoozed" tone="accent">Snoozed</status-pill>
+          </div>
+        </div>
+        <div class="reminder-row__controls">
+          <button type="button" role="switch" class="switch" :class="{ 'is-on': isEnabled }"
+                  :aria-checked="isEnabled" :aria-label="(isEnabled ? 'Disable ' : 'Enable ') + reminder.title"
+                  @click="wyrm.toggleReminder(reminder.id)">
+            <span class="switch__thumb" aria-hidden="true"></span>
+          </button>
+          <ui-button size="icon" variant="ghost" icon="edit" :active="editing"
+                     :aria-label="'Edit ' + reminder.title" title="Edit alarm"
+                     @click="$emit('edit', reminder)" />
+          <ui-button size="icon" variant="danger" icon="x"
+                     :aria-label="'Delete ' + reminder.title" title="Delete alarm"
+                     @click="wyrm.deleteReminder(reminder.id)" />
+        </div>
+      </li>`,
+  };
+
   /* ---- Calendar ---- */
   components.MonthGrid = {
     name: 'MonthGrid',
@@ -1230,7 +1691,8 @@
     setup(props) {
       const wyrm = inject('wyrm');
       const options = computed(() => (props.id === 'clock' ? CLOCK_OPTIONS : SIZE_OPTIONS));
-      return { wyrm, options };
+      const liveHint = computed(() => cardHint(props.id, wyrm) || props.hint);
+      return { wyrm, options, liveHint };
     },
     template: `
       <ui-panel class="deck-tile" :data-tone="tone">
@@ -1238,7 +1700,7 @@
           <span class="deck-tile__icon glass"><ui-icon :name="icon" :size="24" /></span>
           <div class="deck-tile__text">
             <h3 class="deck-tile__title">{{ label }}</h3>
-            <p class="deck-tile__hint">{{ hint }}</p>
+            <p class="deck-tile__hint">{{ liveHint }}</p>
           </div>
           <ui-button size="icon" variant="ghost" icon="locate" :aria-label="'Show ' + label + ' on the tablet'"
                         title="Show on the tablet" @click="wyrm.scrollToCard(id)" />
@@ -1253,10 +1715,27 @@
     { id: 'habits', label: 'Habits', hint: "Today's progress", icon: 'leaf', tone: 'teal' },
     { id: 'calendar', label: 'Calendar', hint: 'Month and milestones', icon: 'calendar', tone: 'gold' },
     { id: 'tasks', label: 'Tasks', hint: 'Your open list', icon: 'checkbox', tone: 'rust' },
-    { id: 'reminder', label: 'Reminders', hint: 'Timed alarms · Coming soon', icon: 'bell', tone: 'plum' },
+    { id: 'reminder', label: 'Reminders', hint: 'Timed & recurring alarms', icon: 'bell', tone: 'plum' },
     { id: 'sharing', label: 'Sharing', hint: 'LAN file transfer · Coming soon', icon: 'share', tone: 'cobalt' },
   ];
   const cardMeta = (id) => DECK_CARDS.find((c) => c.id === id);
+  const cardHint = (id, wyrm) => {
+    const meta = cardMeta(id);
+    if (id !== 'reminder' || !wyrm) return (meta && meta.hint) || '';
+    if (wyrm.state.activeAlarm) {
+      const alarmTitle = (wyrm.state.activeAlarm.reminder && wyrm.state.activeAlarm.reminder.title) || 'Alarm';
+      return 'Ringing now · ' + alarmTitle;
+    }
+    const list = wyrm.state.reminders || [];
+    const enabledCount = list.filter((r) => (r.is_enabled ?? r.isEnabled ?? true)).length;
+    if (!list.length) return 'No alarms set';
+    if (!enabledCount) return 'All alarms paused';
+    const next = wyrm.nextUpcomingReminder();
+    if (next) {
+      return enabledCount + ' active · Next ' + wyrm.formatReminderTime(next.fireAt) + ' · ' + next.reminder.title;
+    }
+    return enabledCount + ' active';
+  };
 
   components.ComingSoonPanel = {
     name: 'ComingSoonPanel',
@@ -1358,13 +1837,74 @@
   components.ViewReminder = {
     name: 'ViewReminder',
     setup() {
-      return { tile: cardMeta('reminder') };
+      const wyrm = inject('wyrm');
+      const editingId = ref(null);
+      const composerWrap = ref(null);
+
+      const reminders = computed(() => wyrm.state.reminders || []);
+      const sortedReminders = computed(() => {
+        const now = new Date(wyrm.nowMs.value);
+        return [...reminders.value].sort((a, b) => {
+          const fa = wyrm.nextReminderFireDate(a, now);
+          const fb = wyrm.nextReminderFireDate(b, now);
+          if (fa && fb) return fa.getTime() - fb.getTime();
+          if (fa) return -1;
+          if (fb) return 1;
+          const ea = !!(a.is_enabled ?? a.isEnabled ?? true);
+          const eb = !!(b.is_enabled ?? b.isEnabled ?? true);
+          if (ea !== eb) return ea ? -1 : 1;
+          return String(a.title || '').localeCompare(String(b.title || ''));
+        });
+      });
+
+      const editingReminder = computed(() => reminders.value.find((r) => r.id === editingId.value) || null);
+      watch(editingReminder, (val) => {
+        if (!val && editingId.value !== null) editingId.value = null;
+      });
+      const subtitle = computed(() => {
+        const total = reminders.value.length;
+        if (!total) return 'No alarms scheduled';
+        const enabled = reminders.value.filter((r) => (r.is_enabled ?? r.isEnabled ?? true)).length;
+        return enabled + ' active of ' + total;
+      });
+
+      function startEdit(reminder) {
+        editingId.value = reminder.id;
+        nextTick(() => {
+          const el = composerWrap.value;
+          if (el && typeof el.scrollIntoView === 'function') {
+            el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+          }
+        });
+      }
+
+      return {
+        wyrm,
+        tile: cardMeta('reminder'),
+        editingId,
+        composerWrap,
+        sortedReminders,
+        editingReminder,
+        subtitle,
+        startEdit,
+      };
     },
     template: `
       <div class="view view--reminder">
-        <deck-tile v-bind="tile" class="deck-tile--inline" />
-        <coming-soon-panel icon="bell" title="Timed & Recurring Alarms"
-                           hint="Schedule one-time alarms, recurring hydration or stand-up nudges, and manage ringing alerts right from here." />
+        <alarm-banner v-if="wyrm.state.activeAlarm" class="view-span" />
+        <deck-tile v-bind="tile" class="deck-tile--inline view-span" />
+        <div ref="composerWrap" class="reminder-composer-wrap">
+          <reminder-composer :editing="editingReminder" @cancel-edit="editingId = null" @saved="editingId = null" />
+        </div>
+        <ui-panel class="reminder-panel">
+          <panel-head title="Your alarms" :subtitle="subtitle" icon="bell" />
+          <transition-group v-if="sortedReminders.length" tag="ul" name="list" class="list">
+            <reminder-row v-for="r in sortedReminders" :key="r.id" :reminder="r"
+                          :editing="editingId === r.id" @edit="startEdit" />
+          </transition-group>
+          <empty-state v-else icon="bell" title="No alarms yet"
+                       hint="Pick a target time or quick offset to schedule an alarm on the tablet." />
+        </ui-panel>
       </div>`,
   };
 
@@ -1711,7 +2251,7 @@
           case 'cal':
             return new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
           case 'reminder':
-            return 'Timed & recurring alarms · Coming soon';
+            return cardHint('reminder', wyrm);
           case 'sharing':
             return 'Local file transfer · Coming soon';
           case 'sys':
@@ -1731,6 +2271,7 @@
         <nav-rail />
         <div class="app__main">
           <top-bar :title="current.label" :subtitle="subtitle" />
+          <alarm-banner v-if="wyrm.state.activeAlarm && current.id !== 'reminder'" />
           <main class="app__content">
             <transition name="view" mode="out-in">
               <component :is="current.view" :key="current.id" />
