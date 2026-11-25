@@ -350,6 +350,11 @@ class RemindersNotifier extends Notifier<RemindersState> {
   /// OS schedules first when [fromBackupRestore] is `true`).
   Future<void> reloadFromDisk({bool fromBackupRestore = false}) async {
     final epoch = ++_mutationEpoch;
+    // Wait for any in-flight local save to land on disk before re-reading so
+    // an active mutation cannot be overwritten or race behind this reload.
+    await _persistChain;
+    if (!ref.mounted || _mutationEpoch != epoch) return;
+
     final loaded = await _repository.loadReminders();
     if (!ref.mounted || _mutationEpoch != epoch) return;
 

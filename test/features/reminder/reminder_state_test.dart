@@ -38,6 +38,29 @@ class FakeClock extends Clock {
   }
 }
 
+class _ExternalDiskReminderRepository implements ReminderRepository {
+  List<ReminderItem> diskItems;
+  int loadCallCount = 0;
+
+  _ExternalDiskReminderRepository(this.diskItems);
+
+  @override
+  Future<List<ReminderItem>> loadReminders() async {
+    loadCallCount++;
+    return List<ReminderItem>.of(diskItems);
+  }
+
+  @override
+  Future<List<ReminderItem>> activeReminders() async {
+    return diskItems.where((item) => item.isEnabled).toList();
+  }
+
+  @override
+  Future<void> saveReminders(List<ReminderItem> reminders) async {
+    diskItems = List<ReminderItem>.of(reminders);
+  }
+}
+
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
@@ -696,6 +719,138 @@ void main() {
             restoredItem.scheduledAt,
           ),
         ),
+        isTrue,
+      );
+    });
+
+    test('handleAppResumed reloads external disk changes while isLoaded is true and prevents stale alarm firing', () async {
+      final baseTime = DateTime(2026, 6, 15, 8, 50);
+      final clock = FakeClock(baseTime);
+      final target = DateTime(2026, 6, 15, 9, 0);
+      final reminder = ReminderItem(
+        id: 'bg-shade-1',
+        title: 'Take morning pills',
+        scheduledAt: target,
+        recurrence: ReminderRecurrence.daily,
+        createdAt: DateTime(2026, 6, 14, 8, 0),
+      );
+      final externalRepo = _ExternalDiskReminderRepository([reminder]);
+      final gateway = FakeNotificationGateway();
+      final audio = FakeAlarmAudioGateway();
+      final ticks = StreamController<DateTime>.broadcast();
+
+      final container = ProviderContainer(
+        overrides: [
+          clockProvider.overrideWithValue(clock),
+          clockTimeProvider.overrideWith((ref) => ticks.stream),
+          notificationGatewayProvider.overrideWithValue(gateway),
+          alarmAudioGatewayProvider.overrideWithValue(audio),
+          reminderRepositoryProvider.overrideWithValue(externalRepo),
+        ],
+      );
+      addTearDown(() async {
+        container.dispose();
+        await gateway.dispose();
+        await ticks.close();
+      });
+
+      final coordinator = container.read(reminderCoordinatorProvider);
+      await coordinator.initialized;
+      final notifier = container.read(remindersProvider.notifier);
+      await notifier.initialized;
+      expect(container.read(remindersProvider).isLoaded, isTrue);
+
+      // Simulate background-isolate shade Snooze 10m directly mutating disk
+      // while the foreground isolate remains loaded with pre-background state.
+      final snoozeUntil = DateTime(2026, 6, 15, 9, 10);
+      externalRepo.diskItems = [
+        reminder.copyWith(
+          isEnabled: true,
+          snoozedUntil: snoozeUntil,
+          lastTriggeredAt: target,
+        ),
+      ];
+
+      clock.setTime(DateTime(2026, 6, 15, 9, 1));
+      final loadsBeforeResume = externalRepo.loadCallCount;
+      await coordinator.handleAppResumed();
+
+      expect(externalRepo.loadCallCount, greaterThan(loadsBeforeResume));
+      expect(container.read(activeAlarmProvider), isNull);
+      expect(audio.isPlaying, isFalse);
+
+      final reloaded = container.read(remindersProvider).items.single;
+      expect(reloaded.snoozedUntil, snoozeUntil);
+      expect(reloaded.lastTriggeredAt, target);
+      expect(
+        gateway.scheduled.containsKey(
+          deterministicNotificationId(reminder.id, snoozeUntil),
+        ),
+        isTrue,
+      );
+
+      // Also verify AppDatabase background shade dismiss is picked up on resume.
+      final onceTarget = DateTime(2026, 6, 15, 10, 0);
+      final dbClock = FakeClock(DateTime(2026, 6, 15, 9, 50));
+      final dbGateway = FakeNotificationGateway();
+      final dbAudio = FakeAlarmAudioGateway();
+      final dbTicks = StreamController<DateTime>.broadcast();
+      final dbContainer = createContainer(
+        clock: dbClock,
+        notificationGateway: dbGateway,
+        alarmAudioGateway: dbAudio,
+        tickController: dbTicks,
+      );
+      addTearDown(() async {
+        dbContainer.dispose();
+        await dbGateway.dispose();
+        await dbTicks.close();
+      });
+
+      final dbCoordinator = dbContainer.read(reminderCoordinatorProvider);
+      await dbCoordinator.initialized;
+      final dbNotifier = dbContainer.read(remindersProvider.notifier);
+      await dbNotifier.initialized;
+      final onceItem = await dbNotifier.addReminder(
+        title: 'Parcel pickup',
+        scheduledAt: onceTarget,
+        recurrence: ReminderRecurrence.once,
+      );
+      final onceNotifId = deterministicNotificationId(onceItem.id, onceTarget);
+
+      await handleNotificationShadeAction(
+        actionId: FlnNotificationGateway.actionDismissId,
+        payload: jsonEncode(<String, dynamic>{
+          'reminder_id': onceItem.id,
+          'occurrence_epoch_ms': onceTarget.millisecondsSinceEpoch,
+        }),
+        notificationId: onceNotifId,
+        gateway: dbGateway,
+        clock: Clock.fixed(onceTarget),
+      );
+
+      dbClock.setTime(onceTarget.add(const Duration(seconds: 30)));
+      await dbCoordinator.handleAppResumed();
+
+      expect(dbContainer.read(activeAlarmProvider), isNull);
+      expect(dbAudio.isPlaying, isFalse);
+      final resumedOnce = dbContainer.read(remindersProvider).items.single;
+      expect(resumedOnce.isEnabled, isFalse);
+      expect(resumedOnce.lastTriggeredAt, onceTarget);
+      expect(dbGateway.scheduled.containsKey(onceNotifId), isFalse);
+
+      // Unawaited in-flight local mutation finishes before handleAppResumed reloads.
+      final pendingAdd = dbNotifier.addReminder(
+        title: 'Evening walk',
+        scheduledAt: DateTime(2026, 6, 15, 19, 0),
+      );
+      await dbCoordinator.handleAppResumed();
+      await pendingAdd;
+      expect(
+        dbContainer
+            .read(remindersProvider)
+            .items
+            .any((item) => item.title == 'Evening walk'),
         isTrue,
       );
     });

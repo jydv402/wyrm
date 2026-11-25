@@ -100,8 +100,9 @@ class ReminderCoordinator {
     }
   }
 
-  /// Refreshes timezone and permissions on app resume, evaluates any missed
-  /// due occurrence, and reconciles OS schedules.
+  /// Refreshes timezone and permissions on app resume, reloads persisted
+  /// reminders from disk (picking up background-isolate shade actions),
+  /// evaluates any missed due occurrence, and reconciles OS schedules.
   Future<void> handleAppResumed() async {
     if (_isStale) return;
 
@@ -112,13 +113,15 @@ class ReminderCoordinator {
         _lastTimezone != null && _lastTimezone != resolvedTimezone;
     _lastTimezone = resolvedTimezone;
 
-    await _ref.read(remindersProvider.notifier).refreshPermissions();
-    if (_isStale) return;
-
+    // Wait for initial load if still hydrating, then always reload fresh disk
+    // state so background shade actions (Cancel / Snooze) are picked up.
     if (!_ref.read(remindersProvider).isLoaded) {
       await _ref.read(remindersProvider.notifier).initialized;
       if (_isStale) return;
     }
+
+    await _ref.read(remindersProvider.notifier).reloadFromDisk();
+    if (_isStale) return;
 
     final now = _clock.now();
     await evaluateDueReminders(now);
