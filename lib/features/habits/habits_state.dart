@@ -28,12 +28,6 @@ class HabitsState {
     return habits.where((h) => h.isCompletedOn(today)).length;
   }
 
-  /// Ratio of habits completed today (0.0 to 1.0).
-  double todayProgressRatio([DateTime? referenceDate]) {
-    if (habits.isEmpty) return 0.0;
-    return (completedTodayCount(referenceDate) / habits.length).clamp(0.0, 1.0);
-  }
-
   HabitsState copyWith({List<HabitItem>? habits, int? selectedCarouselIndex}) {
     return HabitsState(
       habits: habits ?? this.habits,

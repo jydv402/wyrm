@@ -1,6 +1,6 @@
 import 'package:battery_plus/battery_plus.dart';
-import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:wyrm_desk/features/battery/battery_provider.dart';
 import 'package:wyrm_desk/features/battery/battery_state.dart';
 import 'package:wyrm_desk/theme/theme.dart';
@@ -78,9 +78,9 @@ class BatteryPill extends ConsumerWidget {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.center,
+          spacing: 8.0,
           children: [
             Icon(iconData, size: 19, color: accentColor),
-            const SizedBox(width: 8),
             Text(
               '${info.level}%',
               style: TextStyle(

@@ -1,6 +1,6 @@
-import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:wyrm_desk/features/calendar/calendar_state.dart';
 import 'package:wyrm_desk/features/calendar/dusk_date_picker_dialog.dart';
 import 'package:wyrm_desk/theme/theme.dart';
@@ -56,27 +56,27 @@ class CalendarDateBanner extends ConsumerWidget {
     final btnHeight = isCompact ? 32.0 : 38.0;
     final btnPadding = EdgeInsets.symmetric(horizontal: isCompact ? 8.0 : 12.0);
     final chevronSize = isCompact ? 32.0 : 38.0;
-    final gap = SizedBox(width: isCompact ? 4.0 : 6.0);
+    final gap = 8.0;
 
     return Row(
+      spacing: gap,
       children: [
         Expanded(
           child: _buildTelemetryPill(btnHeight, isCompact, dateStr, telemetry),
         ),
         if (!isMarkerOnToday) ...[
-          gap,
           _buildTodayButton(ref, btnHeight, btnPadding),
         ],
-        gap,
+
         _buildTravelButton(context, ref, btnHeight, btnPadding),
-        gap,
+
         _buildChevronButton(
           ref,
           isPrev: true,
           size: chevronSize,
           isCompact: isCompact,
         ),
-        gap,
+
         _buildChevronButton(
           ref,
           isPrev: false,
@@ -106,6 +106,7 @@ class CalendarDateBanner extends ConsumerWidget {
         alignment: Alignment.centerLeft,
         child: Row(
           mainAxisSize: MainAxisSize.min,
+          spacing: 6.0,
           children: [
             Text(
               dateStr,
@@ -115,7 +116,6 @@ class CalendarDateBanner extends ConsumerWidget {
                 fontWeight: FontWeight.w700,
               ),
             ),
-            const SizedBox(width: 6),
             Container(
               width: 4,
               height: 4,
@@ -124,7 +124,6 @@ class CalendarDateBanner extends ConsumerWidget {
                 shape: BoxShape.circle,
               ),
             ),
-            const SizedBox(width: 6),
             Text(
               telemetry,
               style: const TextStyle(
@@ -191,7 +190,6 @@ class CalendarDateBanner extends ConsumerWidget {
       onPressed: isPrev
           ? () => ref.read(calendarProvider.notifier).prevMonth()
           : () => ref.read(calendarProvider.notifier).nextMonth(),
-      size: size,
       icon: Icon(
         isPrev ? Icons.chevron_left_rounded : Icons.chevron_right_rounded,
         size: isCompact ? 16 : 18,
@@ -213,8 +211,8 @@ Future<void> openTravelDatePicker(
       initialDate: initialDate,
       firstDate: DateTime(1),
       lastDate: DateTime(9999, 12, 31),
-      confirmText: 'TRAVEL',
-      cancelText: 'CANCEL',
+      confirmText: 'Travel',
+      cancelText: 'Cancel',
     ),
   );
   if (picked != null) {

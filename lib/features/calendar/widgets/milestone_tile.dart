@@ -1,6 +1,6 @@
-import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:wyrm_desk/features/calendar/calendar_model.dart';
 import 'package:wyrm_desk/features/calendar/calendar_state.dart';
 import 'package:wyrm_desk/theme/theme.dart';
@@ -84,7 +84,6 @@ class MilestoneTile extends ConsumerWidget {
     return DuskGlassButton.icon(
       onPressed: () =>
           ref.read(calendarProvider.notifier).deleteMilestone(milestone.id),
-      size: 28,
       icon: const Icon(
         Icons.close_rounded,
         size: 14,

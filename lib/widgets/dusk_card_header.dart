@@ -60,7 +60,7 @@ class DuskCardHeader extends StatelessWidget {
         ),
 
         // Optional auxiliary badge
-        if (badge != null) ...[const SizedBox(width: 10), badge!],
+        if (badge != null) ...[const SizedBox(width: 8), badge!],
 
         const Spacer(),
 
@@ -72,7 +72,7 @@ class DuskCardHeader extends StatelessWidget {
           const SizedBox(width: 8),
           DuskGlassButton.icon(
             onPressed: onAdd,
-            size: 36.0,
+
             isPrimary: addColor != null,
             primaryColor: addColor,
             icon: Icon(

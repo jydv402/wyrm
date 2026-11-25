@@ -1,5 +1,5 @@
-import 'package:material_ui/material_ui.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:wyrm_desk/widgets/dusk_glass_button.dart';
 
 void main() {
@@ -42,7 +42,6 @@ void main() {
               child: DuskGlassButton.icon(
                 onPressed: () {},
                 icon: const Icon(Icons.settings),
-                size: 36,
               ),
             ),
           ),
@@ -112,7 +111,6 @@ void main() {
                         DuskGlassButton.icon(
                           onPressed: () {},
                           icon: const Icon(Icons.close),
-                          size: 32,
                         )
                       else
                         DuskGlassButton(

@@ -1,6 +1,6 @@
-import 'package:material_ui/material_ui.dart';
 import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import 'package:go_router/go_router.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:wyrm_desk/features/update_checker/models/update_info.dart';
 import 'package:wyrm_desk/theme/theme.dart';
@@ -123,7 +123,6 @@ class UpdateDialog extends StatelessWidget {
                   ),
                   DuskGlassButton.icon(
                     onPressed: () => context.pop(),
-                    size: 32.0,
                     icon: const Icon(
                       Icons.close_rounded,
                       size: 16,

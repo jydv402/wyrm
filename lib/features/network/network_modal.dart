@@ -1,15 +1,15 @@
 import 'dart:async';
 import 'dart:ui' show ImageFilter;
 
-import 'package:material_ui/material_ui.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:qr_flutter/qr_flutter.dart';
-import 'package:wyrm_desk/theme/theme.dart';
 import 'package:wyrm_desk/features/network/network_info.dart';
 import 'package:wyrm_desk/server/server_provider.dart';
 import 'package:wyrm_desk/server/web_server.dart';
+import 'package:wyrm_desk/theme/theme.dart';
 import 'package:wyrm_desk/widgets/dusk_glass_button.dart';
 
 /// Provider tracking whether the NetworkConnectionModal is currently open on the tablet.
@@ -213,7 +213,6 @@ class _NetworkConnectionModalState
         ),
         DuskGlassButton.icon(
           onPressed: () => context.pop(),
-          size: 36.0,
           icon: const Icon(
             Icons.close_rounded,
             size: 18,

@@ -4,7 +4,7 @@ import 'package:wyrm_desk/theme/theme.dart';
 import 'package:wyrm_desk/features/habits/habit_model.dart';
 import 'package:wyrm_desk/features/habits/habits_state.dart';
 
-/// 7-day circular completion dots matching assets/web Dusk Glass .week__dot
+/// 7-day rectangular pill completion matrix representing the current week.
 class HabitWeekDots extends ConsumerWidget {
   final HabitItem habit;
   final DateTime weekStart;
@@ -27,80 +27,6 @@ class HabitWeekDots extends ConsumerWidget {
     }
   }
 
-  Widget _buildDotIndicator({
-    required bool isCompleted,
-    required bool isToday,
-  }) {
-    return Container(
-      width: 28,
-      height: 28,
-      decoration: BoxDecoration(
-        color: isCompleted ? AppColors.tealFill : AppColors.well,
-        shape: BoxShape.circle,
-        border: Border.all(
-          color: isCompleted
-              ? Colors.transparent
-              : (isToday ? AppColors.tealAccent : AppColors.lineStrong),
-          width: isToday ? 1.5 : 1.0,
-        ),
-        boxShadow: isCompleted
-            ? [
-                BoxShadow(
-                  color: AppColors.tealFill.withValues(alpha: 0.5),
-                  blurRadius: 10,
-                  offset: const Offset(0, 2),
-                ),
-              ]
-            : null,
-      ),
-      child: isCompleted
-          ? const Icon(Icons.check_rounded, size: 16, color: AppColors.tealInk)
-          : (isToday
-                ? Center(
-                    child: Container(
-                      width: 4,
-                      height: 4,
-                      decoration: const BoxDecoration(
-                        color: AppColors.tealAccent,
-                        shape: BoxShape.circle,
-                      ),
-                    ),
-                  )
-                : null),
-    );
-  }
-
-  Widget _buildDayColumn({
-    required WidgetRef ref,
-    required String label,
-    required DateTime dayDate,
-    required bool isToday,
-    required bool isCompleted,
-  }) {
-    return InkWell(
-      onTap: () => _onDayTap(ref, dayDate),
-      borderRadius: BorderRadius.circular(20),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 4.0),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              label,
-              style: TextStyle(
-                color: isToday ? AppColors.tealAccent : AppColors.textMuted,
-                fontSize: 11,
-                fontWeight: isToday ? FontWeight.w800 : FontWeight.w500,
-              ),
-            ),
-            const SizedBox(height: 6),
-            _buildDotIndicator(isCompleted: isCompleted, isToday: isToday),
-          ],
-        ),
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final dayLabels = !startWeekOnMonday
@@ -108,7 +34,6 @@ class HabitWeekDots extends ConsumerWidget {
         : const ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
 
     return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: List.generate(7, (index) {
         final dayDate = weekStart.add(Duration(days: index));
         final isToday =
@@ -117,14 +42,98 @@ class HabitWeekDots extends ConsumerWidget {
             dayDate.day == today.day;
         final isCompleted = habit.isCompletedOn(dayDate);
 
-        return _buildDayColumn(
-          ref: ref,
-          label: dayLabels[index],
-          dayDate: dayDate,
-          isToday: isToday,
-          isCompleted: isCompleted,
+        return Expanded(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 2.0),
+            child: HabitDayPill(
+              label: dayLabels[index],
+              isCompleted: isCompleted,
+              isToday: isToday,
+              onTap: () => _onDayTap(ref, dayDate),
+            ),
+          ),
         );
       }),
+    );
+  }
+}
+
+/// A single rectangular day pill with the day letter represented inside.
+class HabitDayPill extends StatelessWidget {
+  final String label;
+  final bool isCompleted;
+  final bool isToday;
+  final VoidCallback onTap;
+
+  const HabitDayPill({
+    super.key,
+    required this.label,
+    required this.isCompleted,
+    required this.isToday,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(10),
+      child: Container(
+        height: 52,
+        decoration: BoxDecoration(
+          color: isCompleted ? AppColors.tealFill : AppColors.glass,
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(
+            color: isCompleted
+                ? AppColors.tealAccent
+                : (isToday ? AppColors.tealAccent : AppColors.line),
+            width: isToday ? 1.5 : 1.0,
+          ),
+          boxShadow: isCompleted
+              ? [
+                  BoxShadow(
+                    color: AppColors.tealFill.withValues(alpha: 0.35),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  ),
+                ]
+              : null,
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            if (isCompleted)
+              const Icon(
+                Icons.check_rounded,
+                size: 14,
+                color: AppColors.tealInk,
+              )
+            else if (isToday)
+              Container(
+                width: 4,
+                height: 4,
+                margin: const EdgeInsets.only(bottom: 2),
+                decoration: const BoxDecoration(
+                  color: AppColors.tealAccent,
+                  shape: BoxShape.circle,
+                ),
+              ),
+            const SizedBox(height: 2),
+            Text(
+              label,
+              style: TextStyle(
+                color: isCompleted
+                    ? AppColors.tealInk
+                    : (isToday ? AppColors.tealAccent : AppColors.textMuted),
+                fontSize: 11,
+                fontWeight: isCompleted || isToday
+                    ? FontWeight.w800
+                    : FontWeight.w600,
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

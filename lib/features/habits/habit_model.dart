@@ -49,9 +49,6 @@ class HabitItem {
   /// Icon identifier glyph name.
   final String iconName;
 
-  /// Accent color hex representation.
-  final String colorHex;
-
   /// Completion records keyed by ISO date string (YYYY-MM-DD) mapping to count achieved.
   final Map<String, int> completions;
 
@@ -65,7 +62,6 @@ class HabitItem {
     this.targetValue = 1,
     this.unit,
     this.iconName = 'bolt',
-    this.colorHex = '#A0D2B4',
     this.completions = const {},
     required this.createdAt,
   });
@@ -126,62 +122,6 @@ class HabitItem {
     return streak;
   }
 
-  /// Calculates the best unbroken completion streak achieved within the reference month.
-  int bestStreak([DateTime? referenceDate]) {
-    final ref =
-        referenceDate ??
-        (completions.isNotEmpty
-            ? (DateTime.tryParse(completions.keys.first) ?? createdAt)
-            : createdAt);
-    final prefix =
-        '${ref.year.toString().padLeft(4, '0')}-${ref.month.toString().padLeft(2, '0')}-';
-    final completedDateKeys = completions.entries
-        .where(
-          (entry) => entry.value >= targetValue && entry.key.startsWith(prefix),
-        )
-        .map((entry) => entry.key)
-        .toList();
-
-    if (completedDateKeys.isEmpty) return 0;
-
-    final dates = <DateTime>[];
-    for (final key in completedDateKeys) {
-      final parts = key.split('-');
-      if (parts.length == 3) {
-        final year = int.tryParse(parts[0]);
-        final month = int.tryParse(parts[1]);
-        final day = int.tryParse(parts[2]);
-        if (year != null && month != null && day != null) {
-          dates.add(DateTime(year, month, day));
-        }
-      }
-    }
-
-    if (dates.isEmpty) return 0;
-
-    dates.sort((a, b) => a.compareTo(b));
-
-    var maxStreak = 1;
-    var current = 1;
-
-    for (var i = 1; i < dates.length; i++) {
-      final prev = dates[i - 1];
-      final curr = dates[i];
-      final diff = curr.difference(prev).inDays;
-
-      if (diff == 1) {
-        current++;
-        if (current > maxStreak) {
-          maxStreak = current;
-        }
-      } else if (diff > 1) {
-        current = 1;
-      }
-    }
-
-    return maxStreak;
-  }
-
   /// Counts the total number of days completed in the designated month.
   int monthCompletedDaysCount([DateTime? referenceDate]) {
     final ref = referenceDate ?? DateTime.now();
@@ -192,97 +132,6 @@ class HabitItem {
           (entry) => entry.key.startsWith(prefix) && entry.value >= targetValue,
         )
         .length;
-  }
-
-  /// Generates a GitHub-style columns matrix (7 weekday rows per column) for the given month.
-  List<List<HeatmapCellData>> getMonthlyHeatmapColumns(
-    DateTime monthRef, {
-    required bool startWeekOnMonday,
-    DateTime? todayDate,
-  }) {
-    final today = todayDate ?? DateTime.now();
-    final year = monthRef.year;
-    final month = monthRef.month;
-    final totalDays = DateTime(year, month + 1, 0).day;
-    final firstDayDate = DateTime(year, month, 1);
-
-    final firstDayWeekdayOffset = startWeekOnMonday
-        ? (firstDayDate.weekday - 1) % 7
-        : firstDayDate.weekday % 7;
-
-    final columns = <List<HeatmapCellData>>[];
-    var currentColumn = <HeatmapCellData>[];
-
-    for (var i = 0; i < firstDayWeekdayOffset; i++) {
-      currentColumn.add(
-        const HeatmapCellData(
-          dayNumber: 0,
-          isCurrentMonth: false,
-          isFuture: false,
-          isToday: false,
-          isCompleted: false,
-          intensity: 0.0,
-          count: 0,
-        ),
-      );
-    }
-
-    for (var day = 1; day <= totalDays; day++) {
-      final date = DateTime(year, month, day);
-      final isToday =
-          date.year == today.year &&
-          date.month == today.month &&
-          date.day == today.day;
-      final isFuture = date.isAfter(
-        DateTime(today.year, today.month, today.day),
-      );
-      final count = completionCountOn(date);
-      final isCompleted = count >= targetValue;
-
-      double intensity = 0.0;
-      if (isCompleted) {
-        intensity = 1.0;
-      } else if (count > 0 && targetValue > 0) {
-        intensity = (count / targetValue).clamp(0.2, 0.8);
-      }
-
-      currentColumn.add(
-        HeatmapCellData(
-          date: date,
-          dayNumber: day,
-          isCurrentMonth: true,
-          isFuture: isFuture,
-          isToday: isToday,
-          isCompleted: isCompleted,
-          intensity: intensity,
-          count: count,
-        ),
-      );
-
-      if (currentColumn.length == 7) {
-        columns.add(currentColumn);
-        currentColumn = <HeatmapCellData>[];
-      }
-    }
-
-    if (currentColumn.isNotEmpty) {
-      while (currentColumn.length < 7) {
-        currentColumn.add(
-          const HeatmapCellData(
-            dayNumber: 0,
-            isCurrentMonth: false,
-            isFuture: false,
-            isToday: false,
-            isCompleted: false,
-            intensity: 0.0,
-            count: 0,
-          ),
-        );
-      }
-      columns.add(currentColumn);
-    }
-
-    return columns;
   }
 
   /// Generates a calendar matrix (5 or 6 rows, each having 7 weekday columns) for the given month.
@@ -304,13 +153,11 @@ class HabitItem {
     final weeks = <List<HeatmapCellData>>[];
     var currentWeek = <HeatmapCellData>[];
 
-    final prevMonthLastDay = DateTime(year, month, 0).day;
-    for (var i = firstDayWeekdayOffset - 1; i >= 0; i--) {
-      final prevDate = DateTime(year, month - 1, prevMonthLastDay - i);
+    for (var i = 0; i < firstDayWeekdayOffset; i++) {
       currentWeek.add(
-        HeatmapCellData(
-          date: prevDate,
-          dayNumber: prevDate.day,
+        const HeatmapCellData(
+          date: null,
+          dayNumber: 0,
           isCurrentMonth: false,
           isFuture: false,
           isToday: false,
@@ -360,13 +207,11 @@ class HabitItem {
     }
 
     if (currentWeek.isNotEmpty) {
-      var nextDay = 1;
       while (currentWeek.length < 7) {
-        final nextDate = DateTime(year, month + 1, nextDay++);
         currentWeek.add(
-          HeatmapCellData(
-            date: nextDate,
-            dayNumber: nextDate.day,
+          const HeatmapCellData(
+            date: null,
+            dayNumber: 0,
             isCurrentMonth: false,
             isFuture: false,
             isToday: false,
@@ -382,18 +227,6 @@ class HabitItem {
     return weeks;
   }
 
-  /// Counts the total number of days completed in the 7-day period starting from weekStart.
-  int weekProgress(DateTime weekStart) {
-    var count = 0;
-    for (var i = 0; i < 7; i++) {
-      final day = weekStart.add(Duration(days: i));
-      if (isCompletedOn(day)) {
-        count++;
-      }
-    }
-    return count;
-  }
-
   /// Creates a copy with designated modifications.
   HabitItem copyWith({
     String? id,
@@ -402,7 +235,6 @@ class HabitItem {
     int? targetValue,
     String? unit,
     String? iconName,
-    String? colorHex,
     Map<String, int>? completions,
     DateTime? createdAt,
   }) {
@@ -413,7 +245,6 @@ class HabitItem {
       targetValue: targetValue ?? this.targetValue,
       unit: unit ?? this.unit,
       iconName: iconName ?? this.iconName,
-      colorHex: colorHex ?? this.colorHex,
       completions: completions ?? this.completions,
       createdAt: createdAt ?? this.createdAt,
     );
@@ -430,7 +261,6 @@ class HabitItem {
       'unit': unit,
       'icon_name': iconName,
       'iconName': iconName,
-      'color_hex': colorHex,
       'completions': completions,
       'created_at': createdAt.toIso8601String(),
     };
@@ -472,16 +302,13 @@ class HabitItem {
       iconName:
           (json['icon_name'] ?? json['iconName'] ?? json['icon'] ?? 'bolt')
               .toString(),
-      colorHex:
-          (json['color_hex'] ?? json['colorHex'] ?? json['color'] ?? '#A0D2B4')
-              .toString(),
       completions: parsedCompletions,
       createdAt: parsedCreatedAt,
     );
   }
 }
 
-/// Represents a single cell in the GitHub-style monthly habit heatmap.
+/// Represents a single cell in the monthly habit calendar heatmap.
 class HeatmapCellData {
   /// The specific calendar date represented, or null if this is an empty padding cell.
   final DateTime? date;

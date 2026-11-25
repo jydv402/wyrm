@@ -1,5 +1,5 @@
-import 'package:material_ui/material_ui.dart';
 import 'package:go_router/go_router.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:wyrm_desk/theme/theme.dart';
 import 'package:wyrm_desk/widgets/dusk_glass_button.dart';
 
@@ -31,7 +31,6 @@ class TwoPaneHeader extends StatelessWidget {
         DuskGlassButton.icon(
           icon: const Icon(Icons.arrow_back_rounded, size: 20),
           onPressed: () => context.pop(),
-          size: 40.0,
         ),
         const SizedBox(width: 12),
         Text(

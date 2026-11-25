@@ -65,12 +65,17 @@ class HabitHeatmap extends StatelessWidget {
   }
 
   Widget _buildCell(HeatmapCellData cell) {
+    if (!cell.isCurrentMonth || cell.date == null) {
+      return const Padding(
+        padding: EdgeInsets.symmetric(horizontal: 2),
+        child: SizedBox(width: 16, height: 16),
+      );
+    }
+
     Color dotColor;
     Border? border;
 
-    if (cell.date == null) {
-      dotColor = Colors.transparent;
-    } else if (cell.isCompleted) {
+    if (cell.isCompleted) {
       dotColor = AppColors.tealAccent;
     } else if (cell.count > 0) {
       dotColor = AppColors.tealAccent.withValues(alpha: 0.4);

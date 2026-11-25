@@ -1,6 +1,6 @@
-import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:wyrm_desk/config/app_settings_state.dart';
 import 'package:wyrm_desk/features/calendar/calendar_state.dart';
 import 'package:wyrm_desk/features/calendar/widgets/calendar_month_view.dart';
@@ -28,14 +28,13 @@ class CalendarExpandedLayout extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.stretch,
+      spacing: 16.0,
       children: [
         Expanded(
           flex: 6,
           child: CalendarMonthView(state: state, settings: settings),
         ),
-        const SizedBox(width: 16),
         Container(width: 1.0, color: AppColors.lineStrong),
-        const SizedBox(width: 16),
         Expanded(flex: 5, child: _buildMilestonesPane(context, ref)),
       ],
     );
@@ -54,6 +53,7 @@ class CalendarExpandedLayout extends ConsumerWidget {
 
   Widget _buildMilestonesHeader(BuildContext context, WidgetRef ref) {
     return Row(
+      spacing: 8.0,
       children: [
         const Expanded(
           child: Text(
@@ -66,7 +66,6 @@ class CalendarExpandedLayout extends ConsumerWidget {
             overflow: TextOverflow.ellipsis,
           ),
         ),
-        const SizedBox(width: 8),
         _buildAddButton(context, ref),
       ],
     );

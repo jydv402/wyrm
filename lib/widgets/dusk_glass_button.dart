@@ -39,7 +39,6 @@ class DuskGlassButton extends StatefulWidget {
     bool isPrimary = false,
     Color? primaryColor,
     Color? primaryForegroundColor,
-    double size = 42.0,
     bool isActive = false,
   }) {
     return DuskGlassButton(
@@ -49,10 +48,10 @@ class DuskGlassButton extends StatefulWidget {
       isPrimary: isPrimary,
       primaryColor: primaryColor,
       primaryForegroundColor: primaryForegroundColor,
-      height: size,
-      width: size,
+      height: 36,
+      width: 36,
       padding: EdgeInsets.zero,
-      borderRadius: size / 2,
+      borderRadius: 36 / 2,
       isActive: isActive,
     );
   }

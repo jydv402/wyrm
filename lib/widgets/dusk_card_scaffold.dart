@@ -30,6 +30,9 @@ class DuskCardScaffold extends StatelessWidget {
   /// App-supplied trailing control (the card-size menu button).
   final Widget? editButton;
 
+  /// Optional auxiliary actions placed before the add button in the header.
+  final List<Widget>? extraActions;
+
   /// Optional full-bleed backdrop painted beneath the glass sheen.
   final Widget? background;
 
@@ -52,6 +55,7 @@ class DuskCardScaffold extends StatelessWidget {
     this.onAdd,
     this.filledAdd = true,
     this.editButton,
+    this.extraActions,
     this.background,
     this.padding,
     this.headerGap = 10.0,
@@ -78,6 +82,7 @@ class DuskCardScaffold extends StatelessWidget {
             addColor: filledAdd ? tone.fill : null,
             addForegroundColor: filledAdd ? tone.ink : null,
             editButton: editButton,
+            extraActions: extraActions,
           ),
           if (headerGap > 0) SizedBox(height: headerGap),
           Expanded(child: child),

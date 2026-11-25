@@ -25,7 +25,6 @@ class SettingsTopBar extends StatelessWidget {
   Widget _buildBackButton(BuildContext context) {
     return DuskGlassButton.icon(
       onPressed: () => context.pop(),
-      size: 40.0,
       icon: const Icon(
         Icons.arrow_back_rounded,
         size: 20,
@@ -88,7 +87,6 @@ class SettingsTopBar extends StatelessWidget {
   Widget _buildCloseButton(BuildContext context) {
     return DuskGlassButton.icon(
       onPressed: () => context.pop(),
-      size: 40.0,
       icon: const Icon(
         Icons.close_rounded,
         size: 19,

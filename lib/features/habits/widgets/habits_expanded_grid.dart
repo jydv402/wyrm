@@ -4,10 +4,10 @@ import 'package:wyrm_desk/config/app_settings_state.dart';
 import 'package:wyrm_desk/features/habits/habit_model.dart';
 import 'package:wyrm_desk/features/habits/habits_card.dart';
 import 'package:wyrm_desk/features/habits/habits_state.dart';
-import 'package:wyrm_desk/features/habits/widgets/habit_grid_tile.dart';
 import 'package:wyrm_desk/features/habits/widgets/habits_empty_state.dart';
+import 'package:wyrm_desk/features/habits/widgets/universal_habit_card.dart';
 
-/// Expanded Multi-Column Grid layout for Medium & Fullscreen modes.
+/// Expanded Multi-Column Grid layout for Medium (1 column) & Fullscreen (2 columns) modes.
 class HabitsExpandedGrid extends ConsumerWidget {
   final HabitsState state;
   final AppSettingsConfig settings;
@@ -42,16 +42,18 @@ class HabitsExpandedGrid extends ConsumerWidget {
         crossAxisCount: isFullscreen ? 2 : 1,
         crossAxisSpacing: 14,
         mainAxisSpacing: 14,
-        mainAxisExtent: 270.0,
+        mainAxisExtent: 220.0,
       ),
       itemCount: state.habits.length,
       itemBuilder: (context, index) {
-        return HabitGridTile(
-          habit: state.habits[index],
+        final habit = state.habits[index];
+        return UniversalHabitCard(
+          key: ValueKey(habit.id),
+          habit: habit,
           today: today,
           weekStart: weekStart,
           startWeekOnMonday: settings.startWeekOnMonday,
-          onEdit: onEdit,
+          onEdit: onEdit != null ? () => onEdit!(habit) : null,
         );
       },
     );

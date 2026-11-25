@@ -1,12 +1,12 @@
-import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:material_ui/material_ui.dart';
+import 'package:wyrm_desk/config/app_settings_state.dart';
+import 'package:wyrm_desk/config/card_layout_state.dart';
+import 'package:wyrm_desk/core/date_names.dart';
 import 'package:wyrm_desk/features/calendar/calendar_card.dart';
 import 'package:wyrm_desk/features/calendar/calendar_model.dart';
 import 'package:wyrm_desk/features/calendar/calendar_state.dart';
-import 'package:wyrm_desk/core/date_names.dart';
-import 'package:wyrm_desk/config/card_layout_state.dart';
-import 'package:wyrm_desk/config/app_settings_state.dart';
 import 'package:wyrm_desk/features/calendar/dusk_date_picker_dialog.dart';
 
 void main() {
@@ -397,8 +397,8 @@ void main() {
       await tester.pumpAndSettle();
 
       // Verify date picker opened and shows TRAVEL confirm button
-      expect(find.text('TRAVEL'), findsOneWidget);
-      expect(find.text('CANCEL'), findsOneWidget);
+      expect(find.text('Travel'), findsOneWidget);
+      expect(find.text('Cancel'), findsOneWidget);
 
       // Dismiss dialog
       await tester.tap(find.text('CANCEL'));

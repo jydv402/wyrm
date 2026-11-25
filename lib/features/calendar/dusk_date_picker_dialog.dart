@@ -1,5 +1,5 @@
-import 'package:material_ui/material_ui.dart';
 import 'package:go_router/go_router.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:wyrm_desk/features/calendar/widgets/date_picker/date_picker_actions.dart';
 import 'package:wyrm_desk/features/calendar/widgets/date_picker/date_picker_day_grid.dart';
 import 'package:wyrm_desk/features/calendar/widgets/date_picker/date_picker_header.dart';
@@ -27,7 +27,7 @@ class DuskDatePickerDialog extends StatefulWidget {
     required this.initialDate,
     required this.firstDate,
     required this.lastDate,
-    this.confirmText = 'OK',
+    this.confirmText = 'Travel',
     this.cancelText = 'Cancel',
   });
 

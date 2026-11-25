@@ -103,13 +103,13 @@ class MilestoneFormContent extends StatelessWidget {
         border: Border.all(color: AppColors.line, width: 1.0),
       ),
       child: Row(
+        spacing: 12.0,
         children: [
           const Icon(
             Icons.push_pin_rounded,
             size: 18,
             color: AppColors.goldAccent,
           ),
-          const SizedBox(width: 12),
           Expanded(child: _buildPinText()),
           _buildPinSwitch(),
         ],

@@ -20,16 +20,16 @@ class DatePickerActions extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Row(
+      spacing: 10.0,
       mainAxisAlignment: MainAxisAlignment.end,
       children: [
         _buildButton(
-          label: cancelText.toUpperCase(),
+          label: cancelText,
           onTap: onCancel,
           textColor: AppColors.textSecondary,
         ),
-        const SizedBox(width: 10),
         _buildButton(
-          label: confirmText.toUpperCase(),
+          label: confirmText,
           onTap: onConfirm,
           textColor: AppColors.goldInk,
           isPrimary: true,

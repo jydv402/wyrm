@@ -1,13 +1,13 @@
-import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import 'package:wyrm_desk/theme/theme.dart';
+import 'package:material_ui/material_ui.dart';
+import 'package:wyrm_desk/features/battery/battery_pill.dart';
 import 'package:wyrm_desk/features/network/network_info.dart';
 import 'package:wyrm_desk/features/network/network_modal.dart';
+import 'package:wyrm_desk/features/settings/settings_page.dart';
 import 'package:wyrm_desk/server/server_provider.dart';
 import 'package:wyrm_desk/server/web_server.dart';
-import 'package:wyrm_desk/features/battery/battery_pill.dart';
-import 'package:wyrm_desk/features/settings/settings_page.dart';
+import 'package:wyrm_desk/theme/theme.dart';
 import 'package:wyrm_desk/widgets/dusk_glass_button.dart';
 
 /// Pinned top navigation and status pill bar matching the Dusk Glass screenshot.
@@ -58,7 +58,6 @@ class TopPillBar extends StatelessWidget {
           // Settings Gear Action Button
           DuskGlassButton.icon(
             onPressed: onOpenSettings ?? () => SettingsPage.open(context),
-            size: 40.0,
             icon: const Icon(
               Icons.settings_rounded,
               size: 19,

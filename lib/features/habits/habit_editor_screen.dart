@@ -4,7 +4,9 @@ import 'package:go_router/go_router.dart';
 import 'package:wyrm_desk/theme/theme.dart';
 import 'package:wyrm_desk/features/habits/habit_form_content.dart';
 import 'package:wyrm_desk/features/habits/habit_model.dart';
+import 'package:wyrm_desk/features/habits/habits_card.dart';
 import 'package:wyrm_desk/features/habits/habits_state.dart';
+import 'package:wyrm_desk/features/habits/widgets/universal_habit_card.dart';
 import 'package:wyrm_desk/features/keyboard/two_pane_keyboard_scaffold.dart';
 
 /// Full-screen two-pane habit editor screen.
@@ -109,14 +111,32 @@ class _HabitEditorScreenState extends ConsumerState<HabitEditorScreen> {
         );
       },
       previewBuilder: (context) {
-        return HabitPreviewTile(
-          title: _titleController.text,
+        final title = _titleController.text.trim();
+        final unit = _unitController.text.trim();
+        final previewHabit = HabitItem(
+          id: widget.habitToEdit?.id ?? 'preview',
+          title: title.isEmpty ? 'Habit Preview' : title,
           type: _habitType,
-          targetCount: _targetValue,
-          unit: _unitController.text.trim().isEmpty
-              ? null
-              : _unitController.text.trim(),
+          targetValue: _targetValue,
+          unit: _habitType == HabitType.numeric && unit.isNotEmpty
+              ? unit
+              : null,
           iconName: _iconName,
+          completions: widget.habitToEdit?.completions ?? const {},
+          createdAt: widget.habitToEdit?.createdAt ?? DateTime.now(),
+        );
+        final today = DateTime.now();
+
+        return Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 520, maxHeight: 220),
+            child: UniversalHabitCard(
+              habit: previewHabit,
+              today: today,
+              weekStart: HabitsCard.getWeekStart(today, true),
+              startWeekOnMonday: true,
+            ),
+          ),
         );
       },
     );

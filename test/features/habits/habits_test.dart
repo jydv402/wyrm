@@ -18,7 +18,6 @@ void main() {
         targetValue: 8,
         unit: 'cups',
         iconName: 'water_drop',
-        colorHex: '#A0D2B4',
         completions: {'2026-09-18': 8, '2026-09-19': 6, '2026-09-20': 8},
         createdAt: DateTime(2026, 9, 1),
       );
@@ -32,7 +31,6 @@ void main() {
       expect(json['unit'], 'cups');
       expect(json['icon_name'], 'water_drop');
       expect(json['iconName'], 'water_drop');
-      expect(json['color_hex'], '#A0D2B4');
       expect(json['completions']['2026-09-20'], 8);
 
       final deserialized = HabitItem.fromJson(json);
@@ -110,41 +108,11 @@ void main() {
       expect(habitBroken.currentStreak(today), 0);
     });
 
-    test('calculates best streak across multiple periods', () {
-      final habit = HabitItem(
-        id: 'hb',
-        title: 'Best Streak Test',
-        completions: {
-          '2026-09-01': 1,
-          '2026-09-02': 1,
-          '2026-09-05': 1,
-          '2026-09-06': 1,
-          '2026-09-07': 1,
-          '2026-09-08': 1,
-        },
-        createdAt: DateTime(2026, 9, 1),
-      );
-
-      expect(habit.bestStreak(), 4);
-    });
-
-    test('counts week progress correctly', () {
-      final weekStart = DateTime(2026, 9, 14);
-      final habit = HabitItem(
-        id: 'hw',
-        title: 'Weekly Progress',
-        completions: {'2026-09-14': 1, '2026-09-16': 1, '2026-09-18': 1},
-        createdAt: DateTime(2026, 9, 1),
-      );
-
-      expect(habit.weekProgress(weekStart), 3);
-    });
-
-    test('calculates monthly heatmap columns and completed days count', () {
+    test('calculates completed days count for the designated month', () {
       final month = DateTime(2026, 9, 1);
       final habit = HabitItem(
         id: 'hm',
-        title: 'Monthly Heatmap Test',
+        title: 'Monthly Count Test',
         type: HabitType.numeric,
         targetValue: 4,
         completions: {
@@ -157,40 +125,6 @@ void main() {
       );
 
       expect(habit.monthCompletedDaysCount(month), 2);
-
-      final columns = habit.getMonthlyHeatmapColumns(
-        month,
-        startWeekOnMonday: true,
-      );
-      expect(columns.isNotEmpty, isTrue);
-      for (final col in columns) {
-        expect(col.length, 7);
-      }
-
-      final sept1Cell = columns
-          .expand((col) => col)
-          .firstWhere(
-            (c) =>
-                c.date?.year == 2026 && c.date?.month == 9 && c.date?.day == 1,
-          );
-      expect(sept1Cell.isCurrentMonth, isTrue);
-      expect(sept1Cell.intensity, 1.0);
-
-      final sept2Cell = columns
-          .expand((col) => col)
-          .firstWhere(
-            (c) =>
-                c.date?.year == 2026 && c.date?.month == 9 && c.date?.day == 2,
-          );
-      expect(sept2Cell.intensity, 0.5);
-
-      final sept4Cell = columns
-          .expand((col) => col)
-          .firstWhere(
-            (c) =>
-                c.date?.year == 2026 && c.date?.month == 9 && c.date?.day == 4,
-          );
-      expect(sept4Cell.intensity, 0.0);
     });
 
     test(
@@ -468,8 +402,8 @@ void main() {
 
         expect(find.text('Habits'), findsOneWidget);
         expect(find.text('Morning Yoga'), findsOneWidget);
-        expect(find.text('1/2'), findsNWidgets(2));
-        expect(find.text('Done'), findsOneWidget);
+        expect(find.text('1/2'), findsOneWidget);
+        expect(find.byIcon(Icons.check_rounded), findsAtLeastNWidgets(1));
 
         await tester.tap(find.byIcon(Icons.chevron_right_rounded));
         await tester.pumpAndSettle();

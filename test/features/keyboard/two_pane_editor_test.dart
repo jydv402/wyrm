@@ -1,20 +1,20 @@
-import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:material_ui/material_ui.dart';
+import 'package:wyrm_desk/config/app_settings_state.dart';
+import 'package:wyrm_desk/config/card_layout_state.dart';
 import 'package:wyrm_desk/features/calendar/milestone_form_content.dart';
 import 'package:wyrm_desk/features/habits/habit_form_content.dart';
 import 'package:wyrm_desk/features/habits/habit_model.dart';
 import 'package:wyrm_desk/features/habits/habits_card.dart';
 import 'package:wyrm_desk/features/habits/habits_state.dart';
-import 'package:wyrm_desk/config/card_layout_state.dart';
 import 'package:wyrm_desk/features/keyboard/in_app_keyboard_text_field.dart';
 import 'package:wyrm_desk/features/keyboard/in_app_keyboard_widget.dart';
 import 'package:wyrm_desk/features/keyboard/two_pane_keyboard_scaffold.dart';
-import 'package:wyrm_desk/config/app_settings_state.dart';
 import 'package:wyrm_desk/features/tasks/task_form_content.dart';
 import 'package:wyrm_desk/features/tasks/task_model.dart';
-import 'package:wyrm_desk/features/tasks/tasks_state.dart';
 import 'package:wyrm_desk/features/tasks/tasks_card.dart';
+import 'package:wyrm_desk/features/tasks/tasks_state.dart';
 
 class _FakeAppSettingsNotifier extends AppSettingsNotifier {
   final AppSettingsConfig _initial;
@@ -116,13 +116,6 @@ void main() {
                         onTypeChanged: (t) => setState(() => habitType = t),
                         onTargetCountChanged: (c) => setState(() => count = c),
                         onIconChanged: (i) => setState(() => icon = i),
-                      ),
-                      HabitPreviewTile(
-                        title: titleController.text,
-                        type: habitType,
-                        targetCount: count,
-                        unit: unitController.text,
-                        iconName: icon,
                       ),
                     ],
                   ),

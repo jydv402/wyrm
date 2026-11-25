@@ -1,6 +1,6 @@
-import 'package:material_ui/material_ui.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:wyrm_desk/core/date_names.dart';
 import 'package:wyrm_desk/theme/theme.dart';
 import 'package:wyrm_desk/widgets/dusk_glass_button.dart';
@@ -46,15 +46,15 @@ class DatePickerHeader extends StatelessWidget {
     final dateStr = DateFormat('EEEE, MMM d, yyyy').format(selectedDate);
 
     return Row(
-      spacing: 16,
+      spacing: 8.0,
       children: [
         const Icon(
           Icons.explore_rounded,
           size: 20,
           color: AppColors.goldAccent,
         ),
-        _buildTitleColumn(dateStr),
-        const Spacer(),
+        const SizedBox(width: 4.0),
+        Expanded(child: _buildTitleColumn(dateStr)),
         _buildCloseButton(context),
       ],
     );
@@ -92,15 +92,14 @@ class DatePickerHeader extends StatelessWidget {
     return DuskGlassButton.icon(
       onPressed: onClose ?? () => context.pop(null),
       icon: const Icon(Icons.close_rounded, size: 20),
-      size: 38,
     );
   }
 
   Widget _buildControlsRow() {
     return Row(
+      spacing: 8.0,
       children: [
-        Flexible(child: _buildMonthChip()),
-        const SizedBox(width: 8),
+        _buildMonthChip(),
         _buildYearChip(),
         const Spacer(),
         if (mode == DuskDatePickerMode.day) _buildChevrons(),
@@ -146,6 +145,7 @@ class DatePickerHeader extends StatelessWidget {
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
+          spacing: 4.0,
           children: [
             Flexible(
               child: Text(
@@ -158,7 +158,6 @@ class DatePickerHeader extends StatelessWidget {
                 ),
               ),
             ),
-            const SizedBox(width: 4),
             Icon(
               isActive
                   ? Icons.arrow_drop_up_rounded
@@ -178,7 +177,6 @@ class DatePickerHeader extends StatelessWidget {
       children: [
         DuskGlassButton.icon(
           onPressed: () => onShiftMonth?.call(-1),
-          size: 32,
           icon: const Icon(
             Icons.chevron_left_rounded,
             size: 18,
@@ -188,7 +186,6 @@ class DatePickerHeader extends StatelessWidget {
         const SizedBox(width: 6),
         DuskGlassButton.icon(
           onPressed: () => onShiftMonth?.call(1),
-          size: 32,
           icon: const Icon(
             Icons.chevron_right_rounded,
             size: 18,
