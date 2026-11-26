@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:clock/clock.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:wyrm_desk/core/notifications/deterministic_id.dart';
 import 'package:wyrm_desk/core/notifications/reminder_model.dart';
 import 'package:wyrm_desk/core/notifications/reminder_scheduler.dart';
 import 'package:wyrm_desk/features/clock/clock_provider.dart';
@@ -150,7 +151,11 @@ class ReminderCoordinator {
     _isEvaluatingDue = true;
     try {
       // Mark triggered synchronously before raising the alarm so subsequent 1s
-      // ticks cannot double-fire the same occurrence.
+      // ticks cannot double-fire the same occurrence, and cancel the scheduled
+      // OS notification for this occurrence so it does not ring a second time.
+      final cancelFuture = _gateway.cancel(
+        deterministicNotificationId(dueMatch.item.id, dueMatch.dueAt),
+      );
       final markFuture = _ref
           .read(remindersProvider.notifier)
           .markTriggered(dueMatch.item.id, dueMatch.dueAt);
@@ -163,7 +168,11 @@ class ReminderCoordinator {
           .read(activeAlarmProvider.notifier)
           .triggerAlarm(updatedItem, dueMatch.dueAt);
 
-      await Future.wait<void>(<Future<void>>[markFuture, alarmFuture]);
+      await Future.wait<void>(<Future<void>>[
+        cancelFuture,
+        markFuture,
+        alarmFuture,
+      ]);
     } finally {
       _isEvaluatingDue = false;
     }
@@ -219,6 +228,8 @@ class ReminderCoordinator {
 
     final item = _findById(reminderId);
     if (item == null || !item.isEnabled) return;
+    final lastTriggeredAt = item.lastTriggeredAt;
+    if (lastTriggeredAt != null && !lastTriggeredAt.isBefore(firedAt)) return;
 
     final markFuture = _ref
         .read(remindersProvider.notifier)

@@ -856,5 +856,67 @@ void main() {
         isTrue,
       );
     });
+
+    test('evaluateDueReminders cancels scheduled OS notification and ignores duplicate body tap', () async {
+      final clock = FakeClock(DateTime(2026, 6, 15, 8, 50));
+      final gateway = FakeNotificationGateway();
+      final audio = FakeAlarmAudioGateway();
+      final ticks = StreamController<DateTime>.broadcast();
+      final container = createContainer(
+        clock: clock,
+        notificationGateway: gateway,
+        alarmAudioGateway: audio,
+        tickController: ticks,
+      );
+      addTearDown(() async {
+        container.dispose();
+        await gateway.dispose();
+        await ticks.close();
+      });
+
+      final coordinator = container.read(reminderCoordinatorProvider);
+      await coordinator.initialized;
+      await container.read(remindersProvider.notifier).initialized;
+
+      final target = DateTime(2026, 6, 15, 9, 0);
+      final item = await container
+          .read(remindersProvider.notifier)
+          .addReminder(
+            title: 'Daily pill',
+            scheduledAt: target,
+            recurrence: ReminderRecurrence.daily,
+          );
+      final notifId = deterministicNotificationId(item.id, target);
+      expect(gateway.scheduled.containsKey(notifId), isTrue);
+
+      // Foreground tick hits 09:00: cancels OS notification for this occurrence.
+      clock.setTime(target);
+      ticks.add(target);
+      await Future<void>.delayed(Duration.zero);
+      await Future<void>.delayed(Duration.zero);
+
+      expect(container.read(activeAlarmProvider)?.reminder.id, item.id);
+      expect(audio.startCount, 1);
+      expect(gateway.cancelledIds, contains(notifId));
+
+      await container.read(activeAlarmProvider.notifier).dismissActive();
+      expect(container.read(activeAlarmProvider), isNull);
+
+      // A late OS notification tap for the already-triggered occurrence
+      // must not re-ring the alarm.
+      gateway.emitResponse(
+        NotificationTapEvent(
+          notificationId: notifId,
+          payload: jsonEncode(<String, dynamic>{
+            'reminder_id': item.id,
+            'occurrence_epoch_ms': target.millisecondsSinceEpoch,
+          }),
+        ),
+      );
+      await Future<void>.delayed(Duration.zero);
+
+      expect(container.read(activeAlarmProvider), isNull);
+      expect(audio.startCount, 1);
+    });
   });
 }

@@ -1,22 +1,28 @@
 package com.jdmakes.wyrm
 
+import android.Manifest
 import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.media.AudioAttributes
 import android.media.MediaPlayer
 import android.media.RingtoneManager
 import android.net.Uri
 import android.os.Build
+import android.os.Environment
 import android.os.VibrationEffect
 import android.os.Vibrator
 import android.os.VibratorManager
 import android.provider.OpenableColumns
+import android.provider.Settings
 import android.util.Log
 import android.view.WindowManager
+import androidx.core.content.FileProvider
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodCall
 import io.flutter.plugin.common.MethodChannel
+import java.io.File
 import java.io.IOException
 
 class MainActivity : FlutterActivity() {
@@ -24,10 +30,13 @@ class MainActivity : FlutterActivity() {
     private val displayChannelName = "wyrm_desk/display"
     private val backupChannelName = "wyrm_desk/backup"
     private val alarmChannelName = "wyrm_desk/alarm"
+    private val sharingChannelName = "wyrm_desk/sharing"
     private val tag = "WyrmDesk"
 
     private val saveBackupRequest = 4101
     private val openBackupRequest = 4102
+    private val importSharingFileRequest = 4103
+    private val legacyStoragePermissionRequest = 4104
 
     private var alarmPlayer: MediaPlayer? = null
 
@@ -36,6 +45,8 @@ class MainActivity : FlutterActivity() {
     private var pendingSaveResult: MethodChannel.Result? = null
     private var pendingSaveContents: String? = null
     private var pendingOpenResult: MethodChannel.Result? = null
+    private var pendingImportResult: MethodChannel.Result? = null
+    private var pendingImportTargetDir: String? = null
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
@@ -85,6 +96,17 @@ class MainActivity : FlutterActivity() {
                         setWakeScreen(enabled)
                         result.success(null)
                     }
+                    else -> result.notImplemented()
+                }
+            }
+
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, sharingChannelName)
+            .setMethodCallHandler { call, result ->
+                when (call.method) {
+                    "hasAllFilesAccess" -> result.success(hasAllFilesAccess())
+                    "requestAllFilesAccess" -> result.success(requestAllFilesAccess())
+                    "openFile" -> openSharedFile(call, result)
+                    "pickImportFile" -> pickImportFile(call, result)
                     else -> result.notImplemented()
                 }
             }
@@ -295,6 +317,7 @@ class MainActivity : FlutterActivity() {
         when (requestCode) {
             saveBackupRequest -> finishSave(uri)
             openBackupRequest -> finishOpen(uri)
+            importSharingFileRequest -> finishImportSharingFile(uri)
         }
     }
 
@@ -392,16 +415,166 @@ class MainActivity : FlutterActivity() {
         }
     }
 
+    // =========================================================================
+    // SHARING - All Files Access, External Open & SAF Import
+    // =========================================================================
+
+    private fun hasAllFilesAccess(): Boolean {
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            Environment.isExternalStorageManager()
+        } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            checkSelfPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE) ==
+                PackageManager.PERMISSION_GRANTED
+        } else {
+            true
+        }
+    }
+
+    private fun requestAllFilesAccess(): Boolean {
+        return try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                val appIntent = Intent(
+                    Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION,
+                    Uri.parse("package:$packageName")
+                )
+                try {
+                    startActivity(appIntent)
+                } catch (_: Exception) {
+                    startActivity(Intent(Settings.ACTION_MANAGE_ALL_FILES_ACCESS_PERMISSION))
+                }
+                true
+            } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                requestPermissions(
+                    arrayOf(
+                        Manifest.permission.READ_EXTERNAL_STORAGE,
+                        Manifest.permission.WRITE_EXTERNAL_STORAGE
+                    ),
+                    legacyStoragePermissionRequest
+                )
+                true
+            } else {
+                true
+            }
+        } catch (error: Exception) {
+            Log.e(tag, "Could not request all files access", error)
+            false
+        }
+    }
+
+    private fun openSharedFile(call: MethodCall, result: MethodChannel.Result) {
+        val path = call.argument<String>("path")
+        if (path.isNullOrBlank()) {
+            result.error("INVALID_PATH", "No file path provided", null)
+            return
+        }
+        val file = File(path)
+        if (!file.exists() || !file.isFile) {
+            result.error("NOT_FOUND", "Shared file does not exist", null)
+            return
+        }
+        try {
+            val uri = FileProvider.getUriForFile(
+                this,
+                "$packageName.fileprovider",
+                file
+            )
+            val mimeType = call.argument<String>("mimeType") ?: "*/*"
+            val intent = Intent(Intent.ACTION_VIEW).apply {
+                setDataAndType(uri, mimeType)
+                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            }
+            startActivity(Intent.createChooser(intent, file.name))
+            result.success(true)
+        } catch (error: Exception) {
+            Log.e(tag, "Could not open shared file $path", error)
+            result.error("OPEN_FAILED", error.message ?: "No viewer available", null)
+        }
+    }
+
+    private fun pickImportFile(call: MethodCall, result: MethodChannel.Result) {
+        if (pendingImportResult != null) {
+            result.error("BUSY", "A file import is already in progress", null)
+            return
+        }
+        val targetDir = call.argument<String>("targetDir")
+        if (targetDir.isNullOrBlank()) {
+            result.error("INVALID_DIR", "No target directory provided", null)
+            return
+        }
+        pendingImportResult = result
+        pendingImportTargetDir = targetDir
+        try {
+            val intent = Intent(Intent.ACTION_OPEN_DOCUMENT).apply {
+                addCategory(Intent.CATEGORY_OPENABLE)
+                type = "*/*"
+            }
+            startActivityForResult(intent, importSharingFileRequest)
+        } catch (error: Exception) {
+            pendingImportResult = null
+            pendingImportTargetDir = null
+            Log.e(tag, "Could not open import document picker", error)
+            result.error("IMPORT_FAILED", error.message ?: "No file picker available", null)
+        }
+    }
+
+    private fun finishImportSharingFile(uri: Uri?) {
+        val result = pendingImportResult
+        val targetDirPath = pendingImportTargetDir
+        pendingImportResult = null
+        pendingImportTargetDir = null
+
+        if (uri == null || targetDirPath == null) {
+            result?.success(null)
+            return
+        }
+        try {
+            val targetDir = File(targetDirPath).apply { mkdirs() }
+            val rawName = displayName(uri) ?: "imported_${System.currentTimeMillis()}"
+            val cleanName = rawName.replace("/", "_").replace("\\", "_")
+            val destination = resolveUniqueDestination(targetDir, cleanName)
+            val input = contentResolver.openInputStream(uri)
+                ?: throw IOException("Could not open selected file for reading")
+            input.use { src ->
+                destination.outputStream().use { dst ->
+                    src.copyTo(dst, bufferSize = 64 * 1024)
+                    dst.flush()
+                }
+            }
+            result?.success(destination.name)
+        } catch (error: Exception) {
+            Log.e(tag, "Sharing import failed", error)
+            result?.error("IMPORT_FAILED", error.message ?: "Could not import file", null)
+        }
+    }
+
+    private fun resolveUniqueDestination(dir: File, fileName: String): File {
+        var candidate = File(dir, fileName)
+        if (!candidate.exists()) return candidate
+
+        val dotIndex = fileName.lastIndexOf('.')
+        val stem = if (dotIndex > 0) fileName.substring(0, dotIndex) else fileName
+        val ext = if (dotIndex > 0) fileName.substring(dotIndex) else ""
+        var counter = 1
+        while (candidate.exists()) {
+            candidate = File(dir, "$stem ($counter)$ext")
+            counter++
+        }
+        return candidate
+    }
+
     override fun onDestroy() {
         releaseAlarmPlayer()
         cancelAlarmVibration()
         // A picker still open when the activity dies would otherwise leave Dart
-        // awaiting forever; resolve both as cancellations.
+        // awaiting forever; resolve all pending results as cancellations.
         pendingSaveResult?.success(null)
         pendingOpenResult?.success(null)
+        pendingImportResult?.success(null)
         pendingSaveResult = null
         pendingSaveContents = null
         pendingOpenResult = null
+        pendingImportResult = null
+        pendingImportTargetDir = null
         super.onDestroy()
     }
 }

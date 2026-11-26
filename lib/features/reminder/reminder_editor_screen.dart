@@ -33,6 +33,7 @@ class _ReminderEditorScreenState extends ConsumerState<ReminderEditorScreen> {
   late bool _isEnabled;
   int? _activeOffsetMinutes;
   bool _showTitleError = false;
+  bool _isSaving = false;
 
   @override
   void initState() {
@@ -126,6 +127,7 @@ class _ReminderEditorScreenState extends ConsumerState<ReminderEditorScreen> {
   }
 
   Future<void> _saveReminder() async {
+    if (_isSaving) return;
     final title = _titleController.text.trim();
     if (title.isEmpty) {
       setState(() => _showTitleError = true);
@@ -135,55 +137,66 @@ class _ReminderEditorScreenState extends ConsumerState<ReminderEditorScreen> {
       return;
     }
 
-    final now = ref.read(clockProvider).now();
-    final resolved = resolveReminderTarget(
-      now: now,
-      hour: _hour,
-      minute: _minute,
-      selectedDate: _selectedDate,
-      recurrence: _recurrence,
-      customWeekdays: _customWeekdays,
-    );
-    final normalizedDays = _recurrence == ReminderRecurrence.custom
-        ? ReminderItem.normalizeWeekdays(_customWeekdays)
-        : const <int>[];
+    _isSaving = true;
+    try {
+      final now = ref.read(clockProvider).now();
+      final resolved = resolveReminderTarget(
+        now: now,
+        hour: _hour,
+        minute: _minute,
+        selectedDate: _selectedDate,
+        recurrence: _recurrence,
+        customWeekdays: _customWeekdays,
+      );
+      final normalizedDays = _recurrence == ReminderRecurrence.custom
+          ? ReminderItem.normalizeWeekdays(_customWeekdays)
+          : const <int>[];
 
-    final editing = _editingItem;
-    final notifier = ref.read(remindersProvider.notifier);
+      final editing = _editingItem;
+      final notifier = ref.read(remindersProvider.notifier);
 
-    if (editing != null) {
-      final scheduleChanged =
-          editing.scheduledAt != resolved.scheduledAt ||
-          editing.recurrence != _recurrence;
-      await notifier.editReminder(
-        editing.copyWith(
+      if (editing != null) {
+        final scheduleChanged =
+            editing.scheduledAt != resolved.scheduledAt ||
+            editing.recurrence != _recurrence;
+        await notifier.editReminder(
+          editing.copyWith(
+            title: title,
+            scheduledAt: resolved.scheduledAt,
+            recurrence: _recurrence,
+            customWeekdays: normalizedDays,
+            isEnabled: _isEnabled,
+            clearSnoozedUntil: true,
+            clearLastTriggeredAt: scheduleChanged,
+          ),
+        );
+      } else {
+        await notifier.addReminder(
           title: title,
           scheduledAt: resolved.scheduledAt,
           recurrence: _recurrence,
           customWeekdays: normalizedDays,
-          isEnabled: _isEnabled,
-          clearSnoozedUntil: true,
-          clearLastTriggeredAt: scheduleChanged,
-        ),
-      );
-    } else {
-      await notifier.addReminder(
-        title: title,
-        scheduledAt: resolved.scheduledAt,
-        recurrence: _recurrence,
-        customWeekdays: normalizedDays,
-        isEnabled: true,
-      );
-    }
+          isEnabled: true,
+        );
+      }
 
-    _popScreen();
+      _popScreen();
+    } finally {
+      _isSaving = false;
+    }
   }
 
   Future<void> _deleteReminder() async {
+    if (_isSaving) return;
     final editing = _editingItem;
     if (editing == null) return;
-    await ref.read(remindersProvider.notifier).deleteReminder(editing.id);
-    _popScreen();
+    _isSaving = true;
+    try {
+      await ref.read(remindersProvider.notifier).deleteReminder(editing.id);
+      _popScreen();
+    } finally {
+      _isSaving = false;
+    }
   }
 
   @override

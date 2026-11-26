@@ -44,6 +44,18 @@ class _InMemoryReminderRepository implements ReminderRepository {
   }
 }
 
+class _SlowReminderRepository extends _InMemoryReminderRepository {
+  Completer<void>? saveGate;
+
+  @override
+  Future<void> saveReminders(List<ReminderItem> reminders) async {
+    if (saveGate != null && !saveGate!.isCompleted) {
+      await saveGate!.future;
+    }
+    await super.saveReminders(reminders);
+  }
+}
+
 class _FakeSettingsNotifier extends AppSettingsNotifier {
   final AppSettingsConfig _initial;
   _FakeSettingsNotifier(this._initial);
@@ -837,5 +849,64 @@ void main() {
         expect(container.read(remindersProvider).items, isEmpty);
       },
     );
+  });
+
+  group('ReminderEditorScreen double-submit guard', () {
+    testWidgets('ignores duplicate Save taps while save is in flight', (
+      WidgetTester tester,
+    ) async {
+      tester.view.physicalSize = const Size(1280, 800);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      final slowRepo = _SlowReminderRepository();
+      final gateway = FakeNotificationGateway();
+      final audio = FakeAlarmAudioGateway();
+      final container = ProviderContainer(
+        overrides: [
+          clockProvider.overrideWithValue(
+            Clock.fixed(DateTime(2026, 6, 15, 10, 0)),
+          ),
+          reminderRepositoryProvider.overrideWithValue(slowRepo),
+          notificationGatewayProvider.overrideWithValue(gateway),
+          alarmAudioGatewayProvider.overrideWithValue(audio),
+        ],
+      );
+      addTearDown(() async {
+        container.dispose();
+        await gateway.dispose();
+      });
+
+      await container.read(remindersProvider.notifier).initialized;
+
+      await tester.pumpWidget(
+        UncontrolledProviderScope(
+          container: container,
+          child: const MaterialApp(home: ReminderEditorScreen()),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final titleField = tester.widget<TextField>(find.byType(TextField));
+      titleField.controller?.text = 'Take vitamins';
+      await tester.pumpAndSettle();
+
+      slowRepo.saveGate = Completer<void>();
+      final saveBtn = find.text('Save Reminder');
+      await tester.tap(saveBtn);
+      await tester.pump();
+      await tester.tap(saveBtn);
+      await tester.pump();
+
+      slowRepo.saveGate!.complete();
+      await tester.pumpAndSettle();
+
+      expect(container.read(remindersProvider).items.length, 1);
+      expect(
+        container.read(remindersProvider).items.single.title,
+        'Take vitamins',
+      );
+    });
   });
 }

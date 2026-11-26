@@ -24,6 +24,23 @@ class AppSettingsConfig {
   /// Maximum clamped text scale factor on tablet displays (default: 1.15).
   final double maxTextScaleFactor;
 
+  /// Default Unified Shared Folder path on Android external storage.
+  static const String defaultSharingRootPath = '/storage/emulated/0/Download/Wyrm';
+
+  /// Full external storage root when device-wide browsing is enabled.
+  static const String deviceBrowseRootPath = '/storage/emulated/0';
+
+  /// Configured root directory for local file sharing.
+  final String sharingRootPath;
+
+  /// Whether sharing allows browsing all of `/storage/emulated/0` instead of
+  /// scoping strictly to [sharingRootPath].
+  final bool sharingAllowDeviceBrowse;
+
+  /// Optional user-defined sharing password; when `null`, a 6-char code is
+  /// auto-generated on startup.
+  final String? sharingCustomPassword;
+
   const AppSettingsConfig({
     this.is24HourFormat = false,
     this.cardFontSize = 14.0,
@@ -32,6 +49,9 @@ class AppSettingsConfig {
     this.githubRepo = 'jydv402/wyrm',
     this.minTextScaleFactor = 0.85,
     this.maxTextScaleFactor = 1.15,
+    this.sharingRootPath = defaultSharingRootPath,
+    this.sharingAllowDeviceBrowse = false,
+    this.sharingCustomPassword,
   });
 
   /// Returns a copy of the configuration with specified overrides.
@@ -43,6 +63,10 @@ class AppSettingsConfig {
     String? githubRepo,
     double? minTextScaleFactor,
     double? maxTextScaleFactor,
+    String? sharingRootPath,
+    bool? sharingAllowDeviceBrowse,
+    String? sharingCustomPassword,
+    bool clearSharingCustomPassword = false,
   }) {
     return AppSettingsConfig(
       is24HourFormat: is24HourFormat ?? this.is24HourFormat,
@@ -53,6 +77,12 @@ class AppSettingsConfig {
       githubRepo: githubRepo ?? this.githubRepo,
       minTextScaleFactor: minTextScaleFactor ?? this.minTextScaleFactor,
       maxTextScaleFactor: maxTextScaleFactor ?? this.maxTextScaleFactor,
+      sharingRootPath: sharingRootPath ?? this.sharingRootPath,
+      sharingAllowDeviceBrowse:
+          sharingAllowDeviceBrowse ?? this.sharingAllowDeviceBrowse,
+      sharingCustomPassword: clearSharingCustomPassword
+          ? null
+          : (sharingCustomPassword ?? this.sharingCustomPassword),
     );
   }
 
@@ -66,11 +96,17 @@ class AppSettingsConfig {
       'github_repo': githubRepo,
       'min_text_scale_factor': minTextScaleFactor,
       'max_text_scale_factor': maxTextScaleFactor,
+      'sharing_root_path': sharingRootPath,
+      'sharing_allow_device_browse': sharingAllowDeviceBrowse,
+      if (sharingCustomPassword != null)
+        'sharing_custom_password': sharingCustomPassword,
     };
   }
 
   /// Deserializes settings configuration from a JSON map.
   factory AppSettingsConfig.fromJson(Map<String, dynamic> json) {
+    final rawSharingRoot = json['sharing_root_path'] as String?;
+    final rawSharingPassword = json['sharing_custom_password'] as String?;
     return AppSettingsConfig(
       is24HourFormat: json['is_24_hour_format'] as bool? ?? false,
       cardFontSize: (json['card_font_size'] as num?)?.toDouble() ?? 14.0,
@@ -82,6 +118,15 @@ class AppSettingsConfig {
           (json['min_text_scale_factor'] as num?)?.toDouble() ?? 0.85,
       maxTextScaleFactor:
           (json['max_text_scale_factor'] as num?)?.toDouble() ?? 1.15,
+      sharingRootPath: (rawSharingRoot != null && rawSharingRoot.trim().isNotEmpty)
+          ? rawSharingRoot.trim()
+          : defaultSharingRootPath,
+      sharingAllowDeviceBrowse:
+          json['sharing_allow_device_browse'] as bool? ?? false,
+      sharingCustomPassword:
+          (rawSharingPassword != null && rawSharingPassword.trim().isNotEmpty)
+          ? rawSharingPassword.trim()
+          : null,
     );
   }
 }
@@ -158,6 +203,35 @@ class AppSettingsNotifier extends Notifier<AppSettingsConfig> {
   /// Sets the GitHub repository slug for update checks.
   void setGithubRepo(String repo) {
     final updated = state.copyWith(githubRepo: repo.trim());
+    state = updated;
+    _repository.saveSettings(updated);
+  }
+
+  /// Sets the Unified Shared Folder root path (falls back to default if empty).
+  void setSharingRootPath(String path) {
+    final trimmed = path.trim();
+    final updated = state.copyWith(
+      sharingRootPath: trimmed.isEmpty
+          ? AppSettingsConfig.defaultSharingRootPath
+          : trimmed,
+    );
+    state = updated;
+    _repository.saveSettings(updated);
+  }
+
+  /// Toggles whether sharing allows browsing all of `/storage/emulated/0`.
+  void setSharingAllowDeviceBrowse(bool allow) {
+    final updated = state.copyWith(sharingAllowDeviceBrowse: allow);
+    state = updated;
+    _repository.saveSettings(updated);
+  }
+
+  /// Sets a custom sharing password, or clears it back to auto-generated when empty/null.
+  void setSharingCustomPassword(String? password) {
+    final trimmed = password?.trim();
+    final updated = (trimmed == null || trimmed.isEmpty)
+        ? state.copyWith(clearSharingCustomPassword: true)
+        : state.copyWith(sharingCustomPassword: trimmed);
     state = updated;
     _repository.saveSettings(updated);
   }
