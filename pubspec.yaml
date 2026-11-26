@@ -5,7 +5,7 @@ description: >-
   zero-install local Wi-Fi web remote.
 publish_to: "none"
 
-version: 1.0.3+4
+version: 1.0.4+5
 
 homepage: https://github.com/jydv402/wyrm
 repository: https://github.com/jydv402/wyrm
