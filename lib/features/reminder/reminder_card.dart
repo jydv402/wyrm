@@ -80,7 +80,7 @@ class ReminderCard extends ConsumerWidget {
           nextItem: nextItem,
           nextFireAt: nextFireAt,
           compact: true,
-          showDelete: false,
+          showDelete: true,
           onOpenEditor: (item) => _openEditor(context, item),
         ),
         CardSize.medium => ReminderCardList(

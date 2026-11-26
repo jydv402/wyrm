@@ -38,7 +38,7 @@ void main() {
       expect(find.byType(TasksCard), findsOneWidget);
       expect(find.byType(ReminderCard), findsOneWidget);
       expect(find.byType(SharingCard), findsOneWidget);
-      expect(find.text('Coming soon'), findsOneWidget);
+      expect(find.text('Sharing'), findsOneWidget);
       expect(find.text('Reminders'), findsOneWidget);
       expect(find.text('Add reminder'), findsOneWidget);
 
@@ -167,7 +167,7 @@ void main() {
   );
 
   testWidgets(
-    'Reminder and Sharing cards stack as squares when Small and unstack independently on resize',
+    'Reminder and Sharing cards stack at 1.75:1 width when Small and unstack independently on resize',
     (WidgetTester tester) async {
       tester.view.physicalSize = const Size(1280, 800);
       tester.view.devicePixelRatio = 1.0;
@@ -185,12 +185,12 @@ void main() {
       expect(sharingFinder, findsOneWidget);
 
       // Primary 3 columns fit within 1280px, so Reminder & Sharing sit to the right
-      // as stacked 1:1 square cards.
+      // as stacked 1.75:1 cards.
       final reminderRect = tester.getRect(reminderFinder);
       final sharingRect = tester.getRect(sharingFinder);
       expect(reminderRect.left, greaterThanOrEqualTo(1280.0));
-      expect(reminderRect.width, closeTo(reminderRect.height, 1.0));
-      expect(sharingRect.width, closeTo(sharingRect.height, 1.0));
+      expect(reminderRect.width, closeTo(reminderRect.height * 1.75, 1.0));
+      expect(sharingRect.width, closeTo(sharingRect.height * 1.75, 1.0));
       expect(reminderRect.left, closeTo(sharingRect.left, 0.5));
       expect(sharingRect.top, greaterThan(reminderRect.bottom));
 
@@ -248,8 +248,14 @@ void main() {
       final reStackedReminder = tester.getRect(reminderFinder);
       final reStackedSharing = tester.getRect(sharingFinder);
       expect(reStackedReminder.left, closeTo(reStackedSharing.left, 0.5));
-      expect(reStackedReminder.width, closeTo(reStackedReminder.height, 1.0));
-      expect(reStackedSharing.width, closeTo(reStackedSharing.height, 1.0));
+      expect(
+        reStackedReminder.width,
+        closeTo(reStackedReminder.height * 1.75, 1.0),
+      );
+      expect(
+        reStackedSharing.width,
+        closeTo(reStackedSharing.height * 1.75, 1.0),
+      );
     },
   );
 

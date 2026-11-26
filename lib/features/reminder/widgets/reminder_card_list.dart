@@ -2,17 +2,16 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:wyrm_desk/config/app_settings_state.dart';
 import 'package:wyrm_desk/core/notifications/reminder_model.dart';
-import 'package:wyrm_desk/features/reminder/reminder_filter.dart';
 import 'package:wyrm_desk/features/reminder/reminder_state.dart';
 import 'package:wyrm_desk/features/reminder/reminders_notifier.dart';
 import 'package:wyrm_desk/features/reminder/widgets/reminder_empty_state.dart';
+import 'package:wyrm_desk/features/reminder/widgets/reminder_filter_pills.dart';
 import 'package:wyrm_desk/features/reminder/widgets/reminder_next_up_banner.dart';
 import 'package:wyrm_desk/features/reminder/widgets/reminder_permission_banner.dart';
 import 'package:wyrm_desk/features/reminder/widgets/reminder_tile.dart';
+import 'package:wyrm_desk/theme/theme.dart';
 
-/// Next-up banner plus a flat reminder list used by the small and medium tiers.
-///
-/// Both tiers always show every reminder, regardless of the fullscreen filter.
+/// Next-up banner, filter pills, and full-width reminder list for small/medium.
 class ReminderCardList extends ConsumerWidget {
   /// Current reminder state snapshot.
   final RemindersState state;
@@ -54,9 +53,9 @@ class ReminderCardList extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final showPermissionBanner = !state.permissions.notificationsEnabled;
     final gap = compact ? 8.0 : 12.0;
-    final items = state.copyWith(filter: ReminderFilter.all).filteredItems(now);
+    final items = state.filteredItems(now);
 
-    if (items.isEmpty) {
+    if (state.items.isEmpty) {
       return Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         spacing: gap,
@@ -86,35 +85,48 @@ class ReminderCardList extends ConsumerWidget {
           compact: compact,
           onTap: nextItem != null ? () => onOpenEditor(nextItem) : null,
         ),
+        ReminderFilterPills(selected: state.filter),
         Expanded(
-          child: ListView.separated(
-            physics: const BouncingScrollPhysics(),
-            padding: EdgeInsets.zero,
-            itemCount: items.length,
-            separatorBuilder: (_, _) => SizedBox(height: compact ? 6.0 : 8.0),
-            itemBuilder: (context, index) {
-              final item = items[index];
-              return ReminderTile(
-                key: ValueKey<String>('reminder_tile_${item.id}'),
-                reminder: item,
-                nextFireAt: state.nextFireAtFor(item, now),
-                now: now,
-                is24Hour: settings.is24HourFormat,
-                titleFontSize: settings.cardFontSize,
-                compact: compact,
-                showDelete: showDelete,
-                onTap: () => onOpenEditor(item),
-                onToggle: (val) => ref
-                    .read(remindersProvider.notifier)
-                    .toggleReminder(item.id, val),
-                onDelete: showDelete
-                    ? () => ref
+          child: items.isEmpty
+              ? const Center(
+                  child: Text(
+                    'No matching reminders',
+                    style: TextStyle(
+                      color: AppColors.textSecondary,
+                      fontSize: 13.5,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                )
+              : ListView.separated(
+                  physics: const BouncingScrollPhysics(),
+                  padding: EdgeInsets.zero,
+                  itemCount: items.length,
+                  separatorBuilder: (_, _) =>
+                      SizedBox(height: compact ? 6.0 : 8.0),
+                  itemBuilder: (context, index) {
+                    final item = items[index];
+                    return ReminderTile(
+                      key: ValueKey<String>('reminder_tile_${item.id}'),
+                      reminder: item,
+                      nextFireAt: state.nextFireAtFor(item, now),
+                      now: now,
+                      is24Hour: settings.is24HourFormat,
+                      titleFontSize: settings.cardFontSize,
+                      compact: compact,
+                      showDelete: showDelete,
+                      onTap: () => onOpenEditor(item),
+                      onToggle: (val) => ref
                           .read(remindersProvider.notifier)
-                          .deleteReminder(item.id)
-                    : null,
-              );
-            },
-          ),
+                          .toggleReminder(item.id, val),
+                      onDelete: showDelete
+                          ? () => ref
+                                .read(remindersProvider.notifier)
+                                .deleteReminder(item.id)
+                          : null,
+                    );
+                  },
+                ),
         ),
       ],
     );

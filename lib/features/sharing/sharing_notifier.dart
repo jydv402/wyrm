@@ -56,9 +56,10 @@ class SharingNotifier extends Notifier<SharingState> {
       }
     });
 
-    unawaited(refreshPermissionAndDirectory());
+    Future<void>.microtask(refreshPermissionAndDirectory);
     return SharingState(
       activeRootPath: _resolveRootPath(settings),
+      isLoading: true,
       passwordDisplay: auth.activePassword,
       isCustomPassword: auth.isCustomPassword,
     );
@@ -71,7 +72,9 @@ class SharingNotifier extends Notifier<SharingState> {
   }
 
   /// Re-checks `MANAGE_EXTERNAL_STORAGE` and reloads the current directory.
-  Future<void> refreshPermissionAndDirectory({bool bumpRevision = false}) async {
+  Future<void> refreshPermissionAndDirectory({
+    bool bumpRevision = false,
+  }) async {
     state = state.copyWith(isLoading: true, clearError: true);
     final hasAccess = await _gateway.hasAllFilesAccess();
     if (!ref.mounted) return;
@@ -132,8 +135,7 @@ class SharingNotifier extends Notifier<SharingState> {
   /// Updates directory sort column and direction, then refreshes the listing.
   Future<void> setSort(SharingSortField sortBy, {bool? ascending}) async {
     final nextAscending =
-        ascending ??
-        (state.sortBy == sortBy ? !state.sortAscending : true);
+        ascending ?? (state.sortBy == sortBy ? !state.sortAscending : true);
     state = state.copyWith(sortBy: sortBy, sortAscending: nextAscending);
     await _loadCurrentDirectory(hasPermission: state.hasPermission);
   }
@@ -237,6 +239,11 @@ class SharingNotifier extends Notifier<SharingState> {
     );
   }
 
+  /// Issues a valid session token for one-tap tablet-generated QR file links.
+  String issueShareToken() {
+    return _auth.authenticate(_auth.activePassword) ?? '';
+  }
+
   /// Called by [SharingServerSection] after remote HTTP mutations so the
   /// tablet UI refreshes and connected WebSocket clients see the new revision.
   void notifyExternalMutation() {
@@ -273,7 +280,8 @@ class SharingNotifier extends Notifier<SharingState> {
     if (!ref.mounted) return;
 
     // If the currently open subfolder was deleted externally, fall back to root.
-    if (result is SharingError<List<SharedFileEntry>> && targetPath.isNotEmpty) {
+    if (result is SharingError<List<SharedFileEntry>> &&
+        targetPath.isNotEmpty) {
       targetPath = '';
       result = await _service.listDirectory(
         state.activeRootPath,

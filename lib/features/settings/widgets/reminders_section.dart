@@ -42,7 +42,7 @@ class RemindersSection extends ConsumerWidget {
             icon: Icons.notifications_rounded,
             title: 'Allow Notifications',
             subtitle: notificationsEnabled
-                ? 'Granted — reminders can wake and display full-screen alerts'
+                ? 'Granted - reminders can wake and display full-screen alerts'
                 : 'Required to deliver scheduled reminders in the background',
             trailing: _PermissionActionTrailing(
               isGranted: notificationsEnabled,

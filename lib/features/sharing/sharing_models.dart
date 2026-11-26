@@ -51,7 +51,8 @@ class SharedFileEntry {
       isDirectory: json['is_directory'] as bool? ?? false,
       sizeBytes: (json['size_bytes'] as num?)?.toInt() ?? 0,
       modifiedAtUtc:
-          DateTime.tryParse(json['modified_at_utc'] as String? ?? '')?.toUtc() ??
+          DateTime.tryParse(json['modified_at_utc'] as String? ?? '')
+              ?.toUtc() ??
           DateTime.fromMillisecondsSinceEpoch(0, isUtc: true),
       mimeType: json['mime_type'] as String? ?? 'application/octet-stream',
     );

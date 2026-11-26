@@ -111,25 +111,26 @@ class DeckRow extends StatelessWidget {
       viewportWidth: viewportWidth,
     );
 
-    // Column 4 square geometry: when Reminder and Sharing are both small, they
-    // stack vertically with width equal to each half-height (~1:1 square).
+    // Column 4 geometry: when Reminder and Sharing are small, each card has
+    // width = 1.75 * halfHeight (~600px on 1280x800) so full controls fit.
     final double squareCardSide = constraints.hasBoundedHeight
         ? ((constraints.maxHeight - spacing) / 2).clamp(260.0, 420.0)
         : 340.0;
+    final double utilitySmallWidth = squareCardSide * 1.75;
 
     final bool utilityStacked =
         config.reminder == CardSize.small && config.sharing == CardSize.small;
 
     final double reminderWidth = _resolveCardWidth(
       size: config.reminder,
-      smallWidth: squareCardSide,
+      smallWidth: utilitySmallWidth,
       mediumWidth: mediumWidth,
       viewportWidth: viewportWidth,
     );
 
     final double sharingWidth = _resolveCardWidth(
       size: config.sharing,
-      smallWidth: squareCardSide,
+      smallWidth: utilitySmallWidth,
       mediumWidth: mediumWidth,
       viewportWidth: viewportWidth,
     );
@@ -241,13 +242,13 @@ class DeckRow extends StatelessWidget {
               ),
             ),
 
-            // Column 4: Utility Section (Stacked Square Reminder & Sharing)
+            // Column 4: Utility Section (Stacked 1.75:1 Reminder & Sharing)
             if (utilityStacked)
               RepaintBoundary(
                 child: AnimatedContainer(
                   duration: const Duration(milliseconds: 380),
                   curve: Curves.easeInOutCubic,
-                  width: squareCardSide,
+                  width: utilitySmallWidth,
                   child: Column(
                     spacing: spacing,
                     children: [

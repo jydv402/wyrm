@@ -127,8 +127,7 @@ class SharingServerSection implements ServerSection {
 
     final query = request.url.queryParameters;
     final relativeDir = query['path'] ?? '';
-    final rawHeaderName =
-        request.headers['x-file-name'] ?? query['name'] ?? '';
+    final rawHeaderName = request.headers['x-file-name'] ?? query['name'] ?? '';
     final decodedName = _decodeHeaderValue(rawHeaderName);
     if (decodedName.isEmpty) {
       return jsonError('Missing X-File-Name header.', statusCode: 400);
@@ -341,9 +340,7 @@ class SharingServerSection implements ServerSection {
     final start = int.tryParse(startStr);
     if (start == null || start < 0 || start >= totalBytes) return null;
 
-    final end = endStr.isEmpty
-        ? totalBytes - 1
-        : (int.tryParse(endStr) ?? -1);
+    final end = endStr.isEmpty ? totalBytes - 1 : (int.tryParse(endStr) ?? -1);
     if (end < start) return null;
     final clampedEnd = end >= totalBytes ? totalBytes - 1 : end;
     return (start, clampedEnd);

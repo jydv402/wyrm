@@ -1,4 +1,4 @@
-# WYRM Desk — Project Specsheet & Agent Guide
+# WYRM Desk - Project Specsheet & Agent Guide
 
 > **Purpose of this document.** This is the single source of truth for anyone (human or
 > agent) working in this repository. It describes what the app is, how it is structured,
@@ -96,7 +96,7 @@ same Wi-Fi can control the tablet dashboard.
 │              AppDatabase  (JSON file on disk,       │                                     │
 │                             lib/data/app_database.dart)                                   │
 │                                                     │                                     │
-│              ShelfWebServer  (lib/server/web_server.dart — transport only)                │
+│              ShelfWebServer  (lib/server/web_server.dart - transport only)                │
 │                 • serves assets/web/*    (GET /, /style.css, /app.js, icons)              │
 │                 • serves REST  /api/*    (routes owned by per-feature ServerSections)     │
 │                 • serves WebSocket /ws  <── snapshot + state_update broadcasts            │
@@ -122,7 +122,7 @@ sends intents back. All authoritative mutation happens in Riverpod notifiers on 
 ```
 wyrm_desk/
 ├── GUIDE.md                     ← you are here
-├── README.md                    (default Flutter boilerplate — uninformative)
+├── README.md                    (default Flutter boilerplate - uninformative)
 ├── REFERENCE_STATE.md           ⚠️ STALE (describes SQLite/LWW/auth design that was not built)
 ├── docs/
 │   └── web_remote_architecture.md  ⚠️ STALE (describes a Flutter-Web-compiled admin; not the current client)
@@ -208,10 +208,10 @@ wyrm_desk/
 │   │       ├── tasks_server_section.dart  /api/tasks + WS commands + snapshot slice
 │   │       └── task_form_content.dart     TaskFormContent + TaskPreviewCard
 │   ├── server/                  feature-agnostic transport + seam
-│   │   ├── web_server.dart      ShelfWebServer — lifecycle, assets, /ws, snapshot, backups
+│   │   ├── web_server.dart      ShelfWebServer - lifecycle, assets, /ws, snapshot, backups
 │   │   ├── server_section.dart  ServerSection/ServerRuntime interfaces (the seam)
 │   │   ├── server_responses.dart  shared JSON body helpers
-│   │   └── server_provider.dart  webServerProvider — wires sections ⇄ providers, auto-start
+│   │   └── server_provider.dart  webServerProvider - wires sections ⇄ providers, auto-start
 │   ├── theme/
 │   │   └── theme.dart           AppColors, DuskTone presets, AppTheme
 │   └── widgets/                 pure design system; imports nothing feature-specific
@@ -229,7 +229,7 @@ wyrm_desk/
 (`package:wyrm_desk/features/habits/habits_card.dart`). Dependency rules:
 
 - `features/` never imports other `features/` (home is the shell exception).
-- `widgets/` is a design system — it must not import `config/` or `features/`;
+- `widgets/` is a design system - it must not import `config/` or `features/`;
   app-specific option lists are supplied by callers via generics
   (`CardEditButton<CardSize>` + `cardSizeMenuOptions()` from `config/`).
 - `data/` and `server/` are feature-agnostic; features plug in via
@@ -256,7 +256,7 @@ wyrm_desk/
 
 ---
 
-## 6. Persistence layer — `lib/data/app_database.dart`
+## 6. Persistence layer - `lib/data/app_database.dart`
 
 **Storage:** a single JSON file, `wyrm_database.json`, in
 `getApplicationDocumentsDirectory()`. Written pretty-printed (2-space indent) behind a
@@ -266,7 +266,7 @@ so writes can silently no-op.
 
 The database is **feature-agnostic**: it stores named JSON sections and owns only the
 transport (disk IO, cache, write queue) and the whole-document backup engine. Every
-feature owns its section key and the codec between its models and JSON — see the
+feature owns its section key and the codec between its models and JSON - see the
 `*_state.dart` files under `lib/features/` and `lib/config/`.
 
 **Top-level document shape** (section keys on disk are snake_case-safe identifiers):
@@ -348,7 +348,7 @@ derive from it so only the parts that changed rebuild.
 
 ## 8. Domain models
 
-### 8.1 `TaskItem` — `lib/features/tasks/task_model.dart`
+### 8.1 `TaskItem` - `lib/features/tasks/task_model.dart`
 
 ```dart
 class TaskItem {
@@ -361,7 +361,7 @@ class TaskItem {
 ```
 `fromJson` is tolerant: falls back to `text` for title, coerces non-bool `is_completed` to false.
 
-### 8.2 `HabitItem` + `HabitType` — `lib/features/habits/habit_model.dart`
+### 8.2 `HabitItem` + `HabitType` - `lib/features/habits/habit_model.dart`
 
 ```dart
 enum HabitType { binary, numeric }   // fromString accepts 'numeric'|'counter'|'target' -> numeric, else binary
@@ -382,16 +382,16 @@ class HabitItem {
 Key logic:
 - `dateKey(DateTime)` → zero-padded `YYYY-MM-DD`; all completions are keyed this way.
 - `completionCountOn(date)`, `isCompletedOn(date)` (`count >= targetValue`).
-- `currentStreak()` — consecutive days within the **current month only** (resets at month
+- `currentStreak()` - consecutive days within the **current month only** (resets at month
   boundary), with same-day grace (an incomplete today doesn't break a streak from yesterday).
 - `bestStreak()`, `monthCompletedDaysCount()`, `weekProgress(weekStart)`.
-- `getMonthlyHeatmapColumns(month, startWeekOnMonday:)` — GitHub-style 7-row columns.
-- `getMonthlyCalendarWeeks(month, startWeekOnMonday:)` — 5–6 rows × 7 columns calendar matrix,
+- `getMonthlyHeatmapColumns(month, startWeekOnMonday:)` - GitHub-style 7-row columns.
+- `getMonthlyCalendarWeeks(month, startWeekOnMonday:)` - 5–6 rows × 7 columns calendar matrix,
   returns `HeatmapCellData` cells (day number, isCurrentMonth/isFuture/isToday/isCompleted,
   intensity 0–1, count).
 - Heatmap intensity: completed → 1.0; partial → `(count/targetValue).clamp(0.2, 0.8)`.
 
-### 8.3 `CalendarMilestone` — `lib/features/calendar/calendar_model.dart`
+### 8.3 `CalendarMilestone` - `lib/features/calendar/calendar_model.dart`
 
 ```dart
 class CalendarMilestone {
@@ -409,7 +409,7 @@ Helpers: `daysRemaining([ref])`, `isToday`, `isPast`, `relativeLabel`
 `milestones`, and computes `dayOfYear`, `daysInYear`, `yearProgress`, `currentQuarter`,
 `quarterProgress`, `heroMilestone` (pinned first, else nearest upcoming), `relativeDistanceText`.
 
-### 8.4 `CardSize` + `DashboardCardType` + `CardLayoutConfig` — `lib/config/card_layout_state.dart`
+### 8.4 `CardSize` + `DashboardCardType` + `CardLayoutConfig` - `lib/config/card_layout_state.dart`
 
 ```dart
 enum CardSize { small, medium, fullscreen, nightstand }
@@ -425,7 +425,7 @@ class CardLayoutConfig { CardSize clock, habits, calendar, tasks; }  // all defa
 `CardLayoutConfig.toJson()` emits `{clock,habits,calendar,tasks}` using enum `.name`
 strings. `fromJson` resolves unknown tokens to `small`.
 
-### 8.5 `AppSettingsConfig` — `lib/config/app_settings_state.dart`
+### 8.5 `AppSettingsConfig` - `lib/config/app_settings_state.dart`
 
 ```dart
 class AppSettingsConfig {
@@ -441,7 +441,7 @@ class AppSettingsConfig {
 
 ---
 
-## 9. Dashboard layout engine — `lib/features/home/homepage.dart`
+## 9. Dashboard layout engine - `lib/features/home/homepage.dart`
 
 `HomePage` is a horizontal, single-axis scroll deck. Card widths are computed from the
 `CardLayoutConfig` and the viewport width, then animated (380 ms, `easeInOutCubic`).
@@ -474,9 +474,9 @@ glowing amber analogue + digital clock (`_ClockFullscreenView(isNightstand: true
 
 ---
 
-## 10. Embedded server — `lib/server/` + per-feature `ServerSection`s
+## 10. Embedded server - `lib/server/` + per-feature `ServerSection`s
 
-### 10.1 The seam — `ServerSection` (`lib/server/server_section.dart`)
+### 10.1 The seam - `ServerSection` (`lib/server/server_section.dart`)
 
 The transport is **feature-agnostic**. Every feature colocates its REST routes, WebSocket
 commands, and snapshot slice in a `ServerSection` implementation (see the
@@ -538,7 +538,7 @@ The top bar and settings page render `http://<ip>:<port>`.
 
 ---
 
-## 11. Server API — routes, REST, and WebSocket protocol
+## 11. Server API - routes, REST, and WebSocket protocol
 
 ### 11.1 Static asset routes (served from `assets/web/` / `assets/icons/`)
 
@@ -558,33 +558,33 @@ Flutter's compiled `rootBundle` in release builds. JS/CSS/HTML/webmanifest are s
 ### 11.2 REST endpoints (all under `http://<ip>:<port>/api`)
 
 `/api/status` returns the full snapshot envelope (see §10.2): `status`, `serverUrl`,
-`ipAddress`, plus every section's slice — `layout`, `settings`, `tasks`, `calendar`,
+`ipAddress`, plus every section's slice - `layout`, `settings`, `tasks`, `calendar`,
 `habits`, `display`, and `networkModalOpen`.
 
 | Method | Endpoint | Body (JSON) | Effect |
 |---|---|---|---|
-| `GET` | `/api/status` | — | Full snapshot envelope (all sections). |
+| `GET` | `/api/status` | - | Full snapshot envelope (all sections). |
 | `POST` | `/api/layout` | `{card, size}` | `onSetCardSize` (+ scroll) |
 | `POST` | `/api/scroll` | `{card}` | `onScrollToCard`; 400 on unknown card |
 | `POST` | `/api/settings` | any of `is24HourFormat`, `cardFontSize`, `startWeekOnMonday` | applies present keys |
-| `GET` | `/api/tasks` | — | `TaskItem[]` |
+| `GET` | `/api/tasks` | - | `TaskItem[]` |
 | `POST` | `/api/tasks` | `{title|text, priority?}` | add task |
 | `POST` | `/api/tasks/toggle` | `{id}` | toggle completion |
 | `POST` | `/api/tasks/delete` | `{id}` | delete |
-| `GET` | `/api/calendar` | — | serialized calendar state + milestones |
+| `GET` | `/api/calendar` | - | serialized calendar state + milestones |
 | `POST` | `/api/calendar/milestones` | `{title|text|name, target_date|targetDate|date, is_pinned?}` | add milestone |
 | `POST` | `/api/calendar/milestones/delete` | `{id}` | delete |
 | `POST` | `/api/calendar/milestones/pin` | `{id}` | toggle pin |
-| `GET` | `/api/habits` | — | `HabitItem[]` |
+| `GET` | `/api/habits` | - | `HabitItem[]` |
 | `POST` | `/api/habits` | `{title|name, habit_type|type, target_value|targetValue|target, unit?, icon_name|iconName|glyph?}` | add habit |
 | `POST` | `/api/habits/toggle` | `{id, date?}` | toggle completion for date |
 | `POST` | `/api/habits/step` | `{id, delta, date?}` | step numeric count |
 | `POST` | `/api/habits/delete` | `{id}` | delete |
-| `GET` | `/api/display` | — | `{brightness}` |
+| `GET` | `/api/display` | - | `{brightness}` |
 | `POST` | `/api/display` | `{brightness}` | set screen brightness |
 | `POST` | `/api/modal/network` | `{open}` | show/hide the network connection modal on the tablet |
-| `GET` | `/api/qr`, `/api/qr.svg` | — | SVG QR code encoding `http://<ip>:<port>` |
-| `GET` | `/api/backup/export`, `/api/backup` | — | whole database as a JSON download |
+| `GET` | `/api/qr`, `/api/qr.svg` | - | SVG QR code encoding `http://<ip>:<port>` |
+| `GET` | `/api/backup/export`, `/api/backup` | - | whole database as a JSON download |
 | `POST` | `/api/backup/import` | full database JSON | validate + replace DB, then broadcast |
 
 **Date parsing:** milestone dates accept ISO (`yyyy-mm-dd`, parsed by `DateTime.tryParse`)
@@ -595,7 +595,7 @@ or `dd/mm/yyyy` (see the calendar section's `_parseMilestoneDate`). Empty/invali
 `{"success": true}` (scroll also returns `{"card": <name>}`; backup import returns
 `{"status": "ok"}`).
 
-### 11.3 WebSocket — `GET /ws`
+### 11.3 WebSocket - `GET /ws`
 
 On connect the server sends a **`snapshot`** message. Every state change on the tablet is
 broadcast as a **`state_update`** to all connected clients (both have the same envelope
@@ -648,23 +648,23 @@ next broadcast.
 
 ---
 
-## 12. Web remote client — `assets/web/`
+## 12. Web remote client - `assets/web/`
 
 Offline-bundled **Zero-Build Vue 3** application styled as a **Teenage Engineering / Dieter Rams** physical hardware remote control pad. Served verbatim by the tablet's Shelf server with zero external build step and zero cloud dependencies.
 
-### 12.1 `index.html` — structure
+### 12.1 `index.html` - structure
 
 - **Offline Vendor Runtime:** `<script src="/vue.global.prod.js"></script>` loads the bundled Vue 3 production runtime locally without CDN or internet connection.
 - **Top Hardware Header (`header-brand`)**: Industrial wordmark (`WYRM REMOTE // V3`), live network telemetry capsule (`networkBadge` with `pulse-dot` and `networkLabel` showing `LIVE • XXms` or `CONNECTING...`), and Master Nightstand tactile rocker switch (`master-nightstand-btn`).
 - **Physical Channel Bank Selector (`.channel-bank`)**: Hardware selector buttons with illuminated status LEDs:
-  - `[1: DECK]` — Master card sizes (Clock, Habits, Calendar, Tasks) and global batch actions.
-  - `[2: TASKS]` — Tasks matrix, checklist, priority toggles, and card font-size stepper.
-  - `[3: HABITS]` — Habit tracker with 7-day dot-matrix history, binary toggles, numeric steppers, and glyph picker.
-  - `[4: CAL]` — Temporal inspector, progress bars (year/quarter), month grid, and milestones manager.
-  - `[5: SYS]` — System hardware controls, display brightness fader, 24-hour clock toggle, and backup import/export.
+  - `[1: DECK]` - Master card sizes (Clock, Habits, Calendar, Tasks) and global batch actions.
+  - `[2: TASKS]` - Tasks matrix, checklist, priority toggles, and card font-size stepper.
+  - `[3: HABITS]` - Habit tracker with 7-day dot-matrix history, binary toggles, numeric steppers, and glyph picker.
+  - `[4: CAL]` - Temporal inspector, progress bars (year/quarter), month grid, and milestones manager.
+  - `[5: SYS]` - System hardware controls, display brightness fader, 24-hour clock toggle, and backup import/export.
 - **Declarative Vue Reactivity:** Uses standard Vue directives (`v-if`, `v-for`, `@click`, `v-model`, `:class`).
 
-### 12.2 `style.css` — design system
+### 12.2 `style.css` - design system
 
 Teenage Engineering / Braun retro-minimalist hardware design tokens:
 
@@ -681,12 +681,12 @@ Teenage Engineering / Braun retro-minimalist hardware design tokens:
 - **Recessed LCD Displays:** Inner shadow wells (`box-shadow: inset 0 2px 4px rgba(0,0,0,0.6)`) for status and telemetry.
 - **Zero Heavy Shaders:** No expensive Gaussian blurs or heavy GPU filters, ensuring buttery 60 FPS performance on low-end client phones.
 
-### 12.3 `app.js` — Vue 3 reactive engine
+### 12.3 `app.js` - Vue 3 reactive engine
 
 Built around Vue 3 `createApp` (components live in `components.js`, the reactive state in
 `app.js`):
 
-1. **`WyrmStateStore`** — wraps central reactive `state`:
+1. **`WyrmStateStore`** - wraps central reactive `state`:
    ```js
    { currentChannel: 'deck', isConnected: false, latencyMs: null,
      layout: { clock, habits, calendar, tasks },
@@ -694,12 +694,12 @@ Built around Vue 3 `createApp` (components live in `components.js`, the reactive
      display: { brightness },
      tasks: [], habits: [], calendar: { selectedDate, viewMonth, milestones } }
    ```
-2. **`WyrmWebSocketManager`** — auto-reconnecting socket to `${ws|wss}://location.host/ws`,
+2. **`WyrmWebSocketManager`** - auto-reconnecting socket to `${ws|wss}://location.host/ws`,
    heartbeat `ping`/`pong` measuring round-trip latency (`Xms`), and transparent REST
    fallback for mutations.
-3. **Vue 3 View Model (`vm`)** — computed helpers (`calendarCells`, `habitWeekDays`,
+3. **Vue 3 View Model (`vm`)** - computed helpers (`calendarCells`, `habitWeekDays`,
    `calendarMetrics`, `isNightstandActive`) and declarative mutation actions.
-4. **Compatibility Bridge (`window.wyrmRemote`)** — exposes public methods for testing and
+4. **Compatibility Bridge (`window.wyrmRemote`)** - exposes public methods for testing and
    headless scripting: `setCardSize`, `setAllCardsSize`, `scrollToCard`,
    `toggleStartWeekOnMonday`, `toggleNetworkModal`, `createMilestone`, `deleteMilestone`,
    `togglePinMilestone`, `createHabit`, `selectHabitGlyph`, `toggleHabit`, `stepHabit`,
@@ -739,7 +739,7 @@ Built around Vue 3 `createApp` (components live in `components.js`, the reactive
   (`ImageFilter.blur`, sigma in `ClockTone.glassBlur`) over the drifting photograph, a smoked
   wash (`ClockTone.glass`), a top sheen (`clockGlassSheen`), a hairline rim and a cast shadow
   (`clockGlassShadow`). Hands paint above the blur. `ClockTone.glassBlur == 0` selects the
-  sealed branch instead — the nightstand tier, which stays an opaque black dial with an amber
+  sealed branch instead - the nightstand tier, which stays an opaque black dial with an amber
   rim and no blur, because in a dark room the only light should be the amber.
 
 ### Habits (`lib/features/habits`)
@@ -753,7 +753,7 @@ Built around Vue 3 `createApp` (components live in `components.js`, the reactive
 ### Calendar (`lib/features/calendar`)
 - **Small:** date banner (selected-date telemetry + Today/Travel/prev/next), month title,
   and a 7-column grid with milestone dots.
-- **Medium/Fullscreen:** dual-pane — left month grid, right "Milestones & Countdowns"
+- **Medium/Fullscreen:** dual-pane - left month grid, right "Milestones & Countdowns"
   inspector with the milestone list (add/delete).
 - `heroMilestone` logic and `relativeDistanceText` live in `CalendarState`.
 
@@ -821,7 +821,7 @@ priorityHigh #FF8F70   priorityMedium #F3C45E   priorityLow #8ED5B7
 textPrimary #EEF2F1   textSecondary 68% white   textMuted 46% white   textOnLight #111111
 ```
 
-`DuskTone` is a value type with static presets — `slate`, `teal`, `gold`, `rust`, `glacier` —
+`DuskTone` is a value type with static presets - `slate`, `teal`, `gold`, `rust`, `glacier` -
 each carrying `top`/`bottom` gradient stops, `accent`, `fill`, `ink`, and `glow`. Card tone
 mapping: Clock = slate, Habits = teal, Calendar = gold, Tasks = rust, Settings = glacier.
 Nightstand accent = `#FF9500` amber (`_amber` in `clock_palette.dart`, the only place it exists).
@@ -829,7 +829,7 @@ Nightstand accent = `#FF9500` amber (`_amber` in `clock_palette.dart`, the only 
 ### Web palette (`assets/web/style.css`)
 
 Obsidian + amber "Liquid Glass" (see §12.2). Amber `#ff9500` is the signature brand signal.
-The web palette and Flutter palette are intentionally *different* systems — do not try to
+The web palette and Flutter palette are intentionally *different* systems - do not try to
 unify them blindly.
 
 ### Typography
@@ -861,7 +861,7 @@ dart run package_rename
 **Asset registration:** new assets must be added under `flutter: assets:` in `pubspec.yaml`.
 Currently registered: `assets/icons/` and `assets/web/`.
 
-**Web remote edits require no build step** — `assets/web/*` is served directly (from disk
+**Web remote edits require no build step** - `assets/web/*` is served directly (from disk
 first in debug). Bump the `?v=` query in `index.html` (for `style.css`/`app.js`) to defeat
 client caching, and update the asset-token assertions in `test/server/server_test.dart` if
 you rename ids/classes.
@@ -872,11 +872,11 @@ you rename ids/classes.
 
 | Artifact | Problem |
 |---|---|
-| `REFERENCE_STATE.md` | Describes SQLite schema, LWW sync, PIN `/api/auth/login`, `/api/sync`, `retro_colors.dart` — **none of which exist**. Current storage is a single JSON file; there is no auth. Kept only as a historical archive. |
+| `REFERENCE_STATE.md` | Describes SQLite schema, LWW sync, PIN `/api/auth/login`, `/api/sync`, `retro_colors.dart` - **none of which exist**. Current storage is a single JSON file; there is no auth. Kept only as a historical archive. |
 | `docs/web_remote_architecture.md` | Describes a Flutter-Web admin, a latency heartbeat, `fetch('/api/status')` ping, and different endpoints/ids. The current client is a hand-written Vue 3 app (see §12). Kept only as a historical archive. |
 | `wakelock_plus` in `pubspec.yaml` | Declared but unused in `lib/`. |
 | Habit "today" | Web client computes today via UTC `toISOString()`; tablet uses local `dateKey()`. Divergence near midnight / non-UTC. |
-| Dart ↔ web habit glyph maps | The emoji/icon token map is defined twice: `resolveHabitIcon`/`buildHabitGlyph` in `lib/features/habits/habit_form_content.dart` and the equivalent map in `assets/web/components.js`. They must be kept in sync by hand (web is frozen — no structural changes). |
+| Dart ↔ web habit glyph maps | The emoji/icon token map is defined twice: `resolveHabitIcon`/`buildHabitGlyph` in `lib/features/habits/habit_form_content.dart` and the equivalent map in `assets/web/components.js`. They must be kept in sync by hand (web is frozen - no structural changes). |
 | `README.md` | Untouched Flutter boilerplate. |
 
 ---
@@ -886,13 +886,13 @@ you rename ids/classes.
 ### Code style
 - Dart: `flutter_lints`; use `const` where possible, doc-comment (`///`) public members,
   private helpers prefixed `_`, and match the existing "explain each public field" style.
-- **No `_buildX()` helper methods** — every widget-building helper is a named (private)
+- **No `_buildX()` helper methods** - every widget-building helper is a named (private)
   widget class instead, so widget identity is stable and `const` constructors are possible.
 - Keep card widgets as `ConsumerWidget`/`ConsumerStatefulWidget`; read state with
   `ref.watch`, mutate with `ref.read(provider.notifier)`.
 - Persist via `AppDatabase.writeSection('<feature-key>', ...)` right after state mutation,
   mirroring the existing per-feature notifier patterns.
-- Web: vanilla Vue 3 + ES6, no bundler. The web remote is **structurally frozen** — make
+- Web: vanilla Vue 3 + ES6, no bundler. The web remote is **structurally frozen** - make
   data/behaviour changes on the Dart side; only cosmetic web edits are acceptable.
 
 ### Adding a new card size option
@@ -911,7 +911,7 @@ you rename ids/classes.
    `ref.listen` broadcast for the feature's state provider.
 4. The section's `snapshot()` slice automatically appears in `/api/status` and the WS
    snapshot/state_update payload.
-5. Add the UI + `window.wyrmRemote` command in `assets/web/*` (cosmetic only — web frozen).
+5. Add the UI + `window.wyrmRemote` command in `assets/web/*` (cosmetic only - web frozen).
 6. Extend `test/server/server_test.dart` (REST + WS) and add `test/features/<feature>/`.
 
 ### Things to be careful about

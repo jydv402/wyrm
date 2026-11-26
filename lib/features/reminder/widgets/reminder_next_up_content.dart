@@ -22,54 +22,46 @@ class CompactNextUpContent extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      spacing: 4.0,
+    return Row(
+      spacing: 8.0,
       children: [
-        Row(
-          spacing: 6.0,
-          children: [
-            const Icon(
-              Icons.alarm_rounded,
-              size: 14.0,
-              color: AppColors.plumAccent,
-            ),
-            Text(
-              timeLabel,
-              style: const TextStyle(
-                color: AppColors.textPrimary,
-                fontSize: 14.0,
-                fontWeight: FontWeight.w800,
-                fontFeatures: [FontFeature.tabularFigures()],
-              ),
-            ),
-            const Spacer(),
-            Flexible(
-              child: DuskGlassPill(
-                tintColor: AppColors.plumAccent,
-                height: 22.0,
-                padding: const EdgeInsets.symmetric(horizontal: 8.0),
-                child: Text(
-                  countdown,
-                  style: const TextStyle(
-                    color: AppColors.plumAccent,
-                    fontSize: 10.5,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              ),
-            ),
-          ],
+        const Icon(
+          Icons.alarm_rounded,
+          size: 15.0,
+          color: AppColors.plumAccent,
         ),
         Text(
-          title,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
+          timeLabel,
           style: const TextStyle(
-            color: AppColors.textSecondary,
-            fontSize: 12.5,
-            fontWeight: FontWeight.w600,
+            color: AppColors.textPrimary,
+            fontSize: 14.0,
+            fontWeight: FontWeight.w800,
+            fontFeatures: [FontFeature.tabularFigures()],
+          ),
+        ),
+        Expanded(
+          child: Text(
+            title,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(
+              color: AppColors.textSecondary,
+              fontSize: 12.5,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ),
+        DuskGlassPill(
+          tintColor: AppColors.plumAccent,
+          height: 22.0,
+          padding: const EdgeInsets.symmetric(horizontal: 8.0),
+          child: Text(
+            countdown,
+            style: const TextStyle(
+              color: AppColors.plumAccent,
+              fontSize: 10.5,
+              fontWeight: FontWeight.w700,
+            ),
           ),
         ),
       ],

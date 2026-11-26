@@ -107,22 +107,14 @@ class ReminderTile extends StatelessWidget {
             spacing: compact ? 8.0 : 12.0,
             children: [
               Expanded(
-                child: compact
-                    ? CompactReminderTileBody(
-                        timeText: timeText,
-                        statusText: statusText,
-                        title: displayTitle,
-                        isEnabled: reminder.isEnabled,
-                        isSnoozed: _isSnoozed,
-                      )
-                    : ExpandedReminderTileBody(
-                        reminder: reminder,
-                        timeText: timeText,
-                        statusText: statusText,
-                        title: displayTitle,
-                        titleFontSize: titleFontSize,
-                        isSnoozed: _isSnoozed,
-                      ),
+                child: ExpandedReminderTileBody(
+                  reminder: reminder,
+                  timeText: timeText,
+                  statusText: statusText,
+                  title: displayTitle,
+                  titleFontSize: compact ? 13.0 : titleFontSize,
+                  isSnoozed: _isSnoozed,
+                ),
               ),
               Switch.adaptive(
                 key: ValueKey<String>('reminder_toggle_${reminder.id}'),

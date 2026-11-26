@@ -337,15 +337,15 @@ void main() {
         expect(find.byType(DuskCardEmptyState), findsOneWidget);
         expect(find.text('Add reminder'), findsOneWidget);
         expect(
-          find.text('Notifications disabled — tap to allow'),
+          find.text('Notifications disabled - tap to allow'),
           findsOneWidget,
         );
 
         // Grant permission via banner tap -> banner disappears.
-        await tester.tap(find.text('Notifications disabled — tap to allow'));
+        await tester.tap(find.text('Notifications disabled - tap to allow'));
         await tester.pumpAndSettle();
         expect(
-          find.text('Notifications disabled — tap to allow'),
+          find.text('Notifications disabled - tap to allow'),
           findsNothing,
         );
       },
@@ -392,7 +392,7 @@ void main() {
             child: const MaterialApp(
               home: Scaffold(
                 body: SizedBox(
-                  width: 340,
+                  width: 595,
                   height: 340,
                   child: ReminderCard(currentSize: CardSize.small),
                 ),
@@ -405,14 +405,33 @@ void main() {
         expect(find.byType(ReminderNextUpBanner), findsOneWidget);
         expect(find.byType(ReminderTile), findsNWidgets(2));
         expect(find.text('2'), findsOneWidget);
+        expect(find.text('All'), findsOneWidget);
+        expect(find.text('Active'), findsOneWidget);
+        expect(find.text('Recurring'), findsOneWidget);
         expect(find.text('In 15m'), findsWidgets);
         expect(find.text('Tomorrow'), findsWidgets);
         expect(find.text('Drink Water'), findsWidgets);
+        expect(
+          find.byKey(ValueKey('reminder_delete_${rem1.id}')),
+          findsOneWidget,
+        );
 
         // Toggle first reminder off.
         await tester.tap(find.byKey(ValueKey('reminder_toggle_${rem1.id}')));
         await tester.pumpAndSettle();
         expect(container.read(remindersProvider).enabledItems.length, 1);
+
+        // Filter to Active in Small tier: only the enabled item remains visible.
+        await tester.tap(find.text('Active'));
+        await tester.pumpAndSettle();
+        expect(find.byType(ReminderTile), findsOneWidget);
+
+        // Switch back to All and delete the first reminder from Small tier.
+        await tester.tap(find.text('All'));
+        await tester.pumpAndSettle();
+        await tester.tap(find.byKey(ValueKey('reminder_delete_${rem1.id}')));
+        await tester.pumpAndSettle();
+        expect(container.read(remindersProvider).items.length, 1);
       },
     );
 
@@ -640,7 +659,7 @@ void main() {
         await tester.tap(find.byKey(const ValueKey('reminder_period_am')));
         await tester.pumpAndSettle();
         expect(
-          find.text('Time passed today — auto-scheduled for Tomorrow'),
+          find.text('Time passed today - auto-scheduled for Tomorrow'),
           findsOneWidget,
         );
         expect(find.text('Triggers in 12h 30m'), findsOneWidget);

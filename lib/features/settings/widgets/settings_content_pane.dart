@@ -9,6 +9,7 @@ import 'package:wyrm_desk/features/settings/widgets/data_backup_section.dart';
 import 'package:wyrm_desk/features/settings/widgets/display_section.dart';
 import 'package:wyrm_desk/features/settings/widgets/network_section.dart';
 import 'package:wyrm_desk/features/settings/widgets/reminders_section.dart';
+import 'package:wyrm_desk/features/settings/widgets/sharing_section.dart';
 import 'package:wyrm_desk/server/server_provider.dart';
 import 'package:wyrm_desk/server/web_server.dart';
 
@@ -37,6 +38,7 @@ class SettingsContentPane extends ConsumerWidget {
           DisplaySection(isNightstand: isNightstand),
           const ClockCalendarSection(),
           const RemindersSection(),
+          const SharingSection(),
           const AppearanceSection(),
           const NetworkSection(),
           DataBackupSection(serverUrl: serverUrl),

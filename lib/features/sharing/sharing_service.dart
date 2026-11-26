@@ -273,7 +273,10 @@ class SharingService {
       await sink.close();
       sink = null;
 
-      final finalPath = SharingPath.uniqueTargetFilePath(resolvedDir, cleanName);
+      final finalPath = SharingPath.uniqueTargetFilePath(
+        resolvedDir,
+        cleanName,
+      );
       final finalFile = await tempFile.rename(finalPath);
       final finalName = _baseName(finalFile.path);
       final stat = await finalFile.stat();

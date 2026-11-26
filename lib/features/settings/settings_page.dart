@@ -16,6 +16,7 @@ export 'widgets/display_section.dart';
 export 'widgets/network_section.dart';
 export 'widgets/reminders_section.dart';
 export 'widgets/setting_row.dart';
+export 'widgets/sharing_section.dart';
 export 'widgets/settings_ambient_backdrop.dart';
 export 'widgets/settings_content_pane.dart';
 export 'widgets/settings_section_header.dart';

@@ -181,7 +181,7 @@ class _AutoWrapNotice extends StatelessWidget {
           ),
           Expanded(
             child: Text(
-              'Time passed today — auto-scheduled for Tomorrow',
+              'Time passed today - auto-scheduled for Tomorrow',
               style: TextStyle(
                 color: AppColors.plumAccent,
                 fontSize: 11.5,
