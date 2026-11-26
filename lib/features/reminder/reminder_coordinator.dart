@@ -7,7 +7,7 @@ import 'package:wyrm_desk/core/notifications/reminder_model.dart';
 import 'package:wyrm_desk/core/notifications/reminder_scheduler.dart';
 import 'package:wyrm_desk/features/clock/clock_provider.dart';
 import 'package:wyrm_desk/features/reminder/active_alarm_provider.dart';
-import 'package:wyrm_desk/features/reminder/reminder_state.dart';
+import 'package:wyrm_desk/features/reminder/reminders_notifier.dart';
 import 'package:wyrm_desk/services/clock_provider.dart';
 import 'package:wyrm_desk/services/notifications/fln_notification_gateway.dart';
 import 'package:wyrm_desk/services/notifications/notification_gateway.dart';

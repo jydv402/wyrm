@@ -1,20 +1,39 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:wyrm_desk/core/notifications/reminder_model.dart';
-import 'package:wyrm_desk/features/reminder/widgets/reminder_next_up_banner.dart';
+import 'package:wyrm_desk/features/reminder/reminder_format.dart';
+import 'package:wyrm_desk/features/reminder/widgets/reminder_tile_bodies.dart';
 import 'package:wyrm_desk/theme/theme.dart';
-import 'package:wyrm_desk/widgets/dusk_glass_pill.dart';
 
 /// Dusk Glass row displaying a reminder's target time, recurrence, and controls.
 class ReminderTile extends StatelessWidget {
+  /// Reminder rendered by this row.
   final ReminderItem reminder;
+
+  /// Next occurrence for [reminder], if any.
   final DateTime? nextFireAt;
+
+  /// Current wall-clock instant used for countdowns.
   final DateTime now;
+
+  /// Whether to render times in 24-hour format.
   final bool is24Hour;
+
+  /// Title font size sourced from app settings.
   final double titleFontSize;
+
+  /// Whether to use the compact (small card) row layout.
   final bool compact;
+
+  /// Whether to expose the delete button.
   final bool showDelete;
+
+  /// Toggles the reminder's enabled state.
   final ValueChanged<bool>? onToggle;
+
+  /// Opens the editor for this reminder.
   final VoidCallback? onTap;
+
+  /// Deletes this reminder.
   final VoidCallback? onDelete;
 
   const ReminderTile({
@@ -61,12 +80,13 @@ class ReminderTile extends StatelessWidget {
     final displayTitle = reminder.title.trim().isEmpty
         ? 'Reminder'
         : reminder.title.trim();
+    final borderRadius = BorderRadius.circular(compact ? 14.0 : 18.0);
 
     return Material(
       color: Colors.transparent,
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(compact ? 14.0 : 18.0),
+        borderRadius: borderRadius,
         child: Container(
           padding: EdgeInsets.symmetric(
             horizontal: compact ? 10.0 : 14.0,
@@ -74,7 +94,7 @@ class ReminderTile extends StatelessWidget {
           ),
           decoration: BoxDecoration(
             color: AppColors.well,
-            borderRadius: BorderRadius.circular(compact ? 14.0 : 18.0),
+            borderRadius: borderRadius,
             border: Border.all(
               color: _isSnoozed
                   ? AppColors.plumAccent.withValues(alpha: 0.4)
@@ -88,14 +108,14 @@ class ReminderTile extends StatelessWidget {
             children: [
               Expanded(
                 child: compact
-                    ? _CompactTileBody(
+                    ? CompactReminderTileBody(
                         timeText: timeText,
                         statusText: statusText,
                         title: displayTitle,
                         isEnabled: reminder.isEnabled,
                         isSnoozed: _isSnoozed,
                       )
-                    : _ExpandedTileBody(
+                    : ExpandedReminderTileBody(
                         reminder: reminder,
                         timeText: timeText,
                         statusText: statusText,
@@ -114,228 +134,12 @@ class ReminderTile extends StatelessWidget {
                 onChanged: onToggle,
               ),
               if (showDelete && onDelete != null)
-                _DeleteTileButton(reminderId: reminder.id, onDelete: onDelete!),
+                ReminderDeleteButton(
+                  reminderId: reminder.id,
+                  onDelete: onDelete!,
+                ),
             ],
           ),
-        ),
-      ),
-    );
-  }
-}
-
-class _CompactTileBody extends StatelessWidget {
-  final String timeText;
-  final String statusText;
-  final String title;
-  final bool isEnabled;
-  final bool isSnoozed;
-
-  const _CompactTileBody({
-    required this.timeText,
-    required this.statusText,
-    required this.title,
-    required this.isEnabled,
-    required this.isSnoozed,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.start,
-      spacing: 2.0,
-      children: [
-        Row(
-          spacing: 6.0,
-          children: [
-            Text(
-              timeText,
-              style: TextStyle(
-                color: isEnabled ? AppColors.textPrimary : AppColors.textMuted,
-                fontSize: 13.5,
-                fontWeight: FontWeight.w800,
-                fontFeatures: const [FontFeature.tabularFigures()],
-              ),
-            ),
-            Flexible(
-              child: Text(
-                statusText,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  color: isEnabled
-                      ? (isSnoozed
-                            ? AppColors.accentOrange
-                            : AppColors.plumAccent)
-                      : AppColors.textMuted,
-                  fontSize: 11.0,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ),
-          ],
-        ),
-        Text(
-          title,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-          style: TextStyle(
-            color: isEnabled ? AppColors.textPrimary : AppColors.textMuted,
-            fontSize: 12.5,
-            fontWeight: isEnabled ? FontWeight.w600 : FontWeight.w400,
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _ExpandedTileBody extends StatelessWidget {
-  final ReminderItem reminder;
-  final String timeText;
-  final String statusText;
-  final String title;
-  final double titleFontSize;
-  final bool isSnoozed;
-
-  const _ExpandedTileBody({
-    required this.reminder,
-    required this.timeText,
-    required this.statusText,
-    required this.title,
-    required this.titleFontSize,
-    required this.isSnoozed,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final enabled = reminder.isEnabled;
-    final recurrenceText = reminder.recurrence == ReminderRecurrence.custom
-        ? formatReminderCustomWeekdays(reminder.customWeekdays)
-        : reminder.recurrence.label;
-
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.center,
-      spacing: 12.0,
-      children: [
-        ConstrainedBox(
-          constraints: const BoxConstraints(minWidth: 74.0),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            spacing: 2.0,
-            children: [
-              Text(
-                timeText,
-                style: TextStyle(
-                  color: enabled ? AppColors.textPrimary : AppColors.textMuted,
-                  fontSize: 15.5,
-                  fontWeight: FontWeight.w800,
-                  fontFeatures: const [FontFeature.tabularFigures()],
-                ),
-              ),
-              Text(
-                statusText,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  color: enabled
-                      ? (isSnoozed
-                            ? AppColors.accentOrange
-                            : AppColors.plumAccent)
-                      : AppColors.textMuted,
-                  fontSize: 11.5,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ],
-          ),
-        ),
-        Expanded(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            spacing: 4.0,
-            children: [
-              Text(
-                title,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  color: enabled ? AppColors.textPrimary : AppColors.textMuted,
-                  fontSize: titleFontSize,
-                  fontWeight: enabled ? FontWeight.w600 : FontWeight.w400,
-                ),
-              ),
-              Wrap(
-                spacing: 6.0,
-                runSpacing: 4.0,
-                children: [
-                  DuskGlassPill(
-                    tintColor: enabled
-                        ? AppColors.plumAccent
-                        : AppColors.textMuted,
-                    height: 22.0,
-                    padding: const EdgeInsets.symmetric(horizontal: 8.0),
-                    child: Text(
-                      recurrenceText,
-                      style: TextStyle(
-                        color: enabled
-                            ? AppColors.plumAccent
-                            : AppColors.textMuted,
-                        fontSize: 10.5,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                  ),
-                  if (isSnoozed)
-                    const DuskGlassPill(
-                      tintColor: AppColors.accentOrange,
-                      height: 22.0,
-                      padding: EdgeInsets.symmetric(horizontal: 8.0),
-                      child: Text(
-                        'Snoozed',
-                        style: TextStyle(
-                          color: AppColors.accentOrange,
-                          fontSize: 10.5,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                    ),
-                ],
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _DeleteTileButton extends StatelessWidget {
-  final String reminderId;
-  final VoidCallback onDelete;
-
-  const _DeleteTileButton({required this.reminderId, required this.onDelete});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: 30.0,
-      height: 30.0,
-      decoration: BoxDecoration(
-        color: AppColors.glass,
-        shape: BoxShape.circle,
-        border: Border.all(color: AppColors.lineStrong, width: 1.0),
-      ),
-      child: InkWell(
-        key: ValueKey<String>('reminder_delete_$reminderId'),
-        onTap: onDelete,
-        borderRadius: BorderRadius.circular(15.0),
-        child: const Icon(
-          Icons.close_rounded,
-          size: 15.0,
-          color: AppColors.textSecondary,
         ),
       ),
     );

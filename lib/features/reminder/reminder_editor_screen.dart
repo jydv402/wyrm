@@ -5,7 +5,7 @@ import 'package:wyrm_desk/config/app_settings_state.dart';
 import 'package:wyrm_desk/core/notifications/reminder_model.dart';
 import 'package:wyrm_desk/features/keyboard/two_pane_keyboard_scaffold.dart';
 import 'package:wyrm_desk/features/reminder/reminder_form_content.dart';
-import 'package:wyrm_desk/features/reminder/reminder_state.dart';
+import 'package:wyrm_desk/features/reminder/reminders_notifier.dart';
 import 'package:wyrm_desk/services/clock_provider.dart';
 import 'package:wyrm_desk/theme/theme.dart';
 

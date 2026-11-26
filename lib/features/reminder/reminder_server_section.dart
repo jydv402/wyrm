@@ -1,11 +1,11 @@
 import 'dart:async';
-import 'dart:convert';
 
 import 'package:clock/clock.dart';
 import 'package:shelf/shelf.dart';
 import 'package:shelf_router/shelf_router.dart';
 import 'package:wyrm_desk/core/notifications/reminder_model.dart';
 import 'package:wyrm_desk/features/reminder/active_alarm_provider.dart';
+import 'package:wyrm_desk/features/reminder/reminder_payload.dart';
 import 'package:wyrm_desk/features/reminder/reminder_state.dart';
 import 'package:wyrm_desk/server/server_responses.dart';
 import 'package:wyrm_desk/server/server_section.dart';
@@ -16,15 +16,6 @@ import 'package:wyrm_desk/server/server_section.dart';
 class ReminderServerSection implements ServerSection {
   /// Canonical snapshot key owned by this section.
   static const String sectionKey = 'reminders';
-
-  /// Minimum snooze duration accepted from remote clients (in minutes).
-  static const int minSnoozeMinutes = 1;
-
-  /// Maximum snooze duration accepted from remote clients (in minutes).
-  static const int maxSnoozeMinutes = 120;
-
-  /// Default snooze duration when omitted by a snooze request (in minutes).
-  static const int defaultSnoozeMinutes = 10;
 
   /// Injected clock used when fallback snooze computation is needed.
   final Clock clock;
@@ -84,13 +75,9 @@ class ReminderServerSection implements ServerSection {
     });
 
     router.post('/api/reminders', _handleCreateReminder);
-
     router.post('/api/reminders/alarm/dismiss', _handleDismissAlarm);
-
     router.post('/api/reminders/alarm/snooze', _handleSnoozeAlarm);
-
     router.put('/api/reminders/<id>', _handleUpdateReminder);
-
     router.delete('/api/reminders/<id>', _handleDeleteReminder);
   }
 
@@ -101,7 +88,7 @@ class ReminderServerSection implements ServerSection {
 
     switch (type) {
       case 'reminder_add':
-        final parsed = _parseAddPayload(data);
+        final parsed = parseReminderDraft(data);
         if (parsed == null) return false;
         _fireAndForget(
           () => onAddReminder(
@@ -117,7 +104,7 @@ class ReminderServerSection implements ServerSection {
       case 'reminder_edit':
         final existing = _findByIdRaw(data['id']);
         if (existing == null) return false;
-        final plan = _parseUpdatePlan(existing, data);
+        final plan = parseReminderUpdatePlan(existing, data);
         if (plan == null) return false;
         _fireAndForget(() => _applyUpdatePlan(existing, plan));
         return true;
@@ -131,7 +118,7 @@ class ReminderServerSection implements ServerSection {
             data.containsKey('enabled');
         bool? nextEnabled;
         if (hasEnabled) {
-          nextEnabled = _parseBoolStrict(
+          nextEnabled = parseReminderBool(
             data['is_enabled'] ?? data['isEnabled'] ?? data['enabled'],
           );
           if (nextEnabled == null) return false;
@@ -150,7 +137,7 @@ class ReminderServerSection implements ServerSection {
         return true;
 
       case 'reminder_snooze_alarm':
-        final minutes = _parseSnoozeMinutes(
+        final minutes = parseReminderSnoozeMinutes(
           data['minutes'] ?? data['snooze_minutes'],
         );
         if (minutes == null) return false;
@@ -178,7 +165,7 @@ class ReminderServerSection implements ServerSection {
       return jsonError('Invalid reminder payload');
     }
 
-    final parsed = _parseAddPayload(data);
+    final parsed = parseReminderDraft(data);
     if (parsed == null) {
       return jsonError('Invalid reminder payload');
     }
@@ -209,7 +196,7 @@ class ReminderServerSection implements ServerSection {
       return jsonError('Invalid reminder update payload');
     }
 
-    final plan = _parseUpdatePlan(existing, data);
+    final plan = parseReminderUpdatePlan(existing, data);
     if (plan == null) {
       return jsonError('Invalid reminder update payload');
     }
@@ -242,7 +229,7 @@ class ReminderServerSection implements ServerSection {
     try {
       final rawBody = await request.readAsString();
       if (rawBody.trim().isNotEmpty) {
-        final decoded = _decodeJsonMap(rawBody);
+        final decoded = decodeReminderJsonMap(rawBody);
         if (decoded == null) {
           return jsonError('Invalid snooze payload');
         }
@@ -252,7 +239,7 @@ class ReminderServerSection implements ServerSection {
       return jsonError('Invalid snooze payload');
     }
 
-    final minutes = _parseSnoozeMinutes(
+    final minutes = parseReminderSnoozeMinutes(
       data['minutes'] ?? data['snooze_minutes'],
     );
     if (minutes == null) {
@@ -281,184 +268,9 @@ class ReminderServerSection implements ServerSection {
     return null;
   }
 
-  ({
-    String title,
-    DateTime scheduledAt,
-    ReminderRecurrence recurrence,
-    List<int> customWeekdays,
-    bool isEnabled,
-  })?
-  _parseAddPayload(Map<String, dynamic> data) {
-    final rawTitle = data['title'] ?? data['text'] ?? data['name'];
-    if (rawTitle is! String) return null;
-    final title = rawTitle.trim();
-    if (title.isEmpty) return null;
-
-    final rawScheduled =
-        data['scheduled_at'] ?? data['scheduledAt'] ?? data['target_at'];
-    final scheduledAt = _parseDateTimeStrict(rawScheduled);
-    if (scheduledAt == null) return null;
-
-    final rawRecurrence = data['recurrence'];
-    if (rawRecurrence != null &&
-        rawRecurrence is! String &&
-        rawRecurrence is! ReminderRecurrence) {
-      return null;
-    }
-    final recurrence = ReminderRecurrence.fromString(rawRecurrence);
-
-    final rawWeekdays =
-        data['custom_weekdays'] ?? data['customWeekdays'] ?? data['weekdays'];
-    final parsedWeekdays = _parseWeekdaysStrict(rawWeekdays);
-    if (parsedWeekdays == null) return null;
-    final customWeekdays = recurrence == ReminderRecurrence.custom
-        ? parsedWeekdays
-        : const <int>[];
-    if (recurrence == ReminderRecurrence.custom && customWeekdays.isEmpty) {
-      return null;
-    }
-
-    final rawEnabled =
-        data['is_enabled'] ?? data['isEnabled'] ?? data['enabled'];
-    final isEnabled = rawEnabled == null ? true : _parseBoolStrict(rawEnabled);
-    if (isEnabled == null) return null;
-
-    return (
-      title: title,
-      scheduledAt: scheduledAt,
-      recurrence: recurrence,
-      customWeekdays: customWeekdays,
-      isEnabled: isEnabled,
-    );
-  }
-
-  _ReminderUpdatePlan? _parseUpdatePlan(
-    ReminderItem existing,
-    Map<String, dynamic> data,
-  ) {
-    final hasTitle =
-        data.containsKey('title') ||
-        data.containsKey('text') ||
-        data.containsKey('name');
-    final hasScheduled =
-        data.containsKey('scheduled_at') ||
-        data.containsKey('scheduledAt') ||
-        data.containsKey('target_at');
-    final hasRecurrence = data.containsKey('recurrence');
-    final hasWeekdays =
-        data.containsKey('custom_weekdays') ||
-        data.containsKey('customWeekdays') ||
-        data.containsKey('weekdays');
-    final hasEnabled =
-        data.containsKey('is_enabled') ||
-        data.containsKey('isEnabled') ||
-        data.containsKey('enabled');
-    final hasSnooze =
-        data.containsKey('snooze_minutes') || data.containsKey('snoozeMinutes');
-
-    if (!hasTitle &&
-        !hasScheduled &&
-        !hasRecurrence &&
-        !hasWeekdays &&
-        !hasEnabled &&
-        !hasSnooze) {
-      return null;
-    }
-
-    String nextTitle = existing.title;
-    if (hasTitle) {
-      final rawTitle = data['title'] ?? data['text'] ?? data['name'];
-      if (rawTitle is! String) return null;
-      final trimmed = rawTitle.trim();
-      if (trimmed.isEmpty) return null;
-      nextTitle = trimmed;
-    }
-
-    DateTime nextScheduledAt = existing.scheduledAt;
-    if (hasScheduled) {
-      final rawScheduled =
-          data['scheduled_at'] ?? data['scheduledAt'] ?? data['target_at'];
-      final parsed = _parseDateTimeStrict(rawScheduled);
-      if (parsed == null) return null;
-      nextScheduledAt = parsed;
-    }
-
-    ReminderRecurrence nextRecurrence = existing.recurrence;
-    if (hasRecurrence) {
-      final rawRecurrence = data['recurrence'];
-      if (rawRecurrence == null ||
-          (rawRecurrence is! String && rawRecurrence is! ReminderRecurrence)) {
-        return null;
-      }
-      nextRecurrence = ReminderRecurrence.fromString(rawRecurrence);
-    }
-
-    List<int> nextWeekdays = existing.customWeekdays;
-    if (hasWeekdays) {
-      final rawWeekdays =
-          data['custom_weekdays'] ?? data['customWeekdays'] ?? data['weekdays'];
-      final parsed = _parseWeekdaysStrict(rawWeekdays);
-      if (parsed == null) return null;
-      nextWeekdays = parsed;
-    }
-
-    if (nextRecurrence == ReminderRecurrence.custom) {
-      if (nextWeekdays.isEmpty) return null;
-    } else {
-      nextWeekdays = const <int>[];
-    }
-
-    bool? nextEnabled;
-    if (hasEnabled) {
-      nextEnabled = _parseBoolStrict(
-        data['is_enabled'] ?? data['isEnabled'] ?? data['enabled'],
-      );
-      if (nextEnabled == null) return null;
-    }
-
-    int? snoozeMinutes;
-    if (hasSnooze) {
-      final rawSnooze = data['snooze_minutes'] ?? data['snoozeMinutes'];
-      if (rawSnooze == null) return null;
-      snoozeMinutes = _parseSnoozeMinutes(rawSnooze);
-      if (snoozeMinutes == null) return null;
-    }
-
-    final hasFieldEdits =
-        hasTitle || hasScheduled || hasRecurrence || hasWeekdays;
-
-    if (!hasFieldEdits && !hasSnooze && hasEnabled) {
-      return _ReminderUpdatePlan(toggleOnlyEnabled: nextEnabled);
-    }
-
-    if (!hasFieldEdits && hasSnooze) {
-      return _ReminderUpdatePlan(
-        toggleOnlyEnabled: nextEnabled,
-        snoozeMinutes: snoozeMinutes,
-      );
-    }
-
-    final scheduleChanged =
-        hasScheduled && nextScheduledAt != existing.scheduledAt;
-    final editedItem = existing.copyWith(
-      title: nextTitle,
-      scheduledAt: nextScheduledAt,
-      recurrence: nextRecurrence,
-      customWeekdays: nextWeekdays,
-      isEnabled: nextEnabled ?? existing.isEnabled,
-      clearSnoozedUntil: !hasSnooze,
-      clearLastTriggeredAt: scheduleChanged,
-    );
-
-    return _ReminderUpdatePlan(
-      editedItem: editedItem,
-      snoozeMinutes: snoozeMinutes,
-    );
-  }
-
   Future<void> _applyUpdatePlan(
     ReminderItem existing,
-    _ReminderUpdatePlan plan,
+    ReminderUpdatePlan plan,
   ) async {
     var current = existing;
     if (plan.editedItem != null) {
@@ -494,79 +306,4 @@ class ReminderServerSection implements ServerSection {
       }
     } catch (_) {}
   }
-
-  static DateTime? _parseDateTimeStrict(dynamic raw) {
-    if (raw is DateTime) return raw;
-    if (raw is! String) return null;
-    final trimmed = raw.trim();
-    if (trimmed.isEmpty) return null;
-    return DateTime.tryParse(trimmed);
-  }
-
-  static List<int>? _parseWeekdaysStrict(dynamic raw) {
-    if (raw == null) return const <int>[];
-    if (raw is! Iterable) return null;
-    final parsed = <int>[];
-    for (final entry in raw) {
-      if (entry is int) {
-        parsed.add(entry);
-      } else if (entry is num && entry.isFinite && entry == entry.truncate()) {
-        parsed.add(entry.toInt());
-      } else if (entry is String) {
-        final value = int.tryParse(entry.trim());
-        if (value == null) return null;
-        parsed.add(value);
-      } else {
-        return null;
-      }
-    }
-    return ReminderItem.normalizeWeekdays(parsed);
-  }
-
-  static bool? _parseBoolStrict(dynamic raw) {
-    if (raw is bool) return raw;
-    if (raw is int && (raw == 0 || raw == 1)) return raw == 1;
-    if (raw is String) {
-      final normalized = raw.trim().toLowerCase();
-      if (normalized == 'true' || normalized == '1') return true;
-      if (normalized == 'false' || normalized == '0') return false;
-    }
-    return null;
-  }
-
-  static int? _parseSnoozeMinutes(dynamic raw) {
-    if (raw == null) return defaultSnoozeMinutes;
-    int? parsed;
-    if (raw is int) {
-      parsed = raw;
-    } else if (raw is num) {
-      if (!raw.isFinite) return null;
-      parsed = raw.round();
-    } else if (raw is String) {
-      parsed = int.tryParse(raw.trim());
-    }
-    if (parsed == null) return null;
-    return parsed.clamp(minSnoozeMinutes, maxSnoozeMinutes);
-  }
-
-  static Map<String, dynamic>? _decodeJsonMap(String rawBody) {
-    try {
-      final decoded = jsonDecode(rawBody);
-      return decoded is Map<String, dynamic> ? decoded : null;
-    } catch (_) {
-      return null;
-    }
-  }
-}
-
-class _ReminderUpdatePlan {
-  final ReminderItem? editedItem;
-  final bool? toggleOnlyEnabled;
-  final int? snoozeMinutes;
-
-  const _ReminderUpdatePlan({
-    this.editedItem,
-    this.toggleOnlyEnabled,
-    this.snoozeMinutes,
-  });
 }

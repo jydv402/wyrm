@@ -3,7 +3,7 @@ import 'package:wyrm_desk/features/calendar/calendar_state.dart';
 import 'package:wyrm_desk/data/app_database.dart';
 import 'package:wyrm_desk/features/display/display_state.dart';
 import 'package:wyrm_desk/features/habits/habits_state.dart';
-import 'package:wyrm_desk/features/reminder/reminder_state.dart';
+import 'package:wyrm_desk/features/reminder/reminders_notifier.dart';
 import 'package:wyrm_desk/config/card_layout_state.dart';
 import 'package:wyrm_desk/config/app_settings_state.dart';
 import 'package:wyrm_desk/features/tasks/tasks_state.dart';

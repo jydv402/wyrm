@@ -2,7 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:wyrm_desk/core/notifications/reminder_model.dart';
 import 'package:wyrm_desk/features/reminder/active_alarm_provider.dart';
-import 'package:wyrm_desk/features/reminder/reminder_state.dart';
+import 'package:wyrm_desk/features/reminder/reminders_notifier.dart';
 import 'package:wyrm_desk/features/settings/widgets/setting_row.dart';
 import 'package:wyrm_desk/features/settings/widgets/settings_section_header.dart';
 import 'package:wyrm_desk/services/clock_provider.dart';
