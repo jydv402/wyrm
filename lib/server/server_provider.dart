@@ -20,6 +20,9 @@ import 'package:wyrm_desk/features/reminder/active_alarm_provider.dart';
 import 'package:wyrm_desk/features/reminder/reminder_server_section.dart';
 import 'package:wyrm_desk/features/reminder/reminder_state.dart';
 import 'package:wyrm_desk/features/reminder/reminders_notifier.dart';
+import 'package:wyrm_desk/features/sharing/sharing_notifier.dart';
+import 'package:wyrm_desk/features/sharing/sharing_server_section.dart';
+import 'package:wyrm_desk/features/sharing/sharing_state.dart';
 import 'package:wyrm_desk/features/tasks/task_model.dart';
 import 'package:wyrm_desk/features/tasks/tasks_server_section.dart';
 import 'package:wyrm_desk/features/tasks/tasks_state.dart';
@@ -170,6 +173,16 @@ final webServerProvider = Provider<ShelfWebServer>((ref) {
           return ref.read(activeAlarmProvider.notifier).snoozeActive(duration);
         },
       ),
+      SharingServerSection(
+        auth: ref.read(sharingAuthServiceProvider),
+        service: ref.read(sharingServiceProvider),
+        getHasPermission: () => ref.read(sharingProvider).hasPermission,
+        getRootPath: () => ref.read(sharingProvider).activeRootPath,
+        getRevision: () => ref.read(sharingProvider).revision,
+        onExternalMutation: () {
+          ref.read(sharingProvider.notifier).notifyExternalMutation();
+        },
+      ),
     ],
     onImportDatabase: (jsonString) async {
       return await ref
@@ -227,6 +240,15 @@ final webServerProvider = Provider<ShelfWebServer>((ref) {
   // Synchronize active alarm ringing/dismiss/snooze transitions to connected web clients.
   ref.listen<ActiveAlarmState?>(activeAlarmProvider, (previous, next) {
     server.broadcastState();
+  });
+
+  // Synchronize sharing permission, root path, and file revision changes.
+  ref.listen<SharingState>(sharingProvider, (previous, next) {
+    if (previous?.revision != next.revision ||
+        previous?.hasPermission != next.hasPermission ||
+        previous?.activeRootPath != next.activeRootPath) {
+      server.broadcastState();
+    }
   });
 
   ref.onDispose(() {
