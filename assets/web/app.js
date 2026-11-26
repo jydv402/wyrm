@@ -33,6 +33,23 @@ class WyrmStateStore {
       reminders: [],
       activeAlarm: null,
       calendar: { selectedDate: null, viewMonth: new Date().toISOString(), milestones: [] },
+      sharing: {
+        hasPermission: false,
+        rootPath: '',
+        revision: 0,
+        token: (() => {
+          try { return sessionStorage.getItem('wyrm_sharing_token') || ''; } catch (_) { return ''; }
+        })(),
+        currentPath: '',
+        entries: [],
+        totalBytes: 0,
+        sortBy: 'name',
+        sortAscending: true,
+        searchQuery: '',
+        isLoading: false,
+        error: '',
+        uploads: [],
+      },
     });
 
     // Optimistic mutations are tracked per state section so a broadcast that
@@ -106,6 +123,17 @@ class WyrmStateStore {
       this.state.activeAlarm = incomingAlarm || null;
     });
     apply('calendar', data.calendar, () => Object.assign(this.state.calendar, data.calendar));
+    if (data.sharing && typeof data.sharing === 'object') {
+      if (data.sharing.has_permission !== undefined) {
+        this.state.sharing.hasPermission = !!data.sharing.has_permission;
+      }
+      if (data.sharing.root_path !== undefined) {
+        this.state.sharing.rootPath = data.sharing.root_path || '';
+      }
+      if (data.sharing.revision !== undefined) {
+        this.state.sharing.revision = Number(data.sharing.revision) || 0;
+      }
+    }
   }
 }
 
@@ -738,7 +766,253 @@ function createWyrmActions(store, ws) {
       }
       return await res.json();
     },
+
+    /* Local File Sharing */
+    formatByteSize(bytes) {
+      const n = Number(bytes) || 0;
+      if (n < 1024) return n + ' B';
+      const units = ['KB', 'MB', 'GB', 'TB'];
+      let val = n / 1024;
+      let idx = 0;
+      while (val >= 1024 && idx < units.length - 1) {
+        val /= 1024;
+        idx++;
+      }
+      return val.toFixed(val >= 100 ? 0 : 1) + ' ' + units[idx];
+    },
+    isPreviewableMime(mime) {
+      const m = String(mime || '').toLowerCase();
+      return (
+        m.startsWith('image/') ||
+        m.startsWith('audio/') ||
+        m.startsWith('video/') ||
+        m.startsWith('text/') ||
+        m.startsWith('application/json') ||
+        m.startsWith('application/xml') ||
+        m.startsWith('application/pdf')
+      );
+    },
+    sharingDownloadUrl(relativePath, inline = false) {
+      const token = encodeURIComponent(state.sharing.token || '');
+      const pathParam = encodeURIComponent(relativePath || '');
+      return `/api/sharing/download?path=${pathParam}&token=${token}${inline ? '&inline=1' : ''}`;
+    },
+    sharingFullDownloadUrl(relativePath) {
+      return window.location.origin + actions.sharingDownloadUrl(relativePath, false);
+    },
+    _setSharingToken(token) {
+      state.sharing.token = token || '';
+      try {
+        if (token) sessionStorage.setItem('wyrm_sharing_token', token);
+        else sessionStorage.removeItem('wyrm_sharing_token');
+      } catch (_) { }
+    },
+    sharingLogout(reason = '') {
+      actions._setSharingToken('');
+      state.sharing.entries = [];
+      state.sharing.currentPath = '';
+      state.sharing.totalBytes = 0;
+      state.sharing.error = reason;
+    },
+    async sharingAuth(password) {
+      const clean = String(password || '').trim();
+      if (!clean) {
+        state.sharing.error = 'Enter the sharing password shown on the tablet.';
+        return false;
+      }
+      state.sharing.error = '';
+      try {
+        const res = await fetch('/api/sharing/auth', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ password: clean }),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok || !data.token) {
+          state.sharing.error = data.error || 'Invalid sharing password.';
+          return false;
+        }
+        actions._setSharingToken(data.token);
+        if (data.has_permission !== undefined) {
+          state.sharing.hasPermission = !!data.has_permission;
+        }
+        await actions.sharingFetchFiles('');
+        return true;
+      } catch (err) {
+        state.sharing.error = 'Could not reach the tablet server.';
+        return false;
+      }
+    },
+    async sharingFetchFiles(path = state.sharing.currentPath) {
+      if (!state.sharing.token) return false;
+      state.sharing.isLoading = true;
+      state.sharing.error = '';
+      try {
+        const params = new URLSearchParams({
+          path: path || '',
+          sort: state.sharing.sortBy,
+          asc: String(state.sharing.sortAscending),
+        });
+        const res = await fetch('/api/sharing/files?' + params.toString(), {
+          headers: { 'X-Sharing-Token': state.sharing.token },
+        });
+        if (res.status === 401) {
+          actions.sharingLogout('Session expired or password changed on tablet.');
+          return false;
+        }
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          state.sharing.error = data.error || 'Could not load folder.';
+          return false;
+        }
+        state.sharing.currentPath = data.path || '';
+        state.sharing.entries = Array.isArray(data.entries) ? data.entries : [];
+        state.sharing.totalBytes = Number(data.total_bytes) || 0;
+        return true;
+      } catch (_) {
+        state.sharing.error = 'Network error loading shared files.';
+        return false;
+      } finally {
+        state.sharing.isLoading = false;
+      }
+    },
+    sharingSetSort(sortBy) {
+      if (state.sharing.sortBy === sortBy) {
+        state.sharing.sortAscending = !state.sharing.sortAscending;
+      } else {
+        state.sharing.sortBy = sortBy;
+        state.sharing.sortAscending = true;
+      }
+      actions.sharingFetchFiles(state.sharing.currentPath);
+    },
+    async _sharingJsonPost(endpoint, payload) {
+      if (!state.sharing.token) return false;
+      state.sharing.error = '';
+      try {
+        const res = await fetch(endpoint, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-Sharing-Token': state.sharing.token,
+          },
+          body: JSON.stringify(payload),
+        });
+        if (res.status === 401) {
+          actions.sharingLogout('Session expired or password changed on tablet.');
+          return false;
+        }
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          state.sharing.error = data.error || 'Action failed.';
+          return false;
+        }
+        await actions.sharingFetchFiles(state.sharing.currentPath);
+        return true;
+      } catch (_) {
+        state.sharing.error = 'Network error communicating with tablet.';
+        return false;
+      }
+    },
+    sharingMkdir(name) {
+      return actions._sharingJsonPost('/api/sharing/mkdir', {
+        path: state.sharing.currentPath,
+        name: String(name || '').trim(),
+      });
+    },
+    sharingRename(relativePath, newName) {
+      return actions._sharingJsonPost('/api/sharing/rename', {
+        path: relativePath,
+        new_name: String(newName || '').trim(),
+      });
+    },
+    sharingMove(relativePath, targetDir) {
+      return actions._sharingJsonPost('/api/sharing/move', {
+        path: relativePath,
+        target_dir: targetDir,
+      });
+    },
+    sharingDelete(relativePath) {
+      return actions._sharingJsonPost('/api/sharing/delete', { path: relativePath });
+    },
+    async sharingUploadFiles(fileList) {
+      const files = Array.from(fileList || []);
+      if (!files.length || !state.sharing.token) return;
+      const targetDir = state.sharing.currentPath || '';
+      const queued = files.map((file, index) => ({
+        id: Date.now() + '_' + index + '_' + file.name,
+        file,
+        name: file.name,
+        size: file.size,
+        progress: 0,
+        status: 'queued',
+        error: '',
+      }));
+      state.sharing.uploads.unshift(...queued.map(({ file, ...rest }) => rest));
+
+      for (const item of queued) {
+        const track = state.sharing.uploads.find((u) => u.id === item.id);
+        if (!track) continue;
+        track.status = 'uploading';
+        const ok = await new Promise((resolve) => {
+          const xhr = new XMLHttpRequest();
+          const url = '/api/sharing/upload?path=' + encodeURIComponent(targetDir);
+          xhr.open('POST', url, true);
+          xhr.setRequestHeader('X-Sharing-Token', state.sharing.token);
+          xhr.setRequestHeader('X-File-Name', encodeURIComponent(item.name));
+          xhr.upload.onprogress = (ev) => {
+            if (ev.lengthComputable && ev.total > 0) {
+              track.progress = Math.min(100, Math.round((ev.loaded / ev.total) * 100));
+            }
+          };
+          xhr.onload = () => {
+            if (xhr.status === 401) {
+              actions.sharingLogout('Session expired or password changed on tablet.');
+              track.status = 'error';
+              track.error = 'Unauthorized';
+              resolve(false);
+              return;
+            }
+            if (xhr.status >= 200 && xhr.status < 300) {
+              track.progress = 100;
+              track.status = 'done';
+              resolve(true);
+            } else {
+              let msg = 'HTTP ' + xhr.status;
+              try {
+                const body = JSON.parse(xhr.responseText);
+                if (body.error) msg = body.error;
+              } catch (_) { }
+              track.status = 'error';
+              track.error = msg;
+              resolve(false);
+            }
+          };
+          xhr.onerror = () => {
+            track.status = 'error';
+            track.error = 'Connection lost';
+            resolve(false);
+          };
+          xhr.send(item.file);
+        });
+        if (ok) {
+          await actions.sharingFetchFiles(state.sharing.currentPath);
+        }
+      }
+    },
+    sharingClearFinishedUploads() {
+      state.sharing.uploads = state.sharing.uploads.filter((u) => u.status === 'uploading' || u.status === 'queued');
+    },
   };
+
+  // Auto-refresh authenticated sharing listing on tab open or tablet revision bump.
+  Vue.watch(
+    () => [state.currentChannel, state.sharing.revision, state.sharing.token],
+    ([channel, _rev, token]) => {
+      if (channel === 'sharing' && token && state.sharing.hasPermission) {
+        actions.sharingFetchFiles(state.sharing.currentPath);
+      }
+    }
+  );
 
   return actions;
 }

@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:wyrm_desk/config/app_settings_state.dart';
 
 /// Platform boundary for Android shared storage access, external file viewing,
 /// and SAF document import into the Unified Shared Folder.
@@ -10,6 +11,12 @@ abstract interface class SharingGateway {
 
   /// Opens the system All Files Access screen (or requests legacy storage permission).
   Future<bool> requestAllFilesAccess();
+
+  /// Resolves the platform's default Unified Shared Folder path (`Downloads/Wyrm`).
+  Future<String> resolveDefaultRootPath();
+
+  /// Resolves the platform's primary external storage root (`/storage/emulated/0`).
+  Future<String> resolveDeviceBrowseRootPath();
 
   /// Opens [path] using an external viewer app via Android FileProvider.
   Future<bool> openFile(String path, {String? mimeType});
@@ -36,6 +43,24 @@ final class MethodChannelSharingGateway implements SharingGateway {
   @override
   Future<bool> requestAllFilesAccess() async {
     return await _invoke<bool>('requestAllFilesAccess') ?? false;
+  }
+
+  @override
+  Future<String> resolveDefaultRootPath() async {
+    final resolved = await _invoke<String>('getDefaultSharingRoot');
+    if (resolved == null || resolved.trim().isEmpty) {
+      return AppSettingsConfig.defaultSharingRootPath;
+    }
+    return resolved.trim();
+  }
+
+  @override
+  Future<String> resolveDeviceBrowseRootPath() async {
+    final resolved = await _invoke<String>('getExternalStorageRoot');
+    if (resolved == null || resolved.trim().isEmpty) {
+      return AppSettingsConfig.deviceBrowseRootPath;
+    }
+    return resolved.trim();
   }
 
   @override
@@ -90,10 +115,14 @@ final class FakeSharingGateway implements SharingGateway {
   FakeSharingGateway({
     this.allFilesAccessGranted = true,
     this.importedFileName,
+    this.defaultRootPath = AppSettingsConfig.defaultSharingRootPath,
+    this.deviceBrowseRootPath = AppSettingsConfig.deviceBrowseRootPath,
   });
 
   bool allFilesAccessGranted;
   String? importedFileName;
+  String defaultRootPath;
+  String deviceBrowseRootPath;
   int requestAccessCount = 0;
   final List<String> openedPaths = <String>[];
   final List<String> importTargetDirs = <String>[];
@@ -106,6 +135,12 @@ final class FakeSharingGateway implements SharingGateway {
     requestAccessCount++;
     return allFilesAccessGranted;
   }
+
+  @override
+  Future<String> resolveDefaultRootPath() async => defaultRootPath;
+
+  @override
+  Future<String> resolveDeviceBrowseRootPath() async => deviceBrowseRootPath;
 
   @override
   Future<bool> openFile(String path, {String? mimeType}) async {

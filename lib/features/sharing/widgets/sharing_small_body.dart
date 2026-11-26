@@ -32,6 +32,7 @@ class SharingSmallBody extends ConsumerWidget {
           folders: s.folderCount,
           bytes: s.totalBytes,
           password: s.passwordDisplay,
+          errorMessage: s.errorMessage,
         ),
       ),
     );
@@ -64,9 +65,13 @@ class SharingSmallBody extends ConsumerWidget {
                 ),
               ),
               Text(
-                SharingMime.formatByteSize(summary.bytes),
-                style: const TextStyle(
-                  color: AppColors.cobaltAccent,
+                summary.errorMessage ?? SharingMime.formatByteSize(summary.bytes),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  color: summary.errorMessage != null
+                      ? AppColors.accentRed
+                      : AppColors.cobaltAccent,
                   fontSize: 12.5,
                   fontWeight: FontWeight.w600,
                 ),

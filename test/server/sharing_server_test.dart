@@ -50,26 +50,29 @@ void main() {
 
     Uri url(String path) => Uri.parse('http://127.0.0.1:${server.port}$path');
 
-    test('rejects unauthenticated requests and hides file names in /api/status', () async {
-      await File('${tempRoot.path}${Platform.pathSeparator}secret.txt')
-          .writeAsString('top-secret');
+    test(
+      'rejects unauthenticated requests and hides file names in /api/status',
+      () async {
+        await File('${tempRoot.path}${Platform.pathSeparator}secret.txt')
+            .writeAsString('top-secret');
 
-      final statusRes = await http.get(url('/api/status'));
-      expect(statusRes.statusCode, 200);
-      final statusJson = jsonDecode(statusRes.body) as Map<String, dynamic>;
-      final sharingSlice = statusJson['sharing'] as Map<String, dynamic>;
-      expect(sharingSlice['locked'], isTrue);
-      expect(sharingSlice.containsKey('files'), isFalse);
+        final statusRes = await http.get(url('/api/status'));
+        expect(statusRes.statusCode, 200);
+        final statusJson = jsonDecode(statusRes.body) as Map<String, dynamic>;
+        final sharingSlice = statusJson['sharing'] as Map<String, dynamic>;
+        expect(sharingSlice['locked'], isTrue);
+        expect(sharingSlice.containsKey('files'), isFalse);
 
-      final filesRes = await http.get(url('/api/sharing/files'));
-      expect(filesRes.statusCode, 401);
+        final filesRes = await http.get(url('/api/sharing/files'));
+        expect(filesRes.statusCode, 401);
 
-      final badAuth = await http.post(
-        url('/api/sharing/auth'),
-        body: jsonEncode(<String, String>{'password': 'NOPE'}),
-      );
-      expect(badAuth.statusCode, 401);
-    });
+        final badAuth = await http.post(
+          url('/api/sharing/auth'),
+          body: jsonEncode(<String, String>{'password': 'NOPE'}),
+        );
+        expect(badAuth.statusCode, 401);
+      },
+    );
 
     test('authenticates, streams upload, and serves full + Range 206 download', () async {
       final authRes = await http.post(
@@ -109,5 +112,22 @@ void main() {
       expect(rangeRes.headers['content-range'], 'bytes 2-5/10');
       expect(rangeRes.body, '2345');
     });
+
+    test(
+      'web remote exposes Sharing unlock, upload, QR, and preview components',
+      () async {
+        final appJs = await File('assets/web/app.js').readAsString();
+        final componentsJs = await File('assets/web/components.js')
+            .readAsString();
+
+        expect(appJs, contains('sharingAuth('));
+        expect(appJs, contains('sharingUploadFiles('));
+        expect(appJs, contains('/api/sharing/upload'));
+        expect(componentsJs, contains('SharingUnlockPanel'));
+        expect(componentsJs, contains('SharingUploadZone'));
+        expect(componentsJs, contains('SharingQrModal'));
+        expect(componentsJs, contains('SharingPreviewModal'));
+      },
+    );
   });
 }

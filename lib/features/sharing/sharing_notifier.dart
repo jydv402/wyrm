@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:wyrm_desk/config/app_settings_state.dart';
 import 'package:wyrm_desk/features/sharing/sharing_auth.dart';
@@ -56,6 +57,16 @@ class SharingNotifier extends Notifier<SharingState> {
       }
     });
 
+    AppLifecycleListener? lifecycleListener;
+    try {
+      lifecycleListener = AppLifecycleListener(
+        onResume: () => unawaited(refreshPermissionAndDirectory()),
+      );
+    } catch (_) {
+      // Safe fallback when instantiated outside a bound Flutter test/app host.
+    }
+    ref.onDispose(() => lifecycleListener?.dispose());
+
     Future<void>.microtask(refreshPermissionAndDirectory);
     return SharingState(
       activeRootPath: _resolveRootPath(settings),
@@ -75,6 +86,7 @@ class SharingNotifier extends Notifier<SharingState> {
   Future<void> refreshPermissionAndDirectory({
     bool bumpRevision = false,
   }) async {
+    final wasPermitted = state.hasPermission;
     state = state.copyWith(isLoading: true, clearError: true);
     final hasAccess = await _gateway.hasAllFilesAccess();
     if (!ref.mounted) return;
@@ -84,30 +96,46 @@ class SharingNotifier extends Notifier<SharingState> {
         hasPermission: false,
         entries: const <SharedFileEntry>[],
         isLoading: false,
-        revision: bumpRevision ? state.revision + 1 : state.revision,
+        revision: (bumpRevision || wasPermitted)
+            ? state.revision + 1
+            : state.revision,
       );
       return;
     }
 
     final settings = ref.read(appSettingsProvider);
-    if (!settings.sharingAllowDeviceBrowse) {
-      final ensureResult = await _service.ensureDirectoryExists(
-        state.activeRootPath,
+    final configuredRoot =
+        settings.sharingRootPath == AppSettingsConfig.defaultSharingRootPath
+        ? await _gateway.resolveDefaultRootPath()
+        : settings.sharingRootPath;
+    if (!ref.mounted) return;
+
+    final ensureResult = await _service.ensureDirectoryExists(configuredRoot);
+    if (!ref.mounted) return;
+    if (ensureResult case SharingError<void>(:final failure)) {
+      state = state.copyWith(
+        hasPermission: true,
+        isLoading: false,
+        errorMessage: failure.message,
       );
-      if (!ref.mounted) return;
-      if (ensureResult case SharingError<void>(:final failure)) {
-        state = state.copyWith(
-          hasPermission: true,
-          isLoading: false,
-          errorMessage: failure.message,
-        );
-        return;
-      }
+      return;
+    }
+
+    final effectiveRoot = settings.sharingAllowDeviceBrowse
+        ? await _gateway.resolveDeviceBrowseRootPath()
+        : configuredRoot;
+    if (!ref.mounted) return;
+
+    if (effectiveRoot != state.activeRootPath) {
+      state = state.copyWith(
+        activeRootPath: effectiveRoot,
+        currentRelativePath: '',
+      );
     }
 
     await _loadCurrentDirectory(
       hasPermission: true,
-      bumpRevision: bumpRevision,
+      bumpRevision: bumpRevision || !wasPermitted,
     );
   }
 

@@ -57,6 +57,18 @@
     alarm: '<circle cx="12" cy="13" r="8"/><path d="M12 9v4l2 2"/><path d="M5 3 2 6"/><path d="m22 6-3-3"/>',
     edit: '<path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/>',
     share: '<path d="M8 7h12m0 0-4-4m4 4-4 4"/><path d="M16 17H4m0 0 4 4m-4-4 4-4"/>',
+    folder: '<path d="M3.5 6.5a2 2 0 0 1 2-2h4.2l2 2H18.5a2 2 0 0 1 2 2v8.5a2 2 0 0 1-2 2h-13a2 2 0 0 1-2-2z"/>',
+    file: '<path d="M14 3.5H7a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8.5z"/><path d="M14 3.5v5h5"/>',
+    upload: '<path d="M12 15V4"/><path d="m7 9 5-5 5 5"/><path d="M4 17.5v1a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-1"/>',
+    download: '<path d="M12 4v11"/><path d="m7 11 5 5 5-5"/><path d="M4 17.5v1a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-1"/>',
+    trash: '<path d="M4 7h16"/><path d="M10 11v6M14 11v6"/><path d="M6 7l1 12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-12"/><path d="M9 7V4.5A1.5 1.5 0 0 1 10.5 3h3A1.5 1.5 0 0 1 15 4.5V7"/>',
+    key: '<circle cx="8" cy="15" r="4"/><path d="m11 12 8.5-8.5"/><path d="m16 7 2.5 2.5"/><path d="m18.5 4.5 2 2"/>',
+    eye: '<path d="M2 12s3.5-6.5 10-6.5S22 12 22 12s-3.5 6.5-10 6.5S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>',
+    search: '<circle cx="11" cy="11" r="7"/><path d="m20 20-3.8-3.8"/>',
+    'folder-plus': '<path d="M3.5 6.5a2 2 0 0 1 2-2h4.2l2 2H18.5a2 2 0 0 1 2 2v8.5a2 2 0 0 1-2 2h-13a2 2 0 0 1-2-2z"/><path d="M12 10.5v5M9.5 13h5"/>',
+    'arrow-up': '<path d="M12 19V5"/><path d="m6 11 6-6 6 6"/>',
+    lock: '<rect x="4.5" y="11" width="15" height="9.5" rx="2.5"/><path d="M8 11V7.5a4 4 0 0 1 8 0V11"/>',
+    refresh: '<path d="M20 11a8 8 0 0 0-14.5-3.5M4 4v4h4"/><path d="M4 13a8 8 0 0 0 14.5 3.5M20 20v-4h-4"/>',
   };
 
   components.UiIcon = {
@@ -1716,7 +1728,7 @@
     { id: 'calendar', label: 'Calendar', hint: 'Month and milestones', icon: 'calendar', tone: 'gold' },
     { id: 'tasks', label: 'Tasks', hint: 'Your open list', icon: 'checkbox', tone: 'rust' },
     { id: 'reminder', label: 'Reminders', hint: 'Timed & recurring alarms', icon: 'bell', tone: 'plum' },
-    { id: 'sharing', label: 'Sharing', hint: 'LAN file transfer · Coming soon', icon: 'share', tone: 'cobalt' },
+    { id: 'sharing', label: 'Sharing', hint: 'LAN file transfer', icon: 'share', tone: 'cobalt' },
   ];
   const cardMeta = (id) => DECK_CARDS.find((c) => c.id === id);
   const cardHint = (id, wyrm) => {
@@ -1908,16 +1920,480 @@
       </div>`,
   };
 
+  components.SharingUnlockPanel = {
+    name: 'SharingUnlockPanel',
+    setup() {
+      const wyrm = inject('wyrm');
+      const password = ref('');
+      const busy = ref(false);
+      async function submit() {
+        if (busy.value) return;
+        busy.value = true;
+        const ok = await wyrm.sharingAuth(password.value);
+        busy.value = false;
+        if (ok) password.value = '';
+      }
+      return { wyrm, password, busy, submit };
+    },
+    template: `
+      <ui-panel class="sharing-unlock">
+        <panel-head title="Unlock LAN Sharing"
+                    subtitle="Enter the password shown on the tablet's Sharing card or Settings"
+                    icon="key" />
+        <div v-if="!wyrm.state.sharing.hasPermission" class="sharing-banner sharing-banner--warn">
+          <ui-icon name="lock" :size="18" />
+          <span>All Files Access has not been granted on the tablet yet.</span>
+        </div>
+        <form class="sharing-unlock__form" @submit.prevent="submit">
+          <input v-model="password" type="password" autocomplete="off"
+                 placeholder="6-char code or custom password"
+                 class="input sharing-unlock__input" />
+          <ui-button variant="primary" icon="key" @click="submit" :disabled="busy">
+            {{ busy ? 'Unlocking…' : 'Unlock' }}
+          </ui-button>
+        </form>
+        <p v-if="wyrm.state.sharing.error" class="sharing-error">{{ wyrm.state.sharing.error }}</p>
+      </ui-panel>`,
+  };
+
+  components.SharingUploadZone = {
+    name: 'SharingUploadZone',
+    setup() {
+      const wyrm = inject('wyrm');
+      const fileInput = ref(null);
+      const isDragging = ref(false);
+
+      function openPicker() {
+        if (fileInput.value) fileInput.value.click();
+      }
+      function onFilesChosen(ev) {
+        if (ev.target && ev.target.files && ev.target.files.length) {
+          wyrm.sharingUploadFiles(ev.target.files);
+          ev.target.value = '';
+        }
+      }
+      function onDrop(ev) {
+        isDragging.value = false;
+        if (ev.dataTransfer && ev.dataTransfer.files && ev.dataTransfer.files.length) {
+          wyrm.sharingUploadFiles(ev.dataTransfer.files);
+        }
+      }
+      const hasFinished = computed(() =>
+        wyrm.state.sharing.uploads.some((u) => u.status === 'done' || u.status === 'error')
+      );
+      return { wyrm, fileInput, isDragging, openPicker, onFilesChosen, onDrop, hasFinished };
+    },
+    template: `
+      <ui-panel class="sharing-upload">
+        <div class="sharing-dropzone" :class="{ 'is-dragging': isDragging }"
+             @dragover.prevent="isDragging = true"
+             @dragleave.prevent="isDragging = false"
+             @drop.prevent="onDrop"
+             @click="openPicker">
+          <input ref="fileInput" type="file" multiple style="display: none" @change="onFilesChosen" />
+          <ui-icon name="upload" :size="24" class="sharing-dropzone__icon" />
+          <div class="sharing-dropzone__text">
+            <strong>Drop files here or click to upload</strong>
+            <span>Streams directly to {{ wyrm.state.sharing.currentPath ? '/' + wyrm.state.sharing.currentPath : 'Shared Root' }}</span>
+          </div>
+        </div>
+        <div v-if="wyrm.state.sharing.uploads.length" class="sharing-uploads">
+          <div class="sharing-uploads__head">
+            <span>Transfers ({{ wyrm.state.sharing.uploads.length }})</span>
+            <button v-if="hasFinished" type="button" class="sharing-link-btn"
+                    @click="wyrm.sharingClearFinishedUploads()">Clear completed</button>
+          </div>
+          <div v-for="u in wyrm.state.sharing.uploads" :key="u.id" class="sharing-upload-item">
+            <div class="sharing-upload-item__meta">
+              <span class="sharing-upload-item__name">{{ u.name }}</span>
+              <span class="sharing-upload-item__pct">
+                {{ u.status === 'error' ? u.error : (u.status === 'done' ? 'Done' : u.progress + '%') }}
+              </span>
+            </div>
+            <div class="sharing-progress">
+              <div class="sharing-progress__bar"
+                   :class="{ 'is-done': u.status === 'done', 'is-error': u.status === 'error' }"
+                   :style="{ width: u.progress + '%' }"></div>
+            </div>
+          </div>
+        </div>
+      </ui-panel>`,
+  };
+
+  components.SharingQrModal = {
+    name: 'SharingQrModal',
+    props: {
+      entry: { type: Object, required: true },
+    },
+    emits: ['close'],
+    setup(props) {
+      const wyrm = inject('wyrm');
+      const qrSvg = ref('');
+      const copied = ref(false);
+      const downloadUrl = computed(() => wyrm.sharingFullDownloadUrl(props.entry.relative_path));
+      const qrSrc = computed(() => '/api/qr?data=' + encodeURIComponent(downloadUrl.value));
+
+      async function loadQr() {
+        try {
+          const res = await fetch(qrSrc.value);
+          if (res.ok) {
+            const txt = await res.text();
+            if (txt.trim().startsWith('<svg')) qrSvg.value = txt;
+          }
+        } catch (_) { }
+      }
+      function copyLink() {
+        navigator.clipboard?.writeText(downloadUrl.value).catch(() => { });
+        copied.value = true;
+        setTimeout(() => { copied.value = false; }, 2000);
+      }
+      onMounted(loadQr);
+      return { downloadUrl, qrSvg, qrSrc, copied, copyLink };
+    },
+    template: `
+      <div class="modal" role="dialog" aria-modal="true" @click.self="$emit('close')">
+        <ui-panel class="modal-card modal-card--network">
+          <panel-head :title="entry.name" subtitle="Scan on Device B for one-tap download" icon="qr">
+            <ui-button size="icon" variant="ghost" icon="x" aria-label="Close" @click="$emit('close')" />
+          </panel-head>
+          <div class="net-qr">
+            <div class="net-qr__frame">
+              <div v-if="qrSvg" class="net-qr__svg" v-html="qrSvg"></div>
+              <img v-else :src="qrSrc" alt="File download QR code" class="net-qr__img" />
+            </div>
+            <ui-button variant="primary" icon="copy" @click="copyLink">
+              {{ copied ? 'Download link copied' : 'Copy download link' }}
+            </ui-button>
+          </div>
+        </ui-panel>
+      </div>`,
+  };
+
+  components.SharingPreviewModal = {
+    name: 'SharingPreviewModal',
+    props: {
+      entry: { type: Object, required: true },
+    },
+    emits: ['close'],
+    setup(props) {
+      const wyrm = inject('wyrm');
+      const textBody = ref('');
+      const loadingText = ref(false);
+      const mime = computed(() => String(props.entry.mime_type || '').toLowerCase());
+      const inlineUrl = computed(() => wyrm.sharingDownloadUrl(props.entry.relative_path, true));
+      const downloadUrl = computed(() => wyrm.sharingDownloadUrl(props.entry.relative_path, false));
+      const kind = computed(() => {
+        if (mime.value.startsWith('image/')) return 'image';
+        if (mime.value.startsWith('video/')) return 'video';
+        if (mime.value.startsWith('audio/')) return 'audio';
+        if (mime.value.startsWith('application/pdf')) return 'pdf';
+        return 'text';
+      });
+
+      onMounted(async () => {
+        if (kind.value === 'text') {
+          loadingText.value = true;
+          try {
+            const res = await fetch(inlineUrl.value);
+            if (res.ok) textBody.value = await res.text();
+          } catch (_) {
+            textBody.value = 'Could not load text preview.';
+          } finally {
+            loadingText.value = false;
+          }
+        }
+      });
+
+      return { kind, inlineUrl, downloadUrl, textBody, loadingText };
+    },
+    template: `
+      <div class="modal" role="dialog" aria-modal="true" @click.self="$emit('close')">
+        <ui-panel class="modal-card modal-card--preview">
+          <panel-head :title="entry.name" :subtitle="entry.mime_type" icon="eye">
+            <a :href="downloadUrl" class="btn btn--default btn--sm" download>
+              <ui-icon name="download" :size="16" /><span class="btn__label">Download</span>
+            </a>
+            <ui-button size="icon" variant="ghost" icon="x" aria-label="Close" @click="$emit('close')" />
+          </panel-head>
+          <div class="sharing-preview__body">
+            <img v-if="kind === 'image'" :src="inlineUrl" :alt="entry.name" class="sharing-preview__media" />
+            <video v-else-if="kind === 'video'" :src="inlineUrl" controls autoplay class="sharing-preview__media"></video>
+            <audio v-else-if="kind === 'audio'" :src="inlineUrl" controls autoplay class="sharing-preview__audio"></audio>
+            <iframe v-else-if="kind === 'pdf'" :src="inlineUrl" class="sharing-preview__frame"></iframe>
+            <pre v-else class="sharing-preview__text">{{ loadingText ? 'Loading…' : textBody }}</pre>
+          </div>
+        </ui-panel>
+      </div>`,
+  };
+
+  components.SharingActionModal = {
+    name: 'SharingActionModal',
+    props: {
+      mode: { type: String, required: true }, // mkdir | rename | move | delete
+      entry: { type: Object, default: null },
+      folders: { type: Array, default: () => [] },
+      currentPath: { type: String, default: '' },
+    },
+    emits: ['close', 'confirm'],
+    setup(props, { emit }) {
+      const textValue = ref(props.mode === 'rename' && props.entry ? props.entry.name : '');
+      const selectedDir = ref('');
+
+      const title = computed(() => ({
+        mkdir: 'New Folder',
+        rename: 'Rename Entry',
+        move: 'Move To Folder',
+        delete: props.entry && props.entry.is_directory ? 'Delete Folder?' : 'Delete File?',
+      }[props.mode] || 'Action'));
+
+      const moveTargets = computed(() => {
+        const list = [];
+        if (props.currentPath) {
+          list.push({ label: 'Shared Root (/)', path: '' });
+          const parts = props.currentPath.split('/');
+          if (parts.length > 1) {
+            list.push({ label: 'Parent Folder (..)', path: parts.slice(0, -1).join('/') });
+          }
+        }
+        props.folders.forEach((f) => {
+          if (!props.entry || f.relative_path !== props.entry.relative_path) {
+            list.push({ label: f.name, path: f.relative_path });
+          }
+        });
+        return list;
+      });
+
+      function submit() {
+        if (props.mode === 'mkdir' || props.mode === 'rename') {
+          const clean = textValue.value.trim();
+          if (!clean) return;
+          emit('confirm', clean);
+        } else if (props.mode === 'move') {
+          emit('confirm', selectedDir.value);
+        } else {
+          emit('confirm', true);
+        }
+      }
+
+      return { textValue, selectedDir, title, moveTargets, submit };
+    },
+    template: `
+      <div class="modal" role="dialog" aria-modal="true" @click.self="$emit('close')">
+        <ui-panel class="modal-card">
+          <panel-head :title="title" icon="folder">
+            <ui-button size="icon" variant="ghost" icon="x" aria-label="Close" @click="$emit('close')" />
+          </panel-head>
+          <div class="sharing-modal-body">
+            <template v-if="mode === 'mkdir' || mode === 'rename'">
+              <input v-model="textValue" type="text" class="input"
+                     :placeholder="mode === 'mkdir' ? 'Folder name' : 'New name'"
+                     @keyup.enter="submit" />
+              <div class="sharing-modal-actions">
+                <ui-button variant="ghost" @click="$emit('close')">Cancel</ui-button>
+                <ui-button variant="primary" @click="submit">{{ mode === 'mkdir' ? 'Create' : 'Rename' }}</ui-button>
+              </div>
+            </template>
+            <template v-else-if="mode === 'move'">
+              <div v-if="moveTargets.length" class="sharing-move-list">
+                <button v-for="t in moveTargets" :key="t.path" type="button"
+                        class="sharing-move-item" :class="{ 'is-selected': selectedDir === t.path }"
+                        @click="$emit('confirm', t.path)">
+                  <ui-icon name="folder" :size="17" />
+                  <span>{{ t.label }}</span>
+                </button>
+              </div>
+              <p v-else class="sharing-muted">No other destination folders available here.</p>
+            </template>
+            <template v-else>
+              <p class="sharing-confirm-text">
+                Permanently delete <strong>{{ entry && entry.name }}</strong>? This cannot be undone.
+              </p>
+              <div class="sharing-modal-actions">
+                <ui-button variant="ghost" @click="$emit('close')">Cancel</ui-button>
+                <ui-button variant="danger" @click="submit">Delete</ui-button>
+              </div>
+            </template>
+          </div>
+        </ui-panel>
+      </div>`,
+  };
+
   components.ViewSharing = {
     name: 'ViewSharing',
     setup() {
-      return { tile: cardMeta('sharing') };
+      const wyrm = inject('wyrm');
+      const qrEntry = ref(null);
+      const previewEntry = ref(null);
+      const modalState = ref(null); // { mode, entry }
+
+      const isUnlocked = computed(() => !!wyrm.state.sharing.token);
+      const breadcrumbs = computed(() => {
+        const cur = wyrm.state.sharing.currentPath || '';
+        return cur ? cur.split('/').filter(Boolean) : [];
+      });
+      const foldersInView = computed(() =>
+        wyrm.state.sharing.entries.filter((e) => e.is_directory)
+      );
+      const filteredEntries = computed(() => {
+        const q = (wyrm.state.sharing.searchQuery || '').trim().toLowerCase();
+        const list = wyrm.state.sharing.entries;
+        if (!q) return list;
+        return list.filter((e) => e.name.toLowerCase().includes(q));
+      });
+
+      function goUp() {
+        const parts = breadcrumbs.value;
+        if (!parts.length) return;
+        wyrm.sharingFetchFiles(parts.slice(0, -1).join('/'));
+      }
+      function goToCrumb(index) {
+        if (index < 0) wyrm.sharingFetchFiles('');
+        else wyrm.sharingFetchFiles(breadcrumbs.value.slice(0, index + 1).join('/'));
+      }
+      function openEntry(entry) {
+        if (entry.is_directory) {
+          wyrm.sharingFetchFiles(entry.relative_path);
+        } else if (wyrm.isPreviewableMime(entry.mime_type)) {
+          previewEntry.value = entry;
+        } else {
+          window.location.href = wyrm.sharingDownloadUrl(entry.relative_path, false);
+        }
+      }
+      async function onModalConfirm(value) {
+        const m = modalState.value;
+        if (!m) return;
+        modalState.value = null;
+        if (m.mode === 'mkdir') await wyrm.sharingMkdir(value);
+        else if (m.mode === 'rename' && m.entry) await wyrm.sharingRename(m.entry.relative_path, value);
+        else if (m.mode === 'move' && m.entry) await wyrm.sharingMove(m.entry.relative_path, value);
+        else if (m.mode === 'delete' && m.entry) await wyrm.sharingDelete(m.entry.relative_path);
+      }
+
+      onMounted(() => {
+        if (isUnlocked.value && wyrm.state.sharing.hasPermission) {
+          wyrm.sharingFetchFiles(wyrm.state.sharing.currentPath);
+        }
+      });
+
+      return {
+        wyrm,
+        tile: cardMeta('sharing'),
+        isUnlocked,
+        breadcrumbs,
+        foldersInView,
+        filteredEntries,
+        qrEntry,
+        previewEntry,
+        modalState,
+        goUp,
+        goToCrumb,
+        openEntry,
+        onModalConfirm,
+      };
     },
     template: `
       <div class="view view--sharing">
-        <deck-tile v-bind="tile" class="deck-tile--inline" />
-        <coming-soon-panel icon="share" title="LAN File Sharing"
-                           hint="Upload files to the tablet, download tablet files to this device, or relay files between devices over your local Wi-Fi." />
+        <deck-tile v-bind="tile" class="deck-tile--inline view-span" />
+
+        <sharing-unlock-panel v-if="!isUnlocked" class="view-span" />
+
+        <template v-else>
+          <sharing-upload-zone class="view-span" />
+
+          <ui-panel class="view-span sharing-browser">
+            <panel-head title="Shared Files"
+                        :subtitle="filteredEntries.length + ' items · ' + wyrm.formatByteSize(wyrm.state.sharing.totalBytes)"
+                        icon="folder">
+              <ui-button size="sm" icon="folder-plus" @click="modalState = { mode: 'mkdir', entry: null }">New Folder</ui-button>
+              <ui-button size="icon" variant="ghost" icon="refresh" title="Refresh"
+                         @click="wyrm.sharingFetchFiles(wyrm.state.sharing.currentPath)" />
+              <ui-button size="icon" variant="ghost" icon="lock" title="Lock Sharing"
+                         @click="wyrm.sharingLogout()" />
+            </panel-head>
+
+            <div class="sharing-toolbar">
+              <div class="sharing-breadcrumbs">
+                <ui-button v-if="breadcrumbs.length" size="icon" variant="ghost" icon="arrow-up"
+                           title="Parent folder" @click="goUp" />
+                <button type="button" class="sharing-crumb" :class="{ 'is-active': !breadcrumbs.length }"
+                        @click="goToCrumb(-1)">Shared</button>
+                <template v-for="(seg, i) in breadcrumbs" :key="i">
+                  <span class="sharing-crumb__sep">/</span>
+                  <button type="button" class="sharing-crumb"
+                          :class="{ 'is-active': i === breadcrumbs.length - 1 }"
+                          @click="goToCrumb(i)">{{ seg }}</button>
+                </template>
+              </div>
+              <div class="sharing-controls">
+                <div class="sharing-search">
+                  <ui-icon name="search" :size="15" />
+                  <input v-model="wyrm.state.sharing.searchQuery" type="search"
+                         placeholder="Filter…" class="sharing-search__input" />
+                </div>
+                <div class="sharing-sorts">
+                  <button type="button" class="sharing-sort-btn"
+                          :class="{ 'is-active': wyrm.state.sharing.sortBy === 'name' }"
+                          @click="wyrm.sharingSetSort('name')">Name</button>
+                  <button type="button" class="sharing-sort-btn"
+                          :class="{ 'is-active': wyrm.state.sharing.sortBy === 'size' }"
+                          @click="wyrm.sharingSetSort('size')">Size</button>
+                  <button type="button" class="sharing-sort-btn"
+                          :class="{ 'is-active': wyrm.state.sharing.sortBy === 'modified' }"
+                          @click="wyrm.sharingSetSort('modified')">Date</button>
+                </div>
+              </div>
+            </div>
+
+            <p v-if="wyrm.state.sharing.error" class="sharing-error">{{ wyrm.state.sharing.error }}</p>
+
+            <div v-if="filteredEntries.length" class="sharing-list">
+              <div v-for="entry in filteredEntries" :key="entry.relative_path" class="sharing-row">
+                <button type="button" class="sharing-row__main" @click="openEntry(entry)">
+                  <ui-icon :name="entry.is_directory ? 'folder' : 'file'" :size="20"
+                           class="sharing-row__icon" :class="{ 'is-dir': entry.is_directory }" />
+                  <div class="sharing-row__info">
+                    <span class="sharing-row__name">{{ entry.name }}</span>
+                    <span class="sharing-row__meta">
+                      {{ entry.is_directory ? 'Folder' : wyrm.formatByteSize(entry.size_bytes) }}
+                    </span>
+                  </div>
+                </button>
+                <div class="sharing-row__actions">
+                  <ui-button v-if="!entry.is_directory && wyrm.isPreviewableMime(entry.mime_type)"
+                             size="icon" variant="ghost" icon="eye" title="Preview"
+                             @click="previewEntry = entry" />
+                  <a v-if="!entry.is_directory"
+                     :href="wyrm.sharingDownloadUrl(entry.relative_path, false)"
+                     class="btn btn--ghost btn--icon" title="Download" download>
+                    <ui-icon name="download" :size="18" />
+                  </a>
+                  <ui-button v-if="!entry.is_directory"
+                             size="icon" variant="ghost" icon="qr" title="QR handoff"
+                             @click="qrEntry = entry" />
+                  <ui-button size="icon" variant="ghost" icon="edit" title="Rename"
+                             @click="modalState = { mode: 'rename', entry }" />
+                  <ui-button size="icon" variant="ghost" icon="share" title="Move"
+                             @click="modalState = { mode: 'move', entry }" />
+                  <ui-button size="icon" variant="ghost" icon="trash" title="Delete"
+                             @click="modalState = { mode: 'delete', entry }" />
+                </div>
+              </div>
+            </div>
+            <empty-state v-else icon="folder"
+                         :title="wyrm.state.sharing.isLoading ? 'Loading…' : 'Empty folder'"
+                         hint="Drop files above or create a new folder." />
+          </ui-panel>
+        </template>
+
+        <sharing-qr-modal v-if="qrEntry" :entry="qrEntry" @close="qrEntry = null" />
+        <sharing-preview-modal v-if="previewEntry" :entry="previewEntry" @close="previewEntry = null" />
+        <sharing-action-modal v-if="modalState"
+                              :mode="modalState.mode"
+                              :entry="modalState.entry"
+                              :folders="foldersInView"
+                              :current-path="wyrm.state.sharing.currentPath"
+                              @close="modalState = null"
+                              @confirm="onModalConfirm" />
       </div>`,
   };
 
@@ -2253,7 +2729,9 @@
           case 'reminder':
             return cardHint('reminder', wyrm);
           case 'sharing':
-            return 'Local file transfer · Coming soon';
+            return wyrm.state.sharing.token
+              ? (wyrm.state.sharing.entries.length + ' items · ' + wyrm.formatByteSize(wyrm.state.sharing.totalBytes))
+              : 'Password-protected LAN file transfer';
           case 'sys':
             return 'Display and clock';
           default:

@@ -47,6 +47,8 @@ class MainActivity : FlutterActivity() {
     private var pendingOpenResult: MethodChannel.Result? = null
     private var pendingImportResult: MethodChannel.Result? = null
     private var pendingImportTargetDir: String? = null
+    private var pendingStoragePermissionResult: MethodChannel.Result? = null
+    private var hadStorageRationaleBeforeRequest: Boolean = false
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
@@ -104,7 +106,9 @@ class MainActivity : FlutterActivity() {
             .setMethodCallHandler { call, result ->
                 when (call.method) {
                     "hasAllFilesAccess" -> result.success(hasAllFilesAccess())
-                    "requestAllFilesAccess" -> result.success(requestAllFilesAccess())
+                    "requestAllFilesAccess" -> requestAllFilesAccess(result)
+                    "getDefaultSharingRoot" -> result.success(defaultSharingRootPath())
+                    "getExternalStorageRoot" -> result.success(externalStorageRootPath())
                     "openFile" -> openSharedFile(call, result)
                     "pickImportFile" -> pickImportFile(call, result)
                     else -> result.notImplemented()
@@ -423,15 +427,41 @@ class MainActivity : FlutterActivity() {
         return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
             Environment.isExternalStorageManager()
         } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            checkSelfPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE) ==
+            checkSelfPermission(Manifest.permission.READ_EXTERNAL_STORAGE) ==
+                PackageManager.PERMISSION_GRANTED &&
+                checkSelfPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE) ==
                 PackageManager.PERMISSION_GRANTED
         } else {
             true
         }
     }
 
-    private fun requestAllFilesAccess(): Boolean {
-        return try {
+    private fun defaultSharingRootPath(): String {
+        val downloads = try {
+            @Suppress("DEPRECATION")
+            Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
+        } catch (_: Exception) {
+            null
+        }
+        return if (downloads != null) {
+            File(downloads, "Wyrm").absolutePath
+        } else {
+            "/storage/emulated/0/Download/Wyrm"
+        }
+    }
+
+    private fun externalStorageRootPath(): String {
+        val root = try {
+            @Suppress("DEPRECATION")
+            Environment.getExternalStorageDirectory()
+        } catch (_: Exception) {
+            null
+        }
+        return root?.absolutePath ?: "/storage/emulated/0"
+    }
+
+    private fun requestAllFilesAccess(result: MethodChannel.Result) {
+        try {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
                 val appIntent = Intent(
                     Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION,
@@ -440,10 +470,23 @@ class MainActivity : FlutterActivity() {
                 try {
                     startActivity(appIntent)
                 } catch (_: Exception) {
-                    startActivity(Intent(Settings.ACTION_MANAGE_ALL_FILES_ACCESS_PERMISSION))
+                    try {
+                        startActivity(Intent(Settings.ACTION_MANAGE_ALL_FILES_ACCESS_PERMISSION))
+                    } catch (_: Exception) {
+                        openAppDetailsSettings()
+                    }
                 }
-                true
+                result.success(hasAllFilesAccess())
             } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                if (hasAllFilesAccess()) {
+                    result.success(true)
+                    return
+                }
+                pendingStoragePermissionResult?.success(false)
+                pendingStoragePermissionResult = result
+                hadStorageRationaleBeforeRequest =
+                    shouldShowRequestPermissionRationale(Manifest.permission.WRITE_EXTERNAL_STORAGE) ||
+                        shouldShowRequestPermissionRationale(Manifest.permission.READ_EXTERNAL_STORAGE)
                 requestPermissions(
                     arrayOf(
                         Manifest.permission.READ_EXTERNAL_STORAGE,
@@ -451,13 +494,47 @@ class MainActivity : FlutterActivity() {
                     ),
                     legacyStoragePermissionRequest
                 )
-                true
             } else {
-                true
+                result.success(true)
             }
         } catch (error: Exception) {
+            pendingStoragePermissionResult = null
             Log.e(tag, "Could not request all files access", error)
-            false
+            result.success(false)
+        }
+    }
+
+    private fun openAppDetailsSettings() {
+        val intent = Intent(
+            Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
+            Uri.parse("package:$packageName")
+        )
+        startActivity(intent)
+    }
+
+    override fun onRequestPermissionsResult(
+        requestCode: Int,
+        permissions: Array<out String>,
+        grantResults: IntArray
+    ) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        if (requestCode == legacyStoragePermissionRequest) {
+            val granted = hasAllFilesAccess()
+            if (!granted && Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                val canAskAgain =
+                    shouldShowRequestPermissionRationale(Manifest.permission.WRITE_EXTERNAL_STORAGE) ||
+                        shouldShowRequestPermissionRationale(Manifest.permission.READ_EXTERNAL_STORAGE)
+                if (!hadStorageRationaleBeforeRequest && !canAskAgain) {
+                    try {
+                        openAppDetailsSettings()
+                    } catch (error: Exception) {
+                        Log.w(tag, "Could not open app settings fallback", error)
+                    }
+                }
+            }
+            val pending = pendingStoragePermissionResult
+            pendingStoragePermissionResult = null
+            pending?.success(granted)
         }
     }
 
@@ -478,12 +555,24 @@ class MainActivity : FlutterActivity() {
                 "$packageName.fileprovider",
                 file
             )
-            val mimeType = call.argument<String>("mimeType") ?: "*/*"
+            val rawMime = call.argument<String>("mimeType")
+                ?.substringBefore(';')
+                ?.trim()
+                ?.takeIf { it.isNotEmpty() && it != "application/octet-stream" }
+                ?: "*/*"
             val intent = Intent(Intent.ACTION_VIEW).apply {
-                setDataAndType(uri, mimeType)
+                setDataAndType(uri, rawMime)
                 addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
             }
-            startActivity(Intent.createChooser(intent, file.name))
+            try {
+                startActivity(Intent.createChooser(intent, file.name))
+            } catch (_: Exception) {
+                val fallbackIntent = Intent(Intent.ACTION_VIEW).apply {
+                    setDataAndType(uri, "*/*")
+                    addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                }
+                startActivity(Intent.createChooser(fallbackIntent, file.name))
+            }
             result.success(true)
         } catch (error: Exception) {
             Log.e(tag, "Could not open shared file $path", error)
@@ -527,24 +616,28 @@ class MainActivity : FlutterActivity() {
             result?.success(null)
             return
         }
-        try {
-            val targetDir = File(targetDirPath).apply { mkdirs() }
-            val rawName = displayName(uri) ?: "imported_${System.currentTimeMillis()}"
-            val cleanName = rawName.replace("/", "_").replace("\\", "_")
-            val destination = resolveUniqueDestination(targetDir, cleanName)
-            val input = contentResolver.openInputStream(uri)
-                ?: throw IOException("Could not open selected file for reading")
-            input.use { src ->
-                destination.outputStream().use { dst ->
-                    src.copyTo(dst, bufferSize = 64 * 1024)
-                    dst.flush()
+        Thread {
+            try {
+                val targetDir = File(targetDirPath).apply { mkdirs() }
+                val rawName = displayName(uri) ?: "imported_${System.currentTimeMillis()}"
+                val cleanName = rawName.replace("/", "_").replace("\\", "_")
+                val destination = resolveUniqueDestination(targetDir, cleanName)
+                val input = contentResolver.openInputStream(uri)
+                    ?: throw IOException("Could not open selected file for reading")
+                input.use { src ->
+                    destination.outputStream().use { dst ->
+                        src.copyTo(dst, bufferSize = 64 * 1024)
+                        dst.flush()
+                    }
+                }
+                runOnUiThread { result?.success(destination.name) }
+            } catch (error: Exception) {
+                Log.e(tag, "Sharing import failed", error)
+                runOnUiThread {
+                    result?.error("IMPORT_FAILED", error.message ?: "Could not import file", null)
                 }
             }
-            result?.success(destination.name)
-        } catch (error: Exception) {
-            Log.e(tag, "Sharing import failed", error)
-            result?.error("IMPORT_FAILED", error.message ?: "Could not import file", null)
-        }
+        }.start()
     }
 
     private fun resolveUniqueDestination(dir: File, fileName: String): File {
@@ -570,11 +663,13 @@ class MainActivity : FlutterActivity() {
         pendingSaveResult?.success(null)
         pendingOpenResult?.success(null)
         pendingImportResult?.success(null)
+        pendingStoragePermissionResult?.success(false)
         pendingSaveResult = null
         pendingSaveContents = null
         pendingOpenResult = null
         pendingImportResult = null
         pendingImportTargetDir = null
+        pendingStoragePermissionResult = null
         super.onDestroy()
     }
 }

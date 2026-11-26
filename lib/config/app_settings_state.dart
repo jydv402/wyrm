@@ -25,7 +25,8 @@ class AppSettingsConfig {
   final double maxTextScaleFactor;
 
   /// Default Unified Shared Folder path on Android external storage.
-  static const String defaultSharingRootPath = '/storage/emulated/0/Download/Wyrm';
+  static const String defaultSharingRootPath =
+      '/storage/emulated/0/Download/Wyrm';
 
   /// Full external storage root when device-wide browsing is enabled.
   static const String deviceBrowseRootPath = '/storage/emulated/0';
@@ -118,7 +119,8 @@ class AppSettingsConfig {
           (json['min_text_scale_factor'] as num?)?.toDouble() ?? 0.85,
       maxTextScaleFactor:
           (json['max_text_scale_factor'] as num?)?.toDouble() ?? 1.15,
-      sharingRootPath: (rawSharingRoot != null && rawSharingRoot.trim().isNotEmpty)
+      sharingRootPath:
+          (rawSharingRoot != null && rawSharingRoot.trim().isNotEmpty)
           ? rawSharingRoot.trim()
           : defaultSharingRootPath,
       sharingAllowDeviceBrowse:

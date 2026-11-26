@@ -20,11 +20,11 @@ class SharingService {
   /// Ensures [rootPath] exists on disk.
   Future<SharingResult<void>> ensureDirectoryExists(String rootPath) async {
     try {
-      await Directory(rootPath).create(recursive: true);
+      await _createDirectoryIfMissing(Directory(rootPath));
       return const SharingSuccess<void>(null);
     } on FileSystemException catch (error) {
       return SharingError<void>(
-        SharingIoError('Could not initialize folder: ${error.message}'),
+        SharingIoError(_formatFsError('Could not initialize folder', rootPath, error)),
       );
     }
   }
@@ -47,9 +47,21 @@ class SharingService {
 
     final dir = Directory(resolvedDir);
     if (!await dir.exists()) {
-      return const SharingError<List<SharedFileEntry>>(
-        SharingNotFound('Directory does not exist.'),
-      );
+      if (normalizedRel.isEmpty) {
+        try {
+          await _createDirectoryIfMissing(dir);
+        } on FileSystemException catch (error) {
+          return SharingError<List<SharedFileEntry>>(
+            SharingIoError(
+              _formatFsError('Could not initialize folder', resolvedDir, error),
+            ),
+          );
+        }
+      } else {
+        return const SharingError<List<SharedFileEntry>>(
+          SharingNotFound('Directory does not exist.'),
+        );
+      }
     }
 
     try {
@@ -388,6 +400,25 @@ class SharingService {
         SharingIoError('Could not move or rename entry: ${error.message}'),
       );
     }
+  }
+
+  static Future<void> _createDirectoryIfMissing(Directory dir) async {
+    if (await dir.exists()) return;
+    if (await dir.parent.exists()) {
+      await dir.create();
+    } else {
+      await dir.create(recursive: true);
+    }
+  }
+
+  static String _formatFsError(
+    String prefix,
+    String targetPath,
+    FileSystemException error,
+  ) {
+    final os = error.osError;
+    final detail = os != null ? '${error.message} (${os.message})' : error.message;
+    return '$prefix "$targetPath": $detail';
   }
 
   static String _baseName(String path) {

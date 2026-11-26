@@ -3,11 +3,29 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:math';
 
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:wyrm_desk/config/app_settings_state.dart';
+import 'package:wyrm_desk/data/repositories/settings_repository.dart';
 import 'package:wyrm_desk/features/sharing/sharing_auth.dart';
 import 'package:wyrm_desk/features/sharing/sharing_models.dart';
+import 'package:wyrm_desk/features/sharing/sharing_notifier.dart';
 import 'package:wyrm_desk/features/sharing/sharing_path.dart';
 import 'package:wyrm_desk/features/sharing/sharing_service.dart';
+import 'package:wyrm_desk/native/sharing_gateway.dart';
+
+class _InMemorySettingsRepo implements SettingsRepository {
+  AppSettingsConfig config;
+  _InMemorySettingsRepo(this.config);
+
+  @override
+  Future<AppSettingsConfig> loadSettings() async => config;
+
+  @override
+  Future<void> saveSettings(AppSettingsConfig next) async {
+    config = next;
+  }
+}
 
 void main() {
   group('SharingPath traversal & collision guards', () {
@@ -168,5 +186,67 @@ void main() {
         );
       },
     );
+
+    test('listDirectory auto-creates missing root while rejecting missing subfolders', () async {
+      final missingRoot =
+          '${tempRoot.path}${Platform.pathSeparator}nested${Platform.pathSeparator}Wyrm';
+      expect(await Directory(missingRoot).exists(), isFalse);
+
+      final rootRes = await service.listDirectory(missingRoot, '');
+      expect(rootRes, isA<SharingSuccess<List<SharedFileEntry>>>());
+      expect(await Directory(missingRoot).exists(), isTrue);
+
+      final subRes = await service.listDirectory(missingRoot, 'missing_sub');
+      expect(subRes, isA<SharingError<List<SharedFileEntry>>>());
+      expect(
+        (subRes as SharingError<List<SharedFileEntry>>).failure,
+        isA<SharingNotFound>(),
+      );
+    });
+  });
+
+  group('SharingNotifier auto directory initialization', () {
+    test('creates default folder once permission is granted even with device browse enabled', () async {
+      final tempBase = await Directory.systemTemp.createTemp('wyrm_notifier_');
+      addTearDown(() async {
+        if (await tempBase.exists()) {
+          await tempBase.delete(recursive: true);
+        }
+      });
+
+      final defaultDir =
+          '${tempBase.path}${Platform.pathSeparator}Download${Platform.pathSeparator}Wyrm';
+      final gateway = FakeSharingGateway(
+        allFilesAccessGranted: false,
+        defaultRootPath: defaultDir,
+        deviceBrowseRootPath: tempBase.path,
+      );
+      final container = ProviderContainer(
+        overrides: [
+          settingsRepositoryProvider.overrideWithValue(
+            _InMemorySettingsRepo(
+              const AppSettingsConfig(sharingAllowDeviceBrowse: true),
+            ),
+          ),
+          sharingGatewayProvider.overrideWithValue(gateway),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      container.read(sharingProvider);
+      await container
+          .read(sharingProvider.notifier)
+          .refreshPermissionAndDirectory();
+      expect(await Directory(defaultDir).exists(), isFalse);
+
+      gateway.allFilesAccessGranted = true;
+      await container
+          .read(sharingProvider.notifier)
+          .refreshPermissionAndDirectory();
+
+      expect(await Directory(defaultDir).exists(), isTrue);
+      expect(container.read(sharingProvider).hasPermission, isTrue);
+      expect(container.read(sharingProvider).activeRootPath, tempBase.path);
+    });
   });
 }

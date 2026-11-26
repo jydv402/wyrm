@@ -42,6 +42,7 @@ void main() {
         expect(find.text('Display & Brightness'), findsOneWidget);
         expect(find.text('Clock & Calendar'), findsOneWidget);
         expect(find.text('Reminders & Alarms'), findsOneWidget);
+        expect(find.text('Local File Sharing'), findsOneWidget);
         expect(find.text('Card Appearance'), findsOneWidget);
         expect(find.text('Web Remote Companion'), findsOneWidget);
         expect(find.text('Data & Backups'), findsOneWidget);
@@ -306,7 +307,7 @@ void main() {
           find.byType(DuskGlassPanel),
         );
         expect(panels, isNotEmpty);
-        expect(panels.length, 7);
+        expect(panels.length, 8);
 
         for (final panel in panels) {
           expect(panel.tone, AppColors.glacier);
